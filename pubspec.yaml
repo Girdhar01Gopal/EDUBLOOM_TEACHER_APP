@@ -1,0 +1,86 @@
+name: teacher_app_edubloom
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  collection:
+  get: ^4.6.6
+  flutter_screenutil:
+  auto_size_text:
+  intl:
+  http:
+  get_storage:
+  carousel_slider:
+  logger:
+  fluttertoast:
+  google_fonts:
+  provider:
+  badges:
+  win32:
+  permission_handler:
+  pdf_widget_wrapper:
+  path_provider:
+  flutter_file_downloader:
+  url_launcher:
+  youtube_player_flutter:
+  flutter_calendar_carousel:
+  search_page:
+  custom_refresh_indicator:
+  cached_network_image:
+  share_plus:
+  extended_image:
+  printing:
+  number_to_words:
+  firebase_core:
+  firebase_crashlytics:
+  package_info_plus:
+  in_app_update:
+  firebase_messaging:
+  firebase_analytics:
+  lottie:
+  pdf:
+  fetch_mobile_numbers:
+  geolocator:
+  geocoding:
+  firebase_auth:
+  flutter_otp_text_field:
+  image_picker:
+  multi_select_flutter:
+  dio:
+  connectivity_plus:
+  file_picker: ^8.1.4
+  device_info_plus:
+  open_filex:
+  flutter_cashfree_pg_sdk: 2.3.4+51
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/image/
+    - assets/images/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
+          weight: 700
