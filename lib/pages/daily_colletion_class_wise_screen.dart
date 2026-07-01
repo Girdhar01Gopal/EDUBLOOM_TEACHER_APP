@@ -8,7 +8,7 @@ class FeeCollectionClassWiseScreen extends GetView<FeeCollectionClassWiseControl
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return Scaffold(
       appBar: AppBar(
@@ -119,7 +119,7 @@ class FeeCollectionClassWiseScreen extends GetView<FeeCollectionClassWiseControl
                         dataRowMinHeight: 50.h,
                         dataRowMaxHeight: 60.h,
                         headingRowColor: MaterialStatePropertyAll(
-                          Colors.teal.shade800,
+                          const Color(0xFF97144D),
                         ),
                         headingTextStyle: TextStyle(
                           color: Colors.white,

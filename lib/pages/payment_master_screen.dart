@@ -15,7 +15,7 @@ class PaymentMasterScreen extends GetView<PaymentMasterController> {
         appBar: AppBar(
           title: const Text("Payment Master", style: TextStyle(color: Colors.white)),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF6E0F38),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -257,7 +257,7 @@ class ViewPaymentTab extends GetView<PaymentMasterController> {
                           CircleAvatar(
                             radius: 22.r,
                             backgroundColor: Colors.teal.shade50,
-                            child: Icon(Icons.payment, color: Colors.teal.shade800),
+                            child: Icon(Icons.payment,  color: const Color(0xFF97144D),),
                           ),
                           SizedBox(width: 12.w),
 

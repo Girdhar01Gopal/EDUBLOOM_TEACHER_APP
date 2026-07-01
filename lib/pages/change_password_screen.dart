@@ -11,7 +11,7 @@ class ChangePasswordScreen extends GetView<ChangePasswordController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
         title: Text(
@@ -51,7 +51,7 @@ class ChangePasswordScreen extends GetView<ChangePasswordController> {
                 SizedBox(height: 14.h),
 
                 // ✅ shows what controller picked (for debug)
-               
+
                 /// Old Password
                 Obx(() => _passwordField(
                   label: "Current Password",

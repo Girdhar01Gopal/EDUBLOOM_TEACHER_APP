@@ -13,8 +13,8 @@ import 'mother_image_picker daycare.dart';
 
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal      = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal      = Color(0xFF97144D); // Axis Bank maroon
+const _tealLight = Color(0xFFC2185B); // lighter maroon accent
 const _surface   = Color(0xFFFFFFFF);
 const _textSecondary = Color(0xFF607D8B);
 
@@ -159,10 +159,10 @@ class _ImagePreviewCard extends StatelessWidget {
                 height: 200.h,
                 width: 200.h,
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+                  color: _teal.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(16.r),
                   border:
-                  Border.all(color: Colors.teal.shade100, width: 2),
+                  Border.all(color: _teal.withOpacity(0.15), width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -252,7 +252,7 @@ class _NextButton extends StatelessWidget {
           gradient: LinearGradient(
             colors: isSubmit
                 ? [const Color(0xFFE53935), const Color(0xFFC62828)]
-                : [const Color(0xFF00897B), const Color(0xFF00695C)],
+                : [_tealLight, _teal],
           ),
           borderRadius: BorderRadius.circular(14.r),
           boxShadow: [

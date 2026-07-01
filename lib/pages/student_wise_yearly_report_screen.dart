@@ -79,7 +79,7 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF4F6F9),
       drawer: AppDrawer(),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF00695C),
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         toolbarHeight: 70.h,
         centerTitle: true,
@@ -193,7 +193,7 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 12.h),
               child: const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF00695C),
+                  color: Color(0xFF97144D),
                   strokeWidth: 2,
                 ),
               ),
@@ -317,7 +317,7 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
                   width: 22.r,
                   height: 22.r,
                   child: const CircularProgressIndicator(
-                    color: Color(0xFF00695C),
+                    color: Color(0xFF97144D),
                     strokeWidth: 2.5,
                   ),
                 )
@@ -356,14 +356,14 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
                         child: Container(
                           padding: EdgeInsets.all(8.r),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00695C)
+                            color: const Color(0xFF97144D)
                                 .withOpacity(0.10),
                             borderRadius:
                             BorderRadius.circular(8.r),
                           ),
                           child: Icon(
                             Icons.share_rounded,
-                            color: const Color(0xFF00695C),
+                            color: const Color(0xFF97144D),
                             size: 22.r,
                           ),
                         ),
@@ -387,7 +387,7 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
                 scrollDirection: Axis.vertical,
                 child: DataTable(
                   headingRowColor: MaterialStateProperty.all(
-                      const Color(0xFF004D40)),
+                      const Color(0xFF6E0F38)),
                   headingTextStyle: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -420,7 +420,7 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
                         color: MaterialStateProperty.all(
                           isEven
                               ? Colors.white
-                              : const Color(0xFFF0F9F8),
+                              : const Color(0xFFF6E6ED),
                         ),
                         cells: [
                           _cell('${item.sNo}'),
@@ -441,7 +441,7 @@ class StudentWiseYearlyReportScreen extends StatelessWidget {
                     // ── Totals row ───────────────────────────────────
                     DataRow(
                       color: MaterialStateProperty.all(
-                          const Color(0xFF004D40)),
+                          const Color(0xFF6E0F38)),
                       cells: [
                         _totalLabelCell('Total'),
                         _totalLabelCell(''),

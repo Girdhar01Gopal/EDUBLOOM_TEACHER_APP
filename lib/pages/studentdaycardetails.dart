@@ -10,13 +10,13 @@ import '../controller/student_controller daycare.dart' as daycare_controller;
 import '../controller/student_controller.dart';
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal = Color(0xFF97144D);
+const _tealLight = Color(0xFFB0295F);
 const _surface = Color(0xFFFFFFFF);
-const _cardBg = Color(0xFFF8FFFE);
+const _cardBg = Color(0xFFFFF5F8);
 const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
-const _divider = Color(0xFFE0F2F1);
+const _divider = Color(0xFFF3E0E7);
 
 // ═══════════════════════════════════════════════════════════
 // StudentDetailScreenday
@@ -985,7 +985,7 @@ class StudentDetailScreenday extends StatelessWidget {
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF00695C)],
+          colors: [Color(0xFFAE1B5C), Color(0xFF97144D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1224,7 +1224,7 @@ class StudentDetailScreenday extends StatelessWidget {
       height: 70,
       width: 70,
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: const Color(0xFFF6E6ED),
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(Icons.person_outline, color: _tealLight),
@@ -1236,7 +1236,7 @@ class StudentDetailScreenday extends StatelessWidget {
       height: 56,
       width: 56,
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: const Color(0xFFF6E6ED),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Icon(Icons.image_outlined, color: _tealLight),

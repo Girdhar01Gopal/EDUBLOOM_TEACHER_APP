@@ -15,7 +15,7 @@ class Masterview extends GetView<Mastercontroller> {
       drawer: AppDrawer(),
 
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,

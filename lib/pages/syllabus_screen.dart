@@ -26,7 +26,7 @@ class SyllabusScreen extends GetView<SyllabusController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF99144E),
           title: const Text(
             "📚 Syllabus",
             style: TextStyle(color: Colors.white),
@@ -370,9 +370,9 @@ class _AddSyllabusTabState extends State<AddSyllabusTab> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   border: Border.all(
-                      color: Colors.teal.shade300, width: 1.5),
+                      color: const Color(0xFFD195AF), width: 1.5),
                   borderRadius: BorderRadius.circular(12.r),
-                  color: Colors.teal.shade50,
+                  color: const Color(0xFFF7EEF2),
                 ),
                 child: file != null
                     ? _buildFilePreview(file)
@@ -380,12 +380,12 @@ class _AddSyllabusTabState extends State<AddSyllabusTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.add_circle_outline,
-                        size: 40.sp, color: Colors.teal.shade400),
+                        size: 40.sp, color: const Color(0xFFC17294)),
                     SizedBox(height: 8.h),
                     Text("Tap to select file",
                         style: TextStyle(
                             fontSize: 14.sp,
-                            color: Colors.teal.shade600)),
+                            color: const Color(0xFFA83768))),
                     SizedBox(height: 4.h),
                     Text("Camera • Gallery • PDF",
                         style: TextStyle(
@@ -664,12 +664,12 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
                           height: 34.r,
                           width: 34.r,
                           decoration: BoxDecoration(
-                            color: Colors.teal.shade50,
+                            color: const Color(0xFFF7EEF2),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
                             Icons.menu_book,
-                            color: Colors.teal[700],
+                            color: const Color(0xFFA1265C),
                             size: 18.sp,
                           ),
                         ),
@@ -737,7 +737,7 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
                             LinearProgressIndicator(
                               value: progress,
                               backgroundColor: Colors.grey.shade200,
-                              color: Colors.teal,
+                              color: const Color(0xFFB24E7A),
                               minHeight: 6,
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -746,7 +746,7 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
                               "Downloading ${(progress * 100).toStringAsFixed(0)}%",
                               style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.teal.shade700),
+                                  color: const Color(0xFFA1265C)),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -771,7 +771,7 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
                               icon: const Icon(Icons.download, size: 18),
                               label: const Text("Download & Share"),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal.shade700,
+                                backgroundColor: const Color(0xFFA1265C),
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(
                                     horizontal: 14.w, vertical: 10.h),

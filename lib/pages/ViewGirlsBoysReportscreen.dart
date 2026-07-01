@@ -9,7 +9,7 @@ class ViewGirlsBoysReportScreen extends GetView<ViewGirlsBoysReportController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +62,7 @@ class ViewGirlsBoysReportScreen extends GetView<ViewGirlsBoysReportController> {
                         onChanged: controller.setSelectedSession,
                         decoration: InputDecoration(
                           labelText: 'Session',
-                          labelStyle: const TextStyle(color: Colors.teal),
+                          labelStyle: const TextStyle(color: Color(0xFF97144D)),
                           border: const OutlineInputBorder(),
                           filled: true,
                           fillColor: Colors.white,
@@ -97,7 +97,7 @@ class ViewGirlsBoysReportScreen extends GetView<ViewGirlsBoysReportController> {
                           label: RichText(
                             text: const TextSpan(
                               text: "Gender",
-                              style: TextStyle(color: Colors.teal),
+                              style: TextStyle(color: Color(0xFF97144D)),
                               children: [
                                 TextSpan(
                                   text: " *",

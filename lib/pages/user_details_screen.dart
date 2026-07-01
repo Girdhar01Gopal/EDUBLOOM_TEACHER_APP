@@ -14,7 +14,7 @@ class UserDetailsScreen extends GetView<UserDetailsController> {
       backgroundColor: const Color(0xFFF4F6F9),
       drawer: AppDrawer(),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF00695C),
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         toolbarHeight: 70.h,
         centerTitle: true,
@@ -34,7 +34,7 @@ class UserDetailsScreen extends GetView<UserDetailsController> {
       body: Obx(() {
         if (controller.isLoading.value) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF00695C)),
+            child: CircularProgressIndicator(color: Color(0xFF97144D)),
           );
         }
         if (controller.userList.isEmpty) {
@@ -75,7 +75,7 @@ class UserDetailsScreen extends GetView<UserDetailsController> {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
       decoration: const BoxDecoration(
-        color: Color(0xFF004D40),
+        color: Color(0xFF6E0F39),
       ),
       child: Row(
         children: [
@@ -127,7 +127,7 @@ class UserDetailsScreen extends GetView<UserDetailsController> {
           scrollDirection: Axis.horizontal,
           child: DataTable(
             headingRowColor:
-            MaterialStateProperty.all(const Color(0xFF004D40)),
+            MaterialStateProperty.all(const Color(0xFF6E0F39)),
             headingTextStyle: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -154,7 +154,7 @@ class UserDetailsScreen extends GetView<UserDetailsController> {
               final isEven = index % 2 == 0;
               return DataRow(
                 color: MaterialStateProperty.all(
-                  isEven ? Colors.white : const Color(0xFFF0F9F8),
+                  isEven ? Colors.white : const Color(0xFFF3E0E8),
                 ),
                 cells: [
                   _cell('${index + 1}'),

@@ -41,14 +41,14 @@ class TransferCertificateReportsScreen
             children: [
               Row(
                 children: [
-                  Icon(Icons.search, color: Colors.teal.shade800),
+                  Icon(Icons.search, color: const Color(0xFF97144D)),
                   SizedBox(width: 8.w),
                   Text(
                     "Search Student",
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
-                      color: Colors.teal.shade800,
+                      color: const Color(0xFF97144D),
                     ),
                   ),
                 ],
@@ -74,7 +74,7 @@ class TransferCertificateReportsScreen
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
-                    BorderSide(color: Colors.teal.shade800, width: 2),
+                    BorderSide(color: const Color(0xFF97144D), width: 2),
                   ),
                   filled: true,
                   fillColor: Colors.grey.shade50,
@@ -92,14 +92,14 @@ class TransferCertificateReportsScreen
                         Navigator.pop(context);
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.teal.shade800),
+                        side: BorderSide(color: const Color(0xFF97144D)),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: Text(
                         'Clear',
-                        style: TextStyle(color: Colors.teal.shade800),
+                        style: TextStyle(color: const Color(0xFF97144D)),
                       ),
                     ),
                   ),
@@ -108,7 +108,7 @@ class TransferCertificateReportsScreen
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade800,
+                        backgroundColor: const Color(0xFF97144D),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -145,7 +145,7 @@ class TransferCertificateReportsScreen
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         elevation: 4,
         actions: [
           IconButton(
@@ -196,7 +196,7 @@ class TransferCertificateReportsScreen
                       }).toList(),
                       decoration: const InputDecoration(
                         labelText: 'Session',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -220,7 +220,7 @@ class TransferCertificateReportsScreen
                       onChanged: (val) => controller.setSelectedClass(val),
                       decoration: const InputDecoration(
                         labelText: 'Class',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -252,7 +252,7 @@ class TransferCertificateReportsScreen
                       },
                       decoration: const InputDecoration(
                         labelText: "Section",
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -301,8 +301,8 @@ class TransferCertificateReportsScreen
                   label: Text('🔍 "$q"'),
                   deleteIcon: const Icon(Icons.close, size: 16),
                   onDeleted: () => controller.searchQuery.value = '',
-                  backgroundColor: Colors.teal.shade50,
-                  side: BorderSide(color: Colors.teal.shade800),
+                  backgroundColor: const Color(0xFFF3E0E8),
+                  side: BorderSide(color: const Color(0xFF97144D)),
                 ),
               );
             }),
@@ -350,7 +350,7 @@ class TransferCertificateReportsScreen
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
                       headingRowColor: MaterialStateProperty.all(
-                          Colors.teal.shade800),
+                          const Color(0xFF97144D)),
                       headingTextStyle: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -376,7 +376,7 @@ class TransferCertificateReportsScreen
                           color: MaterialStateProperty.resolveWith<Color?>(
                                 (states) => index % 2 == 0
                                 ? Colors.white
-                                : Colors.teal.shade50,
+                                : const Color(0xFFF3E0E8),
                           ),
                           cells: [
                             DataCell(Text('${index + 1}')),

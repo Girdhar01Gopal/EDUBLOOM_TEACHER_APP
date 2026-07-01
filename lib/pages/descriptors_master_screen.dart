@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../controller/descriptors_controller.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class DescriptorsMasterScreen extends StatefulWidget {
   const DescriptorsMasterScreen({super.key});
 
@@ -47,7 +50,7 @@ class _DescriptorsMasterScreenState extends State<DescriptorsMasterScreen>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         iconTheme: const IconThemeData(color: Colors.white),
         bottom: TabBar(
           controller: _tabController,
@@ -130,7 +133,7 @@ class _AddDescriptorsTab extends GetView<DescriptorsController> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6.r),
-                        borderSide: BorderSide(color: Colors.teal.shade700),
+                        borderSide: const BorderSide(color: kAxisMaroon),
                       ),
                     ),
                   ),

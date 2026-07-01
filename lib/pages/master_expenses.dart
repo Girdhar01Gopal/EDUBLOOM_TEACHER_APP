@@ -17,7 +17,7 @@ class Masterexpensesscreen extends GetView<MasterExpensesViewController> {
       backgroundColor: const Color(0xFFF4F6F9),
       drawer: AppDrawer(),
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,

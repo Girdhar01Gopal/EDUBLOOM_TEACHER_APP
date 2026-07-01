@@ -18,7 +18,7 @@ class ForgotPasswordScreen extends GetView<ForgotPasswordController> {
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: Colors.lightBlue,
+        backgroundColor: const Color(0xFF97144D),
         iconTheme: const IconThemeData(color: Colors.white), // white back arrow
       ),
       body: Padding(
@@ -45,7 +45,7 @@ class ForgotPasswordScreen extends GetView<ForgotPasswordController> {
               child: Obx(
                     () => ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue,
+                    backgroundColor: const Color(0xFF97144D),
                     padding: EdgeInsets.symmetric(
                         horizontal: 40.w, vertical: 14.h),
                     shape: RoundedRectangleBorder(
@@ -55,7 +55,7 @@ class ForgotPasswordScreen extends GetView<ForgotPasswordController> {
                   onPressed: controller.isLoading.value
                       ? null
                       : () {
-                   controller.resetlink(  context);
+                    controller.resetlink(  context);
                     final email = controller.emailController.text.trim();
 
                     if (email.isEmpty) {

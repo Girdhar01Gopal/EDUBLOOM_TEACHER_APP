@@ -23,7 +23,7 @@ class MapFoundationalSkillsScreen
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -59,7 +59,7 @@ class _AddTab extends GetView<MapFoundationalSkillsController> {
       borderSide: BorderSide(color: Colors.grey.shade300),
     ),
     focusedBorder: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.teal.shade800),
+      borderSide: const BorderSide(color: Color(0xFF97144D)),
     ),
     isDense: true,
     filled: true,

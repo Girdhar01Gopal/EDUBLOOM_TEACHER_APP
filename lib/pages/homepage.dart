@@ -28,16 +28,16 @@ class _DS {
   static const textDark  = Color(0xFF1A2847);
   static const textMid   = Color(0xFF5A6A8A);
   static const textLight = Color(0xFF9BACC8);
-  static const tealDeep   = Color(0xFF004D40);
-  static const tealDark   = Color(0xFF00695C);
-  static const tealMid    = Color(0xFF00796B);
-  static const tealAccent = Color(0xFF00897B);
-  static const tealLight  = Color(0xFF4DB6AC);
-  static const tealPale   = Color(0xFFB2DFDB);
+  static const tealDeep   = Color(0xFF5E0E29);
+  static const tealDark   = Color(0xFF7A1236);
+  static const tealMid    = Color(0xFF8F1542);
+  static const tealAccent = Color(0xFFA11A4D);
+  static const tealLight  = Color(0xFFC75080);
+  static const tealPale   = Color(0xFFE8B8CC);
   static const appBarGrad = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF004D40), Color(0xFF00695C), Color(0xFF00796B)],
+    colors: [Color(0xFF5E0E29), Color(0xFF7A1236), Color(0xFF8F1542)],
   );
 }
 
@@ -407,9 +407,9 @@ class _DashboardBodyState extends State<_DashboardBody> with TickerProviderState
             children: [
               _wrap(_op0, _sl0, _WelcomeBanner(controller: widget.controller)),
               SizedBox(height: 10.h),
-              _wrap(_op0, _sl0, Obx(() => SubscriptionMiniCard(
-                expiryDateStr: widget.controller.expiryDate.value,
-              ))),
+              // _wrap(_op0, _sl0, Obx(() => SubscriptionMiniCard(
+              //   expiryDateStr: widget.controller.expiryDate.value,
+              // ))),
               SizedBox(height: 18.h),
               _wrap(_op1, _sl1, _StatsRow(controller: widget.controller)),
               SizedBox(height: 18.h),
@@ -497,10 +497,10 @@ class _WelcomeBannerState extends State<_WelcomeBanner> with TickerProviderState
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topLeft, end: Alignment.bottomRight,
-              colors: [Color(0xFF004D40), Color(0xFF00695C), Color(0xFF00796B)],
+              colors: [Color(0xFF5E0E29), Color(0xFF7A1236), Color(0xFF8F1542)],
             ),
             borderRadius: BorderRadius.circular(28.r),
-            boxShadow: [BoxShadow(color: const Color(0xFF004D40).withOpacity(0.38), blurRadius: 32, offset: const Offset(0, 12))],
+            boxShadow: [BoxShadow(color: const Color(0xFF5E0E29).withOpacity(0.38), blurRadius: 32, offset: const Offset(0, 12))],
           ),
           child: Stack(
             clipBehavior: Clip.none,
@@ -538,7 +538,7 @@ class _WelcomeBannerState extends State<_WelcomeBanner> with TickerProviderState
               children: [
                 Row(
                   children: [
-                    Text("Welcome, Admin", style: TextStyle(fontSize: 17.sp, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.2)),
+                    Text("Welcome, Teacher", style: TextStyle(fontSize: 17.sp, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.2)),
                     SizedBox(width: 4.w),
                     Text("👋", style: TextStyle(fontSize: 17.sp)),
                   ],
@@ -637,34 +637,34 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: _PremiumStatCard(
-            gradient: const [Color(0xFFFF8C00), Color(0xFFF5A623)],
-            glowColor: const Color(0xFFFF8C00),
-            icon: Icons.people_alt_rounded,
-            label: "Total Students",
-            valueBuilder: () => Obx(() => Text(
-              "${controller.totalStudentCount.value}",
-              style: TextStyle(fontSize: 30.sp, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
-            )),
-            badge: "View All →",
-            onTap: () => Get.toNamed(RouteName.totalstudent),
-          ),
-        ),
+        // Expanded(
+        //   child: _PremiumStatCard(
+        //     gradient: const [Color(0xFFFF8C00), Color(0xFFF5A623)],
+        //     glowColor: const Color(0xFFFF8C00),
+        //     icon: Icons.people_alt_rounded,
+        //     label: "Total Students",
+        //     valueBuilder: () => Obx(() => Text(
+        //       "${controller.totalStudentCount.value}",
+        //       style: TextStyle(fontSize: 30.sp, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
+        //     )),
+        //     badge: "View All →",
+        //     onTap: () => Get.toNamed(RouteName.totalstudent),
+        //   ),
+        // ),
         SizedBox(width: 14.w),
-        Expanded(
-          child: _PremiumStatCard(
-            gradient: const [Color(0xFFEF4444), Color(0xFFFF6B6B)],
-            glowColor: const Color(0xFFEF4444),
-            icon: Icons.account_balance_wallet_rounded,
-            label: "Fees Due – ${DateFormat('MMM').format(DateTime.now())}",
-            valueBuilder: () => Obx(() => Text(
-              "₹ ${controller.totaldueamount.value}",
-              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
-            )),
-            badge: "Pending",
-          ),
-        ),
+        // Expanded(
+        //   child: _PremiumStatCard(
+        //     gradient: const [Color(0xFFEF4444), Color(0xFFFF6B6B)],
+        //     glowColor: const Color(0xFFEF4444),
+        //     icon: Icons.account_balance_wallet_rounded,
+        //     label: "Fees Due – ${DateFormat('MMM').format(DateTime.now())}",
+        //     valueBuilder: () => Obx(() => Text(
+        //       "₹ ${controller.totaldueamount.value}",
+        //       style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
+        //     )),
+        //     badge: "Pending",
+        //   ),
+        // ),
       ],
     );
   }
@@ -1172,7 +1172,7 @@ class _AnimatedFabState extends State<_AnimatedFab> with TickerProviderStateMixi
               margin: EdgeInsets.only(bottom: 10.h, right: 4.w),
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF004D40), Color(0xFF00796B)]),
+                gradient: const LinearGradient(colors: [Color(0xFF5E0E29), Color(0xFF8F1542)]),
                 borderRadius: BorderRadius.only(topLeft: Radius.circular(18.r), topRight: Radius.circular(18.r), bottomLeft: Radius.circular(18.r), bottomRight: Radius.circular(4.r)),
                 boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 4))],
               ),

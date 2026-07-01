@@ -13,7 +13,7 @@ class ClassTeacherScreen extends GetView<ClassTeacherController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return DefaultTabController(
       length: 2,
@@ -212,7 +212,7 @@ class _ViewTab extends GetView<ClassTeacherController> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-    final list = controller.classTeacherList;
+      final list = controller.classTeacherList;
 
 
       return Padding(
@@ -241,60 +241,60 @@ class _ViewTab extends GetView<ClassTeacherController> {
               ),
               SizedBox(height: 10.h),
 
-         Expanded(
-  child: controller.isListLoading.value
-      ? const Center(child: CircularProgressIndicator())
-      : list.isEmpty
-          ? const Center(child: Text("No record found"))
-          : Scrollbar(
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text("S.no")),
-                      DataColumn(label: Text("Teacher")),
-                      DataColumn(label: Text("Registration No")),
-                      DataColumn(label: Text("Class")),
-                      DataColumn(label: Text("Section")),
-                      DataColumn(label: Text("Create Date")),
-                      DataColumn(label: Text("Create By")),
-                      DataColumn(label: Text("Action")),
-                    ],
-                    rows: List.generate(list.length, (i) {
-                      final x = list[i]; // x is Data (your model)
-                      final isActive = (x.action ?? "1") == "1";
-
-                      return DataRow(
-                        cells: [
-                          DataCell(Text("${i + 1}")),
-                          DataCell(Text(x.name ?? "-")),
-                          DataCell(Text(x.regrationNo ?? "-")),
-                          DataCell(Text(x.className ?? "-")),
-                          DataCell(Text(x.sectionName ?? "-")),
-                          DataCell(
-                            Text(
-                              _formatDate(x.createDate),
-                            ),
-                          ),
-                          DataCell(Text(x.createBy ?? "-")),
-                          DataCell(
-                            Icon(
-                              Icons.check_circle,
-                              color: isActive ? Colors.green : Colors.grey,
-                            ),
-                          ),
+              Expanded(
+                child: controller.isListLoading.value
+                    ? const Center(child: CircularProgressIndicator())
+                    : list.isEmpty
+                    ? const Center(child: Text("No record found"))
+                    : Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text("S.no")),
+                          DataColumn(label: Text("Teacher")),
+                          DataColumn(label: Text("Registration No")),
+                          DataColumn(label: Text("Class")),
+                          DataColumn(label: Text("Section")),
+                          DataColumn(label: Text("Create Date")),
+                          DataColumn(label: Text("Create By")),
+                          DataColumn(label: Text("Action")),
                         ],
-                      );
-                    }),
+                        rows: List.generate(list.length, (i) {
+                          final x = list[i]; // x is Data (your model)
+                          final isActive = (x.action ?? "1") == "1";
+
+                          return DataRow(
+                            cells: [
+                              DataCell(Text("${i + 1}")),
+                              DataCell(Text(x.name ?? "-")),
+                              DataCell(Text(x.regrationNo ?? "-")),
+                              DataCell(Text(x.className ?? "-")),
+                              DataCell(Text(x.sectionName ?? "-")),
+                              DataCell(
+                                Text(
+                                  _formatDate(x.createDate),
+                                ),
+                              ),
+                              DataCell(Text(x.createBy ?? "-")),
+                              DataCell(
+                                Icon(
+                                  Icons.check_circle,
+                                  color: isActive ? Colors.green : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-),
-  ],
+            ],
           ),
         ),
       );

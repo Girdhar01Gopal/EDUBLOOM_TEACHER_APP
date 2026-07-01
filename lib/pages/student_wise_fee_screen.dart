@@ -22,7 +22,7 @@ class StudentWiseFeeScreen extends GetView<StudentWiseFeeController> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF6E0F38),
         elevation: 4,
       ),
       body: Padding(
@@ -127,7 +127,7 @@ class StudentWiseFeeScreen extends GetView<StudentWiseFeeController> {
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
                           headingRowColor:
-                          MaterialStateProperty.all(Colors.teal.shade700),
+                          MaterialStateProperty.all(const Color(0xFF97144D)),
                           headingTextStyle: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,

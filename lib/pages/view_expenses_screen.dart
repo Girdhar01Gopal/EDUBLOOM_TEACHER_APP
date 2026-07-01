@@ -7,7 +7,7 @@ import '../controller/view_expenses_controller.dart';
 class ViewExpensesScreen extends GetView<ViewExpensesController> {
   const ViewExpensesScreen({super.key});
 
-  static const _teal = Color(0xFF00695C); // teal.shade800
+  static const _teal = Color(0xFF97144D); // axis maroon
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +239,7 @@ class _ExpensesTable extends StatelessWidget {
             padding:
             EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: const Color(0xFF00695C),
+              color: const Color(0xFF97144D),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(10.r),
                 topRight: Radius.circular(10.r),

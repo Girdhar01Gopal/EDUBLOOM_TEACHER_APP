@@ -18,7 +18,7 @@ class DaycareFeePaymentScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF00796B),
+        backgroundColor: const Color(0xFF97144D),
         centerTitle: true,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -38,7 +38,7 @@ class DaycareFeePaymentScreen extends StatelessWidget {
       body: Obx(() {
         if (c.isLoading.value) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF00796B)),
+            child: CircularProgressIndicator(color: Color(0xFF97144D)),
           );
         }
 
@@ -64,7 +64,7 @@ class DaycareFeePaymentScreen extends StatelessWidget {
         }
 
         return RefreshIndicator(
-          color:     const Color(0xFF00796B),
+          color:     const Color(0xFF97144D),
           onRefresh: () => c.fetchPayments(
             registrationNo: c.registrationNo.value,
             session:        c.session.value,
@@ -112,14 +112,14 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00796B), Color(0xFF004D40)],
+          colors: [Color(0xFF97144D), Color(0xFF4A0E29)],
           begin:  Alignment.topLeft,
           end:    Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color:      Colors.teal.withOpacity(0.35),
+            color:      const Color(0xFF97144D).withOpacity(0.35),
             blurRadius: 16,
             offset:     const Offset(0, 6),
           ),
@@ -142,7 +142,7 @@ class _SummaryCard extends StatelessWidget {
           Row(
             children: [
               Expanded(child: _kpi("Total",    total, Colors.white)),
-              Expanded(child: _kpi("Paid",     paid,  const Color(0xFF80CBC4))),
+              Expanded(child: _kpi("Paid",     paid,  const Color(0xFFF48FB1))),
               Expanded(child: _kpi("Due",      due,   const Color(0xFFFF8A80))),
               Expanded(child: _kpi("Discount", disc,  const Color(0xFFFFD180))),
             ],
@@ -218,7 +218,7 @@ class _TransactionCard extends StatelessWidget {
           // ── Header ──
           Container(
             decoration: const BoxDecoration(
-              color: Color(0xFF00796B),
+              color: Color(0xFF97144D),
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
@@ -278,14 +278,14 @@ class _TransactionCard extends StatelessWidget {
                 Row(
                   children: [
                     const Icon(Icons.payment,
-                        size: 15, color: Color(0xFF00796B)),
+                        size: 15, color: Color(0xFF97144D)),
                     const SizedBox(width: 5),
                     Text(
                       item.paymentMode ?? 'N/A',
                       style: const TextStyle(
                         fontSize:   13,
                         fontWeight: FontWeight.w600,
-                        color:      Color(0xFF00796B),
+                        color:      Color(0xFF97144D),
                       ),
                     ),
                   ],
@@ -372,14 +372,14 @@ class _TransactionCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color:        const Color(0xFFE0F2F1),
+                    color:        const Color(0xFFFDF0F5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     item.feeMonth ?? '',
                     style: const TextStyle(
                         fontSize:   12,
-                        color:      Color(0xFF00796B),
+                        color:      Color(0xFF97144D),
                         fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -488,7 +488,7 @@ class _ErrorView extends StatelessWidget {
               icon:  const Icon(Icons.refresh),
               label: const Text("Retry"),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00796B),
+                  backgroundColor: const Color(0xFF97144D),
                   foregroundColor: Colors.white),
             ),
           ],
@@ -507,7 +507,7 @@ class _EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      color:     const Color(0xFF00796B),
+      color:     const Color(0xFF97144D),
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),

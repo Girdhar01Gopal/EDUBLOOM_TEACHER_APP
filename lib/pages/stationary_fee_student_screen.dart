@@ -32,7 +32,7 @@ class StationaryFeeStudentScreen extends GetView<StationaryFeeStudentController>
                 ),
               ),
               centerTitle: true,
-              backgroundColor: Colors.teal.shade800,
+              backgroundColor: const Color(0xFF6E0F38),
               elevation: 2,
               bottom: const TabBar(
                 indicatorColor: Colors.white,
@@ -320,7 +320,7 @@ class StationaryFeeStudentScreen extends GetView<StationaryFeeStudentController>
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
-                                        Colors.teal.shade700,
+                                        const Color(0xFF97144D),
                                         padding: EdgeInsets.symmetric(
                                           horizontal: 12.w,
                                           vertical: 8.h,

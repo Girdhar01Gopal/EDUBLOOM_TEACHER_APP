@@ -14,7 +14,7 @@ class AddFeeHeadScreen extends GetView<AddFeeHeadController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D); // Axis Bank maroon
 
     return DefaultTabController(
       length: 2,

@@ -239,6 +239,9 @@ import 'package:intl/intl.dart';
 
 import '../controller/feetypemaster.dart';
 
+// ─── Axis Bank maroon accent ───────────────────────────────────────────────
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class FeeTypeMasterScreen extends StatelessWidget {
   const FeeTypeMasterScreen({super.key});
 
@@ -256,7 +259,7 @@ class FeeTypeMasterScreen extends StatelessWidget {
             style: TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,

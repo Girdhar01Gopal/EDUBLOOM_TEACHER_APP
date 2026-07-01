@@ -8,7 +8,7 @@ class FeeDailyCollectionScreen extends GetView<FeeDailyCollectionController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D); // Axis Bank maroon
 
     return Scaffold(
       appBar: AppBar(
@@ -119,7 +119,7 @@ class FeeDailyCollectionScreen extends GetView<FeeDailyCollectionController> {
                         dataRowMinHeight: 50.h,
                         dataRowMaxHeight: 60.h,
                         headingRowColor: MaterialStatePropertyAll(
-                          Colors.teal.shade800,
+                          teal,
                         ),
                         headingTextStyle: TextStyle(
                           color: Colors.white,

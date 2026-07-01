@@ -18,7 +18,7 @@ class AddProductsScreen extends GetView<AddProductsController> {
             style: TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -90,7 +90,7 @@ class _AddTab extends GetView<AddProductsController> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Colors.teal),
+                  borderSide: const BorderSide(color: Color(0xFF97144D)),
                 ),
               ),
             ),

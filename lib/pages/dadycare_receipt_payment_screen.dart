@@ -212,7 +212,7 @@ class _DaycareFeeReceiptPrintScreenState
               },
               children: [
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.teal700),
+                  decoration: pw.BoxDecoration(color: PdfColor.fromInt(0xFF97144D)),
                   children: [
                     _pTH("S.No"), _pTH("Fee Type"), _pTH("Month"),
                     _pTH("Amount"), _pTH("Discount"), _pTH("Due"), _pTH("Paid"),
@@ -330,7 +330,7 @@ class _DaycareFeeReceiptPrintScreenState
               fontWeight: FontWeight.w700, fontSize: 17, color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF00796B),
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         shape: const RoundedRectangleBorder(
@@ -339,7 +339,7 @@ class _DaycareFeeReceiptPrintScreenState
       ),
       body: _loading
           ? const Center(
-          child: CircularProgressIndicator(color: Color(0xFF00796B)))
+          child: CircularProgressIndicator(color: Color(0xFF97144D)))
           : _error != null
           ? Center(
         child: Padding(
@@ -386,7 +386,7 @@ class _DaycareFeeReceiptPrintScreenState
           children: [
             _DaycareReceiptCopyCard(
               copyLabel:   "Parents Copy",
-              accentColor: const Color(0xFF00796B),
+              accentColor: const Color(0xFF97144D),
               feeDetails:  _feeDetails,
               receiptNo:   _receiptNo,
               logoUrl:     _dynamicSchoolLogoUrl,

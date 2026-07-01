@@ -10,6 +10,9 @@ import '../models/classmodel.dart';
 import '../models/terms_result_model.dart';
 import 'ReportCardDetailScreenfull.dart';
 
+const Color axisMaroon = Color(0xFF97144D);
+const Color axisMaroonLight = Color(0xFFF3E0E9);
+
 class ReportCardScreen extends GetView<ReportCardController> {
   const ReportCardScreen({super.key});
 
@@ -31,7 +34,7 @@ class ReportCardScreen extends GetView<ReportCardController> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF6E0F38),
         elevation: 4,
       ),
       body: Padding(
@@ -179,7 +182,7 @@ class ReportCardScreen extends GetView<ReportCardController> {
                             width: 32.w,
                             height: 32.w,
                             decoration: BoxDecoration(
-                              color: Colors.teal.shade50,
+                              color: axisMaroonLight,
                               borderRadius: BorderRadius.circular(8.r),
                             ),
                             alignment: Alignment.center,
@@ -188,7 +191,7 @@ class ReportCardScreen extends GetView<ReportCardController> {
                               style: TextStyle(
                                 fontSize: 13.sp,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.teal.shade800,
+                                color: axisMaroon,
                               ),
                             ),
                           ),
@@ -219,8 +222,8 @@ class ReportCardScreen extends GetView<ReportCardController> {
                                 Row(
                                   children: [
                                     _chip(item.className,
-                                        Colors.teal.shade50,
-                                        Colors.teal.shade700),
+                                        axisMaroonLight,
+                                        axisMaroon),
                                     SizedBox(width: 6.w),
                                     _chip(item.term,
                                         Colors.pink.shade50,
@@ -406,7 +409,7 @@ class ReportCardScreen extends GetView<ReportCardController> {
   InputDecoration _dec(String label) => InputDecoration(
     labelText: "$label *",
     labelStyle: TextStyle(
-        color: Colors.teal.shade800, fontWeight: FontWeight.w600),
+        color: axisMaroon, fontWeight: FontWeight.w600),
     border:
     OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
     enabledBorder: OutlineInputBorder(
@@ -414,7 +417,7 @@ class ReportCardScreen extends GetView<ReportCardController> {
         borderSide: BorderSide(color: Colors.grey.shade300)),
     focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: BorderSide(color: Colors.teal.shade800)),
+        borderSide: BorderSide(color: axisMaroon)),
     isDense: true,
     filled: true,
     fillColor: Colors.grey.shade50,

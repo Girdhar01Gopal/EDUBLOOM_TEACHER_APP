@@ -10,8 +10,8 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/daycareaddstudentmodel.dart';
 
 
-const _teal = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal = Color(0xFF97144D);
+const _tealLight = Color(0xFFC2185B);
 const _surface = Color(0xFFFFFFFF);
 const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
@@ -295,7 +295,7 @@ class _DaycareClassStudentsScreenState
                   child: Container(
                     height: 68.w,
                     width: 68.w,
-                    color: Colors.teal.shade50,
+                    color: const Color(0xFFFDF0F5),
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,

@@ -14,6 +14,9 @@ import '../controller/event_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class EventScreen extends GetView<EventController> {
   const EventScreen({super.key});
 
@@ -24,7 +27,7 @@ class EventScreen extends GetView<EventController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           title: const Text(
             "📝Upcoming Events",
             style: TextStyle(color: Colors.white),
@@ -253,9 +256,9 @@ class _AddEventTabState extends State<AddEventTab> {
               height: 160.h,
               width: double.infinity,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.teal.shade300, width: 1.5),
+                border: Border.all(color: kAxisMaroon.withOpacity(0.4), width: 1.5),
                 borderRadius: BorderRadius.circular(12.r),
-                color: Colors.teal.shade50,
+                color: kAxisMaroon.withOpacity(0.05),
               ),
               child: file != null
                   ? Stack(
@@ -286,12 +289,12 @@ class _AddEventTabState extends State<AddEventTab> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_photo_alternate_outlined,
-                      size: 40.sp, color: Colors.teal.shade400),
+                      size: 40.sp, color: kAxisMaroon.withOpacity(0.6)),
                   SizedBox(height: 8.h),
                   Text("Tap to select image",
                       style: TextStyle(
                           fontSize: 14.sp,
-                          color: Colors.teal.shade600)),
+                          color: kAxisMaroon.withOpacity(0.8))),
                   SizedBox(height: 4.h),
                   Text("Camera • Gallery",
                       style: TextStyle(
@@ -680,7 +683,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                             LinearProgressIndicator(
                               value: progress,
                               backgroundColor: Colors.grey.shade200,
-                              color: Colors.teal,
+                              color: kAxisMaroon,
                               minHeight: 6,
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -689,7 +692,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                               "Downloading ${(progress * 100).toStringAsFixed(0)}%",
                               style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.teal.shade700),
+                                  color: kAxisMaroon),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -716,7 +719,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                               icon: const Icon(Icons.download, size: 18),
                               label: const Text("Download & Share"),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal.shade700,
+                                backgroundColor: kAxisMaroon,
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(
                                     horizontal: 14.w, vertical: 10.h),

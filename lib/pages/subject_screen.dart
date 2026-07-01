@@ -17,7 +17,7 @@ class SubjectScreen extends GetView<SubjectController> {
             style: TextStyle(color: Colors.white), // Text color set to white
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800, // AppBar color
+          backgroundColor: const Color(0xFF99144E), // AppBar color
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Get.back(),
@@ -135,12 +135,12 @@ class ViewSubjectTab extends GetView<SubjectController> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.teal.shade100.withOpacity(0.6),
+                    color: const Color(0xFFEAD0DB).withOpacity(0.6),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
-                border: Border.all(color: Colors.teal.shade100, width: 1.2),
+                border: Border.all(color: const Color(0xFFEAD0DB), width: 1.2),
               ),
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
@@ -151,8 +151,8 @@ class ViewSubjectTab extends GetView<SubjectController> {
                       width: 52.w,
                       height: 52.w,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.teal.shade400, Colors.teal.shade700],
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFC17294), Color(0xFFA1265C)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),

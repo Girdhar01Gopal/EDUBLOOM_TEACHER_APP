@@ -14,7 +14,7 @@ class Totalstudentview extends GetView<Totalstudentcontroller> {
           onTap: () => Get.back(),
           child: const Icon(Icons.arrow_back, color: Colors.white),
         ),
-        backgroundColor: Colors.teal[800],
+        backgroundColor: const Color(0xFF97144D),
         title: const Text(
           'Total Students',
           style: TextStyle(color: Colors.white),
@@ -82,7 +82,7 @@ class Totalstudentview extends GetView<Totalstudentcontroller> {
           BoxShadow(
             color: isDaycare
                 ? Colors.orange.withOpacity(0.12)
-                : Colors.teal.withOpacity(0.10),
+                : const Color(0xFF97144D).withOpacity(0.10),
             spreadRadius: 1,
             blurRadius: 8,
             offset: const Offset(0, 3),
@@ -91,7 +91,7 @@ class Totalstudentview extends GetView<Totalstudentcontroller> {
         border: Border.all(
           color: isDaycare
               ? Colors.orange.shade100
-              : Colors.teal.shade50,
+              : const Color(0xFFF3E0E8),
           width: 1,
         ),
       ),
@@ -100,7 +100,7 @@ class Totalstudentview extends GetView<Totalstudentcontroller> {
         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor:
-          isDaycare ? Colors.orange[700] : Colors.teal[800],
+          isDaycare ? Colors.orange[700] : const Color(0xFF97144D),
           radius: 24,
           child: Text(
             isDaycare

@@ -19,7 +19,7 @@ class Behaviourview extends GetView<Behaviourcontroller> {
           ),
           centerTitle: true,
           elevation: 2,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           title: Text(
             "Behaviour Activity",
             style: TextStyle(
@@ -75,7 +75,7 @@ class PostActivity extends GetView<Behaviourcontroller> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.teal.shade700, Colors.teal.shade400],
+                colors: [const Color(0xFF97144D), const Color(0xFFC2185B)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -175,7 +175,7 @@ class PostActivity extends GetView<Behaviourcontroller> {
 Widget _sectionLabel(String label, IconData icon) {
   return Row(
     children: [
-      Icon(icon, size: 16, color: Colors.teal.shade700),
+      Icon(icon, size: 16, color: const Color(0xFF97144D)),
       const SizedBox(width: 6),
       Text(
         label,
@@ -383,7 +383,7 @@ class ViewActivityScreen extends GetView<Behaviourcontroller> {
                           Expanded(
                             child: _infoRowCompact(
                               icon: Icons.play_circle_outline_rounded,
-                              iconColor: Colors.teal,
+                              iconColor: const Color(0xFF97144D),
                               label: "From",
                               value: from.isEmpty ? "N/A" : from,
                             ),
@@ -530,7 +530,7 @@ Widget _classDropdown(Behaviourcontroller controller) {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.teal.shade400, width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
         ),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -583,7 +583,7 @@ Widget _studentSelector(Behaviourcontroller controller) {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.people_rounded, size: 18, color: Colors.teal.shade600),
+            Icon(Icons.people_rounded, size: 18, color: const Color(0xFF97144D)),
           ],
         ),
       ),
@@ -627,7 +627,7 @@ void _openStudentSelector(Behaviourcontroller controller) {
                         .contains(student.studentId);
                     return CheckboxListTile(
                       value: isSelected,
-                      activeColor: Colors.teal.shade700,
+                      activeColor: const Color(0xFF97144D),
                       title: Text(student.studentName ?? "Unnamed"),
                       onChanged: (checked) {
                         if (checked == true) {
@@ -656,7 +656,7 @@ void _openStudentSelector(Behaviourcontroller controller) {
             child: ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal.shade700,
+                backgroundColor: const Color(0xFF97144D),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -768,7 +768,7 @@ Widget _timeBox(String label, RxString val, Function onTap) {
               ),
             ),
             Icon(Icons.access_time_rounded,
-                size: 18, color: Colors.teal.shade600),
+                size: 18, color: const Color(0xFF97144D)),
           ],
         ),
       ),
@@ -795,7 +795,7 @@ Widget _activityField(Behaviourcontroller controller) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.teal.shade400, width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
       ),
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

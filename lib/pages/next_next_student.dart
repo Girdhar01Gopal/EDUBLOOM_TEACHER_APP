@@ -13,8 +13,8 @@ import 'father_image.dart';
 
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal      = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal      = Color(0xFF97144D);
+const _tealLight = Color(0xFFC2185B);
 const _surface   = Color(0xFFFFFFFF);
 const _textSecondary = Color(0xFF607D8B);
 
@@ -268,7 +268,7 @@ class _NextButton extends StatelessWidget {
           gradient: LinearGradient(
             colors: isSubmit
                 ? [const Color(0xFFE53935), const Color(0xFFC62828)]
-                : [const Color(0xFF00897B), const Color(0xFF00695C)],
+                : [const Color(0xFFAD1457), const Color(0xFF97144D)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

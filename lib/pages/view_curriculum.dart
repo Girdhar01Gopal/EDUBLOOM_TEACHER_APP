@@ -13,7 +13,7 @@ class ViewCurriculumView extends GetView<ViewCurriculumController> {
       backgroundColor: const Color(0xFFF3F5F7),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         centerTitle: true,
         title: const Text(
           'View Curriculum',

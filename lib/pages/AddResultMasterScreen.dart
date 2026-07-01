@@ -47,7 +47,7 @@ class _AddResultMasterScreenState extends State<AddResultMasterScreen>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         iconTheme: const IconThemeData(color: Colors.white),
         bottom: TabBar(
           controller: _tabController,
@@ -82,8 +82,8 @@ InputDecoration _fieldDec(String label) => InputDecoration(
   enabledBorder: OutlineInputBorder(
     borderSide: BorderSide(color: Colors.grey.shade300),
   ),
-  focusedBorder: OutlineInputBorder(
-    borderSide: BorderSide(color: Colors.teal.shade800),
+  focusedBorder: const OutlineInputBorder(
+    borderSide: BorderSide(color: Color(0xFF97144D)),
   ),
   isDense: true,
   filled: true,
@@ -521,7 +521,7 @@ class _StudentCard extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
             decoration: BoxDecoration(
-              color: Colors.teal.shade800,
+              color: const Color(0xFF97144D),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(12.r),
                 topRight: Radius.circular(12.r),
@@ -726,7 +726,7 @@ class _StudentCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14.sp, color: Colors.teal.shade700),
+          Icon(icon, size: 14.sp, color: const Color(0xFF97144D)),
           SizedBox(width: 4.w),
           Flexible(
             child: Column(
@@ -762,7 +762,7 @@ class _StudentCard extends StatelessWidget {
       case "A":
         return Colors.green.shade600;
       case "B":
-        return Colors.teal.shade600;
+        return const Color(0xFF97144D);
       case "C":
         return Colors.blue.shade600;
       case "D":

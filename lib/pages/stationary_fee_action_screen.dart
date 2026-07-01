@@ -17,7 +17,7 @@ class StationaryFeeActionScreen extends GetView<StationaryFeeActionController> {
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF6E0F38),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(

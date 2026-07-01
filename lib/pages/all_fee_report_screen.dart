@@ -12,7 +12,7 @@ class AllFeeReportScreen extends GetView<AllFeeReportController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return Scaffold(
       appBar: AppBar(
@@ -52,63 +52,63 @@ class AllFeeReportScreen extends GetView<AllFeeReportController> {
                 return controller.rows.isEmpty
                     ? Center(child: Text('No data available'))
                     : ListView.builder(
-                        itemCount: controller.rows.length,
-                        itemBuilder: (context, index) {
-                          final report = controller.rows[index];
-                          return Card(
-                            margin: EdgeInsets.symmetric(vertical: 8.h),
-                            child: Padding(
-                              padding: EdgeInsets.all(12.w),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Student Name
-                                  Text(
-                                    'Student Name: ${report.studentName ?? 'Not Available'}',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Text(
-                                    'Registration No: ${report.registrationNo ?? 'Not Available'}',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8.h),
-
-                                  // Tuition and Transport Fee
-                                  _buildFeeDetails(
-                                    'Tuition Fee',
-                                    report.tutionFee,
-                                  ),
-                                  _buildFeeDetails(
-                                    'Transport Fee',
-                                    report.transportFee,
-                                  ),
-
-                                  // Total Amount
-                                  _buildFeeDetails(
-                                    'Total Amount',
-                                    report.totalAmount,
-                                    isBold: true,
-                                  ),
-
-                                  // Payment Details (APR, AUG, SEP)
-                                  _buildPaymentRow(report),
-
-                                  SizedBox(height: 10.h),
-
-                                  // Due Amounts (APR, OCT, DEC)
-                                  _buildDueRow(report),
-                                ],
+                  itemCount: controller.rows.length,
+                  itemBuilder: (context, index) {
+                    final report = controller.rows[index];
+                    return Card(
+                      margin: EdgeInsets.symmetric(vertical: 8.h),
+                      child: Padding(
+                        padding: EdgeInsets.all(12.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Student Name
+                            Text(
+                              'Student Name: ${report.studentName ?? 'Not Available'}',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          );
-                        },
-                      );
+                            SizedBox(height: 6.h),
+                            Text(
+                              'Registration No: ${report.registrationNo ?? 'Not Available'}',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+
+                            // Tuition and Transport Fee
+                            _buildFeeDetails(
+                              'Tuition Fee',
+                              report.tutionFee,
+                            ),
+                            _buildFeeDetails(
+                              'Transport Fee',
+                              report.transportFee,
+                            ),
+
+                            // Total Amount
+                            _buildFeeDetails(
+                              'Total Amount',
+                              report.totalAmount,
+                              isBold: true,
+                            ),
+
+                            // Payment Details (APR, AUG, SEP)
+                            _buildPaymentRow(report),
+
+                            SizedBox(height: 10.h),
+
+                            // Due Amounts (APR, OCT, DEC)
+                            _buildDueRow(report),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
               }),
             ),
           ],
@@ -132,62 +132,62 @@ class AllFeeReportScreen extends GetView<AllFeeReportController> {
   }
 
 // Helper Widget to display payment amounts (APR, AUG, SEP)
-Widget _buildPaymentRow(AllFeesReport report) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      _buildPaymentAmount('APR', report.apRPayAmount),
-      _buildPaymentAmount('AUG', report.auGPayAmount),
-      _buildPaymentAmount('SEP', report.sePPayAmount),
-    ],
-  );
-}
+  Widget _buildPaymentRow(AllFeesReport report) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildPaymentAmount('APR', report.apRPayAmount),
+        _buildPaymentAmount('AUG', report.auGPayAmount),
+        _buildPaymentAmount('SEP', report.sePPayAmount),
+      ],
+    );
+  }
 
 // Helper Widget to display due amounts (APR, OCT, DEC)
-Widget _buildDueRow(AllFeesReport report) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      _buildDueAmount('APR', report.apRDueAmount),
-      _buildDueAmount('OCT', report.ocTPayAmount),
-      _buildDueAmount('DEC', report.deCPayAmount),
-    ],
-  );
-}
+  Widget _buildDueRow(AllFeesReport report) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildDueAmount('APR', report.apRDueAmount),
+        _buildDueAmount('OCT', report.ocTPayAmount),
+        _buildDueAmount('DEC', report.deCPayAmount),
+      ],
+    );
+  }
 
 // Helper Widget to display payment amount for a specific month
-Widget _buildPaymentAmount(String month, int? amount) {
-  return Column(
-    children: [
-      Text(
-        '$month Payment:',
-        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
-      ),
-      SizedBox(height: 4.h),
-      Text(
-        '\₹${amount ?? 0}',
-        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-      ),
-    ],
-  );
-}
+  Widget _buildPaymentAmount(String month, int? amount) {
+    return Column(
+      children: [
+        Text(
+          '$month Payment:',
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          '\₹${amount ?? 0}',
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
 
 // Helper Widget to display due amount for a specific month
-Widget _buildDueAmount(String month, int? amount) {
-  return Column(
-    children: [
-      Text(
-        '$month Due:',
-        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
-      ),
-      SizedBox(height: 4.h),
-      Text(
-        '\₹${amount ?? 0}',
-        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-      ),
-    ],
-  );
-}
+  Widget _buildDueAmount(String month, int? amount) {
+    return Column(
+      children: [
+        Text(
+          '$month Due:',
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          '\₹${amount ?? 0}',
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
 
   // Helper Widget to display payment amount for a specific month
 

@@ -22,7 +22,7 @@ class Mealactivityview extends GetView<Mealcontroller> {
           ),
           centerTitle: true,
           elevation: 2,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF6E0F38),
           title: Text(
             "Meal Activity",
             style: TextStyle(
@@ -78,7 +78,7 @@ class PostActivity extends GetView<Mealcontroller> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.teal.shade700, Colors.teal.shade400],
+                colors: [const Color(0xFF97144D), const Color(0xFFC2185B)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -178,7 +178,7 @@ class PostActivity extends GetView<Mealcontroller> {
 Widget _sectionLabel(String label, IconData icon) {
   return Row(
     children: [
-      Icon(icon, size: 16, color: Colors.teal.shade700),
+      Icon(icon, size: 16, color: const Color(0xFF97144D)),
       const SizedBox(width: 6),
       Text(
         label,
@@ -386,7 +386,7 @@ class ViewActivityScreen extends GetView<Mealcontroller> {
                           Expanded(
                             child: _infoRowCompact(
                               icon: Icons.play_circle_outline_rounded,
-                              iconColor: Colors.teal,
+                              iconColor: const Color(0xFFAD1457),
                               label: "From",
                               value: from.isEmpty ? "N/A" : from,
                             ),
@@ -533,7 +533,7 @@ Widget _classDropdown(Mealcontroller controller) {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.teal.shade400, width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
         ),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -586,7 +586,7 @@ Widget _studentSelector(Mealcontroller controller) {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.people_rounded, size: 18, color: Colors.teal.shade600),
+            Icon(Icons.people_rounded, size: 18, color: const Color(0xFFAD1457)),
           ],
         ),
       ),
@@ -630,7 +630,7 @@ void _openStudentSelector(Mealcontroller controller) {
                         .contains(student.studentId);
                     return CheckboxListTile(
                       value: isSelected,
-                      activeColor: Colors.teal.shade700,
+                      activeColor: const Color(0xFF97144D),
                       title: Text(student.studentName ?? "Unnamed"),
                       onChanged: (checked) {
                         if (checked == true) {
@@ -659,7 +659,7 @@ void _openStudentSelector(Mealcontroller controller) {
             child: ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal.shade700,
+                backgroundColor: const Color(0xFF97144D),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -771,7 +771,7 @@ Widget _timeBox(String label, RxString val, Function onTap) {
               ),
             ),
             Icon(Icons.access_time_rounded,
-                size: 18, color: Colors.teal.shade600),
+                size: 18, color: const Color(0xFFAD1457)),
           ],
         ),
       ),
@@ -798,7 +798,7 @@ Widget _activityField(Mealcontroller controller) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.teal.shade400, width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
       ),
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

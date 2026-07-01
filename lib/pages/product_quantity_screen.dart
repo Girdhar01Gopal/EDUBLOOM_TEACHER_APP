@@ -24,7 +24,7 @@ class ProductQuantityScreen extends StatelessWidget {
             ),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF6E0F38),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,

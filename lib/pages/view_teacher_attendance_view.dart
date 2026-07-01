@@ -123,7 +123,7 @@ class ViewTeacherAttendanceScreen
                           ? null
                           : controller.fetchReport,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade800,
+                        backgroundColor: const Color(0xFF97144D),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
@@ -242,10 +242,10 @@ class ViewTeacherAttendanceScreen
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
+                              gradient: const LinearGradient(
                                 colors: [
-                                  Colors.teal.shade600,
-                                  Colors.teal.shade900,
+                                  Color(0xFFAD1F5C),
+                                  Color(0xFF6E0F39),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -352,7 +352,7 @@ class ViewTeacherAttendanceScreen
       child: Obx(() {
         final searching = _isSearching.value;
         return AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
@@ -434,7 +434,7 @@ class ViewTeacherAttendanceScreen
                     fontWeight: FontWeight.bold,
                     color: (i == 0 || i == 6)
                         ? Colors.red.shade400
-                        : Colors.teal.shade700,
+                        : const Color(0xFF97144D),
                   ),
                 ),
               ),

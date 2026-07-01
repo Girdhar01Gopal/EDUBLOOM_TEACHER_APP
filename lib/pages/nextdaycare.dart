@@ -11,8 +11,8 @@ import '../controller/student_controller daycare.dart' as daycare;
 import 'next_next_student daycare.dart';
 
 // ─── Palette (same as StudentScreen) ───────────────────────
-const _teal          = Color(0xFF00695C);
-const _tealLight     = Color(0xFF26A69A);
+const _teal          = Color(0xFF97144D);   // Axis Bank maroon
+const _tealLight     = Color(0xFFC2185B);   // Axis Bank maroon (light)
 const _cardBg        = Color(0xFFF8FFFE);
 const _surface       = Color(0xFFFFFFFF);
 const _textSecondary = Color(0xFF607D8B);
@@ -402,8 +402,8 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                             colors: [
-                              Color(0xFF00897B),
-                              Color(0xFF00695C)
+                              Color(0xFFAD1457 ),
+                              Color(0xFF97144D)
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight),

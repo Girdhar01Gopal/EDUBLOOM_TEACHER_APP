@@ -7,6 +7,9 @@ import '../controller/discount_list_master.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class DiscountListMasterScreen extends StatelessWidget {
   DiscountListMasterScreen({super.key});
 
@@ -17,7 +20,7 @@ class DiscountListMasterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         elevation: 4,
         centerTitle: true,
         leading: IconButton(
@@ -78,7 +81,7 @@ class DiscountListMasterScreen extends StatelessWidget {
                       }).toList(),
                       decoration: const InputDecoration(
                         labelText: 'Session',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -108,7 +111,7 @@ class DiscountListMasterScreen extends StatelessWidget {
                       },
                       decoration: const InputDecoration(
                         labelText: 'Class',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -143,7 +146,7 @@ class DiscountListMasterScreen extends StatelessWidget {
                       },
                       decoration: const InputDecoration(
                         labelText: "Section",
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,

@@ -14,7 +14,7 @@ class ResultViewScreen extends GetView<ResultViewController> {
       drawer: AppDrawer(),
 
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800, // AppBar color
+        backgroundColor: const Color(0xFF6E0F38), // AppBar color
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,

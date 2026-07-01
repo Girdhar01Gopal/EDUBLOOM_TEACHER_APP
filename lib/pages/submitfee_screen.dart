@@ -16,7 +16,7 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.refreshData();
     });
-    
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -32,49 +32,49 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
             ),
             Obx(() => controller.selectedRows.isNotEmpty
                 ? Text(
-                    "${controller.selectedRows.length} fee(s) selected",
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  )
+              "${controller.selectedRows.length} fee(s) selected",
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            )
                 : const SizedBox.shrink()),
           ],
         ),
-        backgroundColor: const Color.fromARGB(255, 37, 80, 76),
+        backgroundColor: const Color(0xFF99144E),
         actions: [
           Obx(() => controller.selectedRows.length < 2
               ? InkWell(
-                  onTap: () async {
-                    final discountAmount = await Get.toNamed(
-                      RouteName.add_discount,
-                      arguments: {
-                        'selectedRows': controller.selectedRows,
-                        'studentId': controller.selectedStudentId.value,
-                      },
-                    );
-                    if (discountAmount != null && discountAmount is int) {
-                      controller.applyDiscountToSelectedFees(discountAmount);
-                      await controller.refreshData();
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.local_offer, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          "Discount",
-                          style: TextStyle(fontSize: 14, color: Colors.white),
-                        ),
-                      ],
-                    ),
+            onTap: () async {
+              final discountAmount = await Get.toNamed(
+                RouteName.add_discount,
+                arguments: {
+                  'selectedRows': controller.selectedRows,
+                  'studentId': controller.selectedStudentId.value,
+                },
+              );
+              if (discountAmount != null && discountAmount is int) {
+                controller.applyDiscountToSelectedFees(discountAmount);
+                await controller.refreshData();
+              }
+            },
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.local_offer, color: Colors.white, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    "Discount",
+                    style: TextStyle(fontSize: 14, color: Colors.white),
                   ),
-                )
+                ],
+              ),
+            ),
+          )
               : const SizedBox.shrink()),
         ],
       ),
@@ -131,7 +131,7 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
                       margin: const EdgeInsets.all(7),
                       padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 37, 80, 76),
+                        color: const Color(0xFF99144E),
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: const Text(
@@ -148,105 +148,105 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
             // Selection Summary Card
             Obx(() => controller.selectedRows.isNotEmpty
                 ? Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.teal.shade50,
-                          Colors.teal.shade100,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFF7EEF2),
+                    const Color(0xFFEAD0DB),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFD195AF), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF99144E),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_circle,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        "${controller.selectedRows.length} Fee(s) Selected",
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF720F3A),
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: controller.clearAllSelections,
+                        icon: const Icon(Icons.clear_all, size: 16),
+                        label: const Text("Clear All"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red.shade700,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Total Amount",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          Text(
+                            "₹${controller.totalAmount.toStringAsFixed(0)}",
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF720F3A),
+                            ),
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.teal.shade300, width: 1.5),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.teal.shade700,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                                size: 16,
-                              ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            "Due Amount",
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
                             ),
-                            const SizedBox(width: 10),
-                            Text(
-                              "${controller.selectedRows.length} Fee(s) Selected",
-                              style: TextStyle(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal.shade900,
-                              ),
+                          ),
+                          Text(
+                            "₹${controller.getSelectedDueTotal()}",
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade700,
                             ),
-                            const Spacer(),
-                            TextButton.icon(
-                              onPressed: controller.clearAllSelections,
-                              icon: const Icon(Icons.clear_all, size: 16),
-                              label: const Text("Clear All"),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.red.shade700,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Total Amount",
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                Text(
-                                  "₹${controller.totalAmount.toStringAsFixed(0)}",
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal.shade900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "Due Amount",
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                Text(
-                                  "₹${controller.getSelectedDueTotal()}",
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  )
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
                 : const SizedBox.shrink()),
 
             // Quick Actions
@@ -260,8 +260,8 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
                       icon: const Icon(Icons.select_all, size: 18),
                       label: const Text("Select All Unpaid"),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.teal.shade700,
-                        side: BorderSide(color: Colors.teal.shade300),
+                        foregroundColor: const Color(0xFF99144E),
+                        side: const BorderSide(color: Color(0xFFD195AF)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -269,17 +269,17 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
                   const SizedBox(width: 12),
                   Obx(() => controller.selectedRows.isNotEmpty
                       ? Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: controller.clearAllSelections,
-                            icon: const Icon(Icons.clear, size: 18),
-                            label: const Text("Clear Selection"),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red.shade700,
-                              side: BorderSide(color: Colors.red.shade300),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        )
+                    child: OutlinedButton.icon(
+                      onPressed: controller.clearAllSelections,
+                      icon: const Icon(Icons.clear, size: 18),
+                      label: const Text("Clear Selection"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade300),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  )
                       : const SizedBox.shrink()),
                 ],
               ),
@@ -292,7 +292,7 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
                   child: Obx(() {
                     return DataTable(
                       headingRowColor: MaterialStateColor.resolveWith(
-                        (states) => const Color.fromARGB(255, 37, 80, 76),
+                            (states) => const Color(0xFF99144E),
                       ),
                       columnSpacing: 18.0,
                       columns: _createTableColumns(),
@@ -315,8 +315,8 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
 
                 final int selectedDue = controller.getSelectedDueTotal();
                 final bool hasSelection = controller.selectedRows.isNotEmpty;
-            
-                
+
+
                 return Column(
                   children: [
                     // Payment Info Card
@@ -351,57 +351,57 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
                           ],
                         ),
                       ),
-                    
+
                     // Pay Now Button
-            SizedBox(
-  width: double.infinity,
-  height: 52.h,
-  child: ElevatedButton(
-    onPressed: hasSelection
-        ? () => controller.showPaymentDetailsDialog(
-              feesmonth: first.feesDuration.toString(),
-              studentname: first.studentName ?? '',
-              feetype: selectedFeeTypes,
-              due: selectedDue,
-           
-            )
-        : null,
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.teal.shade700,
-      disabledBackgroundColor: Colors.grey.shade300,
-      elevation: hasSelection ? 4 : 0,
-      shadowColor: Colors.teal.shade200,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          hasSelection ? Icons.payment : Icons.check_box_outline_blank,
-          color: Colors.white,
-          size: 22,
-        ),
-        const SizedBox(width: 10),
-        Text(
-          hasSelection
-              ? (controller.selectedRows.length > 1
-                  ? "Pay ₹${selectedDue > controller.totalAmount ? selectedDue : controller.totalAmount.toStringAsFixed(0)}"
-                  : "Pay ₹${selectedDue > 0 ? selectedDue : controller.totalAmount.toStringAsFixed(0)}")
-              : "Select Fees to Pay",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 17.sp,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    ),
-  ),
-)
-],
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52.h,
+                      child: ElevatedButton(
+                        onPressed: hasSelection
+                            ? () => controller.showPaymentDetailsDialog(
+                          feesmonth: first.feesDuration.toString(),
+                          studentname: first.studentName ?? '',
+                          feetype: selectedFeeTypes,
+                          due: selectedDue,
+
+                        )
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF99144E),
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          elevation: hasSelection ? 4 : 0,
+                          shadowColor: const Color(0xFFD195AF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              hasSelection ? Icons.payment : Icons.check_box_outline_blank,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              hasSelection
+                                  ? (controller.selectedRows.length > 1
+                                  ? "Pay ₹${selectedDue > controller.totalAmount ? selectedDue : controller.totalAmount.toStringAsFixed(0)}"
+                                  : "Pay ₹${selectedDue > 0 ? selectedDue : controller.totalAmount.toStringAsFixed(0)}")
+                                  : "Select Fees to Pay",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
                 );
               }),
             ),
@@ -486,43 +486,43 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
           DataCell(
             baseAmount == paid
                 ? Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade100, Colors.green.shade200],
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.green.shade700, width: 1.5),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          'PAID',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Transform.scale(
-                    scale: 1.2,
-                    child: Checkbox(
-                      value: c.checkboxStates.length > index
-                          ? c.checkboxStates[index]
-                          : false,
-                      onChanged: (value) => c.toggleCheckbox(index, value),
-                      activeColor: Colors.teal.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade100, Colors.green.shade200],
+                ),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.green.shade700, width: 1.5),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    'PAID',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
                     ),
                   ),
+                ],
+              ),
+            )
+                : Transform.scale(
+              scale: 1.2,
+              child: Checkbox(
+                value: c.checkboxStates.length > index
+                    ? c.checkboxStates[index]
+                    : false,
+                onChanged: (value) => c.toggleCheckbox(index, value),
+                activeColor: const Color(0xFF99144E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
           ),
           _buildCell('${data.feeType ?? 'N/A'}/${data.feesDuration ?? 'N/A'}'),
           _buildCell(baseAmount.toString(), isAmount: true),
@@ -534,7 +534,7 @@ class SubmitFeeScreen extends GetView<SubmitFeeController> {
           _buildCell(due.toString(), isAmount: true),
 
           _buildCell(discount.toString(), isAmount: true),
-         // _buildCell(status,isAmount: false),
+          // _buildCell(status,isAmount: false),
         ],
       );
     }).toList();

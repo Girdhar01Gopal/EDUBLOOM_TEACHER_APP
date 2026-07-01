@@ -10,7 +10,7 @@ class FeePaymentDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D); // Axis Bank maroon
     final controller = Get.put(FeePaymentDetailsController());
 
     return Scaffold(

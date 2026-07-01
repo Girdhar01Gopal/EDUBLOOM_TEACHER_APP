@@ -21,6 +21,9 @@ import '../models/DOB print certificacte model.dart';
 import '../models/student_model.dart';
 import '../res/app_url.dart'; // ← AppUrl.dashurl
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 // ═══════════════════════════════════════════════════════════════
 //  Certificate Theme Model
 // ═══════════════════════════════════════════════════════════════
@@ -58,7 +61,7 @@ class StudentListScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         title: const Text(
           '📚 DOB Certificate',
           style: TextStyle(
@@ -93,7 +96,7 @@ class StudentListScreen extends StatelessWidget {
                   hintStyle: const TextStyle(
                       fontSize: 13, color: Colors.grey),
                   prefixIcon:
-                  const Icon(Icons.search, color: Colors.teal),
+                  const Icon(Icons.search, color: kAxisMaroon),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                   filled: true,
@@ -130,10 +133,10 @@ class StudentListScreen extends StatelessWidget {
                         child: DataTable(
                           headingRowColor:
                           WidgetStateProperty.all(
-                              Colors.teal.shade50),
-                          headingTextStyle: TextStyle(
+                              kAxisMaroon.withOpacity(0.08)),
+                          headingTextStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.teal.shade800,
+                            color: kAxisMaroon,
                             fontSize: 13,
                           ),
                           dataTextStyle: const TextStyle(
@@ -256,7 +259,7 @@ class StudentListScreen extends StatelessWidget {
                               MainAxisSize.min,
                               children: [
                                 CircularProgressIndicator(
-                                    color: Colors.teal),
+                                    color: kAxisMaroon),
                                 SizedBox(height: 14),
                                 Text(
                                     'Fetching Certificate…',
@@ -300,16 +303,16 @@ class _StudentAvatar extends StatelessWidget {
     if (url.isNotEmpty) {
       return CircleAvatar(
         radius: 18,
-        backgroundColor: Colors.teal.shade100,
+        backgroundColor: kAxisMaroon.withOpacity(0.15),
         backgroundImage: NetworkImage(url),
         onBackgroundImageError: (_, __) {},
       );
     }
     return CircleAvatar(
       radius: 18,
-      backgroundColor: Colors.teal.shade100,
-      child: Icon(Icons.person,
-          size: 18, color: Colors.teal.shade700),
+      backgroundColor: kAxisMaroon.withOpacity(0.15),
+      child: const Icon(Icons.person,
+          size: 18, color: kAxisMaroon),
     );
   }
 }
@@ -830,7 +833,7 @@ class _DobCertificateViewScreenState
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         title: const Text(
           'DOB Certificate',
           style: TextStyle(
@@ -883,7 +886,7 @@ class _DobCertificateViewScreenState
           // ── Swipeable certificate cards ─────────────────────
           Expanded(
             child: RefreshIndicator(
-              color: Colors.teal.shade800,
+              color: kAxisMaroon,
               onRefresh: () async {
                 await Future.delayed(
                     const Duration(milliseconds: 400));

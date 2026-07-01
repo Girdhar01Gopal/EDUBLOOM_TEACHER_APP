@@ -12,7 +12,7 @@ class FeeTypeReportScreen extends GetView<FeeTypeReportController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return Scaffold(
       appBar: AppBar(

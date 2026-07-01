@@ -279,7 +279,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: Colors.teal.shade800,
+                              color: const Color(0xFF97144D),
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(16),
                                 topRight: Radius.circular(16),
@@ -375,7 +375,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
       child: Obx(() {
         final searching = _isSearching.value;
         return AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
@@ -452,7 +452,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                     fontWeight: FontWeight.bold,
                     color: (i == 0 || i == 6)
                         ? Colors.red.shade400
-                        : Colors.teal.shade700,
+                        : const Color(0xFF97144D),
                   ),
                 ),
               ),

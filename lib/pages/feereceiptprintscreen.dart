@@ -13,6 +13,10 @@ import '../models/feeprintalldetail.dart';
 import '../models/feeprintreceiptschname.dart';
 import '../res/app_url.dart';
 
+// ─── Axis Bank maroon accent ───────────────────────────────────────────────
+const Color kAxisMaroon = Color(0xFF97144D);
+final PdfColor kAxisMaroonPdf = PdfColor.fromInt(0xFF97144D);
+
 String _fmtDt(DateTime? dt) {
   if (dt == null) return 'N/A';
   return DateFormat('dd-MM-yyyy').format(dt);
@@ -213,7 +217,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
               },
               children: [
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.teal700),
+                  decoration: pw.BoxDecoration(color: kAxisMaroonPdf),
                   children: [
                     _pTH("S.No"), _pTH("Fee Type"), _pTH("Description"),
                     _pTH("Amount"), _pTH("Discount"), _pTH("Due"), _pTH("Paid"),
@@ -320,7 +324,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
               fontWeight: FontWeight.w700, fontSize: 17, color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF00796B),
+        backgroundColor: kAxisMaroon,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         shape: const RoundedRectangleBorder(
@@ -328,7 +332,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF00796B)))
+          ? const Center(child: CircularProgressIndicator(color: kAxisMaroon))
           : _error != null
           ? Center(
         child: Padding(
@@ -353,7 +357,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
           children: [
             _ReceiptCopyCard(
               copyLabel:   "Parents Copy",
-              accentColor: const Color(0xFF00796B),
+              accentColor: kAxisMaroon,
               feeDetails:  _feeDetails,
               studentData: _studentData,
               receiptNo:   _receiptNo,

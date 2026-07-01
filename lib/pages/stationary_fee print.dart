@@ -41,11 +41,11 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => const Icon(
             Icons.school,
-            color: Colors.teal,
+            color: const Color(0xFF97144D),
             size: 30,
           ),
         )
-            : const Icon(Icons.school, color: Colors.teal, size: 30),
+            : const Icon(Icons.school, color: const Color(0xFF97144D), size: 30),
       ),
     );
   }
@@ -53,21 +53,21 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffECF5F0),
+      backgroundColor: const Color(0xffF7ECF0),
       appBar: AppBar(
         title: const Text(
           '🧾 Stationary Receipt',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF6E0F38),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 3,
       ),
       body: Obx(() {
         if (controller.isLoading) {
           return const Center(
-            child: CircularProgressIndicator(color: Colors.teal),
+            child: CircularProgressIndicator(color: const Color(0xFF97144D)),
           );
         }
 
@@ -109,12 +109,12 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.18),
+            color: const Color(0xFF97144D).withOpacity(0.18),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
         ],
-        border: Border.all(color: Colors.teal.shade100, width: 1.5),
+        border: Border.all(color: const Color(0xFFF3D9E3), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -136,7 +136,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.teal.shade800, Colors.teal.shade400],
+          colors: [const Color(0xFF6E0F38), const Color(0xFFC24A79)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -216,7 +216,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      color: const Color(0xffF0FBF7),
+      color: const Color(0xffF9EBF0),
       child: Column(
         children: [
           if (name.isNotEmpty)
@@ -226,7 +226,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xff004D40),
+                color: Color(0xff6E0F38),
                 letterSpacing: 0.5,
               ),
             ),
@@ -236,7 +236,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
               child: Text(
                 contactParts.join('  |  '),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.teal.shade700),
+                style: TextStyle(fontSize: 13, color: const Color(0xFF97144D)),
               ),
             ),
           if (address.isNotEmpty)
@@ -260,7 +260,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
       padding: const EdgeInsets.symmetric(vertical: 9),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.teal.shade700, Colors.teal.shade500],
+          colors: [const Color(0xFF97144D), const Color(0xFFB0295F)],
         ),
       ),
       child: const Text(
@@ -328,14 +328,14 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
-                    color: Color(0xff004D40),
+                    color: Color(0xff6E0F38),
                   ),
                 ),
               ),
               const Text(
                 ':  ',
                 style: TextStyle(
-                    fontWeight: FontWeight.w600, color: Colors.teal),
+                    fontWeight: FontWeight.w600, color: const Color(0xFF97144D)),
               ),
               Expanded(
                 child: Text(
@@ -365,14 +365,14 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
             2: FlexColumnWidth(2),
           },
           border: TableBorder.all(
-            color: Colors.teal.shade100,
+            color: const Color(0xFFF3D9E3),
             borderRadius: BorderRadius.circular(8),
           ),
           children: [
             TableRow(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.teal.shade600, Colors.teal.shade400],
+                  colors: [const Color(0xFFAE1B5C), const Color(0xFFC24A79)],
                 ),
               ),
               children: const [
@@ -385,7 +385,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
                   (item) => TableRow(
                 decoration: BoxDecoration(
                   color: controller.printItems.indexOf(item).isEven
-                      ? const Color(0xffF0FBF7)
+                      ? const Color(0xffF9EBF0)
                       : Colors.white,
                 ),
                 children: [
@@ -394,7 +394,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
                   _TableCell(
                     text: '₹ ${item.amount}',
                     isBold: true,
-                    color: Colors.teal.shade800,
+                    color: const Color(0xFF6E0F38),
                   ),
                 ],
               ),
@@ -406,12 +406,12 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
                 const _TableCell(
                   text: 'Total',
                   isBold: true,
-                  color: Color(0xff004D40),
+                  color: Color(0xff6E0F38),
                 ),
                 _TableCell(
                   text: '₹ ${controller.totalAmount}',
                   isBold: true,
-                  color: Colors.teal.shade900,
+                  color: const Color(0xFF4A0A26),
                 ),
               ],
             ),
@@ -432,14 +432,14 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(height: 1, width: 160, color: Colors.teal.shade300),
+              Container(height: 1, width: 160, color: const Color(0xFFD98FAE)),
               const SizedBox(height: 4),
               if (schoolName.isNotEmpty)
                 Text(
                   'For $schoolName',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.teal.shade700,
+                    color: const Color(0xFF97144D),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -449,7 +449,7 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: Color(0xff004D40),
+                  color: Color(0xff6E0F38),
                 ),
               ),
             ],
@@ -496,11 +496,11 @@ class StationaryFeePrintScreen extends GetView<StationaryFeePrintController> {
   // ── PDF page content ──────────────────────────────────────
   pw.Widget _buildPdfPage(
       String copyLabel, dynamic school, pw.MemoryImage? logoImage) {
-    final teal     = PdfColor.fromHex('#00695C');
-    final tealBg   = PdfColor.fromHex('#E0F2F1');
-    final tealLine = PdfColor.fromHex('#B2DFDB');
+    final teal     = PdfColor.fromHex('#97144D');
+    final tealBg   = PdfColor.fromHex('#F3D9E3');
+    final tealLine = PdfColor.fromHex('#E3A9C0');
     final amber    = PdfColor.fromHex('#F59E0B');
-    final dark     = PdfColor.fromHex('#004D40');
+    final dark     = PdfColor.fromHex('#6E0F38');
     final amberBg  = PdfColor.fromHex('#FFFDE7');
     final grey     = PdfColor.fromHex('#757575');
 

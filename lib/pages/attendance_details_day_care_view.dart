@@ -12,7 +12,7 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
       backgroundColor: const Color(0xFFF3F5F7),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         centerTitle: true,
         title: const Text(
           'Attendance Details Day Care',
@@ -146,7 +146,7 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6.r),
-                borderSide: BorderSide(color: Colors.teal.shade700),
+                borderSide: const BorderSide(color: Color(0xFF97144D)),
               ),
             ),
             items: controller.studentList.map((student) {
@@ -206,7 +206,7 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6.r),
-                borderSide: BorderSide(color: Colors.teal.shade700),
+                borderSide: const BorderSide(color: Color(0xFF97144D)),
               ),
             ),
             items: controller.monthList.map((month) {

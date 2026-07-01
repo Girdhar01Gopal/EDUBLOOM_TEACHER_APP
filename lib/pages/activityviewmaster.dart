@@ -16,7 +16,7 @@ class Activityviewmaster extends GetView<Activitymastercontroller> {
       drawer: AppDrawer(),
 
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800, // AppBar color
+        backgroundColor: const Color(0xFF97144D), // AppBar color
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,
@@ -111,7 +111,7 @@ class Activityviewmaster extends GetView<Activitymastercontroller> {
               ),
             ),
 
-           // Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18.sp),
+            // Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18.sp),
           ],
         ),
       ),
@@ -158,14 +158,14 @@ class Activityviewmaster extends GetView<Activitymastercontroller> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      height: 62.h,
-                      width: 62.w,
-                      decoration: BoxDecoration(
-                        color: item.color.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: EdgeInsets.all(14.r),
-                      child: Icon(item.image, size: 32.sp, color: item.color)
+                        height: 62.h,
+                        width: 62.w,
+                        decoration: BoxDecoration(
+                          color: item.color.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: EdgeInsets.all(14.r),
+                        child: Icon(item.image, size: 32.sp, color: item.color)
                     ),
 
                     SizedBox(height: 12.h),

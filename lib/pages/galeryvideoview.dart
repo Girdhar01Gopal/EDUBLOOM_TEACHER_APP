@@ -19,7 +19,7 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
           ),
           centerTitle: true,
           elevation: 2,
-          backgroundColor: Colors.teal.shade800, // AppBar color
+          backgroundColor: const Color(0xFF97144D), // AppBar color
           title: Text(
             "Upload Photo & Video",
             style: TextStyle(
@@ -71,7 +71,7 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                //  _categoryMultiSelect(),
+                  //  _categoryMultiSelect(),
                   SizedBox(height: 12.h),
                   _datePicker(),
                   SizedBox(height: 12.h),
@@ -219,7 +219,7 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
         SizedBox(height: 6.h),
         ...controller.galleryCategories.map((cat) {
           bool selected =
-              controller.selectedCategoryIds.contains(cat.addCategoryId);
+          controller.selectedCategoryIds.contains(cat.addCategoryId);
           return CheckboxListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
@@ -250,9 +250,9 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
       ),
       items: controller.classList
           .map((cls) => DropdownMenuItem(
-                value: cls.classId,
-                child: Text(cls.className ?? ""),
-              ))
+        value: cls.classId,
+        child: Text(cls.className ?? ""),
+      ))
           .toList(),
       onChanged: (v) => controller.selectedClassId.value = v!,
     );
@@ -270,9 +270,9 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
       ),
       items: controller.sectionList
           .map((sec) => DropdownMenuItem(
-                value: sec.sectionId,
-                child: Text(sec.section ?? ""),
-              ))
+        value: sec.sectionId,
+        child: Text(sec.section ?? ""),
+      ))
           .toList(),
       onChanged: (v) => controller.selectedSectionId.value = v!,
     );
@@ -296,7 +296,7 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
         );
         if (picked != null) {
           controller.dateController.text =
-              picked.toIso8601String().split('T')[0];
+          picked.toIso8601String().split('T')[0];
         }
       },
     );
@@ -326,12 +326,12 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
             ),
             SizedBox(width: 10.w),
             Obx(() => Text(
-                  "${controller.selectedImages.length} selected",
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey.shade700,
-                  ),
-                )),
+              "${controller.selectedImages.length} selected",
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Colors.grey.shade700,
+              ),
+            )),
           ],
         ),
         SizedBox(height: 10.h),
@@ -348,15 +348,15 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
             children: controller.selectedImages
                 .map(
                   (img) => ClipRRect(
-                    borderRadius: BorderRadius.circular(6.r),
-                    child: Image.file(
-                      img,
-                      width: 70.w,
-                      height: 70.w,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                )
+                borderRadius: BorderRadius.circular(6.r),
+                child: Image.file(
+                  img,
+                  width: 70.w,
+                  height: 70.w,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            )
                 .toList(),
           );
         }),

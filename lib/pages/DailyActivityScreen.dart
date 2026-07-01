@@ -7,15 +7,15 @@ import '../controller/DailyActivityController.dart';
 // THEME CONSTANTS
 // ─────────────────────────────────────────────
 
-const _kPrimary    = Color(0xFF0F766E); // Teal 800
-const _kAccent     = Color(0xFF0D9488); // Teal 600
+const _kPrimary    = Color(0xFF97144D); // Axis Bank Maroon
+const _kAccent     = Color(0xFFC2185B); // Maroon Accent
 const _kDanger     = Color(0xFFEF4444); // Red
 const _kYellow     = Color(0xFFF59E0B); // Amber (stars)
-const _kBg         = Color(0xFFF0FDFA); // Teal 50
+const _kBg         = Color(0xFFFDF0F5); // Maroon 50
 const _kCard       = Color(0xFFFFFFFF);
-const _kTextDark   = Color(0xFF134E4A); // Teal 900
+const _kTextDark   = Color(0xFF4A0E29); // Maroon 900
 const _kTextMuted  = Color(0xFF6B7280);
-const _kBorder     = Color(0xFFCCFBF1); // Teal 100
+const _kBorder     = Color(0xFFF3CCDD); // Maroon 100
 
 // ─────────────────────────────────────────────
 // SCREEN
@@ -53,12 +53,12 @@ class _AppBar extends GetView<DailyActivityController> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0F766E), Color(0xFF0D9488)],
+          colors: [Color(0xFF97144D), Color(0xFFC2185B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
-          BoxShadow(color: Color(0x400F766E), blurRadius: 16, offset: Offset(0, 4))
+          BoxShadow(color: Color(0x4097144D), blurRadius: 16, offset: Offset(0, 4))
         ],
       ),
       child: SafeArea(
@@ -335,7 +335,7 @@ class _AddTab extends GetView<DailyActivityController> {
                     value: controller.iqLevel.value,
                     labels: const ['Very Low', 'Low', 'Average', 'High', 'Excellent'],
                     onTap: controller.onIqLevelChanged,
-                    color: const Color(0xFF0F766E),
+                    color: const Color(0xFF97144D),
                   )),
                 ),
                 const SizedBox(height: 16),
@@ -362,12 +362,12 @@ class _AddTab extends GetView<DailyActivityController> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
                       gradient: controller.canSubmit
-                          ? const LinearGradient(colors: [Color(0xFF0F766E), Color(0xFF0D9488)])
+                          ? const LinearGradient(colors: [Color(0xFF97144D), Color(0xFFC2185B)])
                           : null,
                       color: controller.canSubmit ? null : _kBorder,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: controller.canSubmit
-                          ? [const BoxShadow(color: Color(0x500F766E), blurRadius: 12, offset: Offset(0, 4))]
+                          ? [const BoxShadow(color: Color(0x5097144D), blurRadius: 12, offset: Offset(0, 4))]
                           : [],
                     ),
                     alignment: Alignment.center,
@@ -557,7 +557,7 @@ class _StudentChip extends GetView<DailyActivityController> {
             borderRadius: BorderRadius.circular(30),
             border: Border.all(color: selected ? _kPrimary : _kBorder, width: 1.5),
             boxShadow: selected
-                ? [const BoxShadow(color: Color(0x350F766E), blurRadius: 8, offset: Offset(0, 2))]
+                ? [const BoxShadow(color: Color(0x3597144D), blurRadius: 8, offset: Offset(0, 2))]
                 : [],
           ),
           child: Row(
@@ -828,7 +828,7 @@ class _ActivityCard extends StatelessWidget {
             children: [
               _MiniTag(
                 label: 'IQ: ${iqLabels[entry.iqLevel - 1]}',
-                color: const Color(0xFF0F766E),
+                color: const Color(0xFF97144D),
                 icon: Icons.psychology_rounded,
               ),
               const SizedBox(width: 8),

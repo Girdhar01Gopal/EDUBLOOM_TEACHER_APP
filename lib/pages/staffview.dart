@@ -15,7 +15,7 @@ class Staffview extends GetView<Staffcontroller> {
       drawer: AppDrawer(),
 
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800, // AppBar color
+        backgroundColor: const Color(0xFF6E0F38), // AppBar color
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,
@@ -110,7 +110,7 @@ class Staffview extends GetView<Staffcontroller> {
               ),
             ),
 
-           // Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18.sp),
+            // Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18.sp),
           ],
         ),
       ),

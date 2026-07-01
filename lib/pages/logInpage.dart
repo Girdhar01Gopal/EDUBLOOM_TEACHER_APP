@@ -50,7 +50,7 @@ class LoginScreen extends GetView<LogInPageController> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Admin Login",
+                                    "TEACHER LOGIN",
                                     style: theme.textTheme.headlineSmall?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
@@ -172,55 +172,55 @@ class LoginScreen extends GetView<LogInPageController> {
                                     ),
                                   ),
 
-                                  SizedBox(height: 14.h),
-
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Divider(color: Colors.white.withOpacity(0.25)),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 10.w),
-                                        child: Text(
-                                          "or",
-                                          style: TextStyle(
-                                            color: Colors.white60,
-                                            fontSize: 13.sp,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Divider(color: Colors.white.withOpacity(0.25)),
-                                      ),
-                                    ],
-                                  ),
+                                  // SizedBox(height: 14.h),
+                                  //
+                                  // Row(
+                                  //   children: [
+                                  //     Expanded(
+                                  //       child: Divider(color: Colors.white.withOpacity(0.25)),
+                                  //     ),
+                                  //     Padding(
+                                  //       padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                  //       child: Text(
+                                  //         "or",
+                                  //         style: TextStyle(
+                                  //           color: Colors.white60,
+                                  //           fontSize: 13.sp,
+                                  //           fontWeight: FontWeight.w700,
+                                  //         ),
+                                  //       ),
+                                  //     ),
+                                  //     Expanded(
+                                  //       child: Divider(color: Colors.white.withOpacity(0.25)),
+                                  //     ),
+                                  //   ],
+                                  // ),
 
                                   SizedBox(height: 14.h),
 
                                   // Secondary CTA
-                                  SizedBox(
-                                    height: 52.h,
-                                    width: double.infinity,
-                                    child: OutlinedButton.icon(
-                                      onPressed: () => Get.to(() => PhoneNumberInputScreen()),
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(color: Colors.white.withOpacity(0.35)),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14.r),
-                                        ),
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      icon: const Icon(Icons.sms_rounded),
-                                      label: Text(
-                                        "Register Your School With OTP",
-                                        style: TextStyle(
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                  // SizedBox(
+                                  //   height: 52.h,
+                                  //   width: double.infinity,
+                                  //   child: OutlinedButton.icon(
+                                  //     onPressed: () => Get.to(() => PhoneNumberInputScreen()),
+                                  //     style: OutlinedButton.styleFrom(
+                                  //       side: BorderSide(color: Colors.white.withOpacity(0.35)),
+                                  //       shape: RoundedRectangleBorder(
+                                  //         borderRadius: BorderRadius.circular(14.r),
+                                  //       ),
+                                  //       foregroundColor: Colors.white,
+                                  //     ),
+                                  //     icon: const Icon(Icons.sms_rounded),
+                                  //     label: Text(
+                                  //       "Register Your School With OTP",
+                                  //       style: TextStyle(
+                                  //         fontSize: 16.sp,
+                                  //         fontWeight: FontWeight.w900,
+                                  //       ),
+                                  //     ),
+                                  //   ),
+                                  // ),
                                 ],
                               ),
                             ),
@@ -230,7 +230,7 @@ class LoginScreen extends GetView<LogInPageController> {
                             Padding(
                               padding: EdgeInsets.only(bottom: 18.h, top: 16.h),
                               child: Text(
-                                "© ${DateTime.now().year} Your Playschool • Admin Panel",
+                                "© ${DateTime.now().year} Your Play school • Teacher Panel",
                                 style: TextStyle(
                                   color: Colors.white54,
                                   fontSize: 12.sp,
@@ -351,7 +351,7 @@ class _BrandHeader extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          "Playschool Admin",
+          "Play school teacher",
           style: TextStyle(
             color: Colors.white70,
             fontSize: 13.sp,

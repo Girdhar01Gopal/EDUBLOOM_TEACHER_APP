@@ -10,10 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import '../controller/student_controller daycare.dart';
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal      = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal      = Color(0xFF97144D);
+const _tealLight = Color(0xFFB0335F);
 const _surface   = Color(0xFFFFFFFF);
-const _cardBg    = Color(0xFFF8FFFE);
+const _cardBg    = Color(0xFFFDF6F9);
 const _textPrimary   = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
 
@@ -68,7 +68,7 @@ class GuardianImagePickerdaycare extends GetView<StudentControllerdaycare> {
       prefixIcon: Icon(icon, size: 20, color: _tealLight),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: Color(0xFFE0F2F1))),
+          borderSide: const BorderSide(color: Color(0xFFF3D6E1))),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
           borderSide: BorderSide(color: Colors.grey.shade200)),
@@ -109,9 +109,9 @@ class GuardianImagePickerdaycare extends GetView<StudentControllerdaycare> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               decoration: BoxDecoration(
-                color: Colors.teal.shade50,
+                color: _teal.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Colors.teal.shade100),
+                border: Border.all(color: _teal.withOpacity(0.15)),
               ),
               child: Row(
                 children: [
@@ -333,10 +333,10 @@ class _ImagePreviewCard extends StatelessWidget {
                 height: 200.h,
                 width: 200.h,
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+                  color: _teal.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16.r),
                   border: Border.all(
-                      color: Colors.teal.shade100, width: 2),
+                      color: _teal.withOpacity(0.15), width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

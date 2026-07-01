@@ -430,11 +430,11 @@ class DashboardScreenController extends GetxController {
     switch (selectedItem.name) {
       case "Student's": selectedWidget = Get.toNamed(RouteName.addstudentmaster); break;
       case "Communication's": selectedWidget = Get.toNamed(RouteName.communicationview); break;
-      case "Fees's": selectedWidget = Get.toNamed(RouteName.feesmaster); break;
+      //case "Master's": selectedWidget = Get.toNamed(RouteName.feesmaster); break;
       case "Activity's": selectedWidget = Get.toNamed(RouteName.activitymaster); break;
       case "Reports": selectedWidget = Get.toNamed(RouteName.reports); break;
-      case "Teacher's": selectedWidget = Get.toNamed(RouteName.teacher); break;
-      case "Staff": selectedWidget = Get.toNamed(RouteName.staffView); break;
+      case "Certificate's": selectedWidget = Get.toNamed(RouteName.mastercertificate); break;
+      case "Expenses": selectedWidget = Get.toNamed(RouteName.masterexpenses); break;
       case "Master's": selectedWidget = Get.toNamed(RouteName.master); break;
       case "Results": selectedWidget = Get.toNamed(RouteName.results); break;
       case "Products": selectedWidget = Get.toNamed(RouteName.products); break;
@@ -447,13 +447,13 @@ class DashboardScreenController extends GetxController {
           gradientColors: [Color(0xFF6366F1), Color(0xFF818CF8)], emoji: '🎓'),
       DhashboardItemsModel("Communication's", Icons.forum_rounded, const Color(0xFF0EA5E9),
           gradientColors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)], emoji: '💬'),
-      DhashboardItemsModel("Fees's", Icons.account_balance_wallet_rounded, const Color(0xFFEF4444),
-          gradientColors: [Color(0xFFEF4444), Color(0xFFFB7185)], emoji: '💰'),
+      // DhashboardItemsModel("Fees's", Icons.account_balance_wallet_rounded, const Color(0xFFEF4444),
+      //     gradientColors: [Color(0xFFEF4444), Color(0xFFFB7185)], emoji: '💰'),
       DhashboardItemsModel("Activity's", Icons.directions_run_rounded, const Color(0xFF14B8A6),
           gradientColors: [Color(0xFF14B8A6), Color(0xFF2DD4BF)], emoji: '🎨'),
-      DhashboardItemsModel("Teacher's", Icons.cast_for_education_rounded, const Color(0xFF10B981),
+      DhashboardItemsModel("Certificate's", Icons.cast_for_education_rounded, const Color(0xFF10B981),
           gradientColors: [Color(0xFF10B981), Color(0xFF34D399)], emoji: '👩‍🏫'),
-      DhashboardItemsModel("Staff", Icons.badge_rounded, const Color(0xFF8B5CF6),
+      DhashboardItemsModel("Expenses", Icons.badge_rounded, const Color(0xFF8B5CF6),
           gradientColors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)], emoji: '🪪'),
       DhashboardItemsModel("Reports", Icons.bar_chart_rounded, const Color(0xFFF59E0B),
           gradientColors: [Color(0xFFF59E0B), Color(0xFFFBBF24)], emoji: '📊'),

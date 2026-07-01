@@ -11,8 +11,8 @@ import 'package:image_picker/image_picker.dart';
 import '../controller/student_controller.dart';
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal      = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal      = Color(0xFF97144D);
+const _tealLight = Color(0xFFB0335F);
 const _surface   = Color(0xFFFFFFFF);
 const _textSecondary = Color(0xFF607D8B);
 
@@ -58,9 +58,9 @@ class GuardianImagePicker extends GetView<StudentController> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               decoration: BoxDecoration(
-                color: Colors.teal.shade50,
+                color: _teal.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Colors.teal.shade100),
+                border: Border.all(color: _teal.withOpacity(0.15)),
               ),
               child: Row(
                 children: [
@@ -206,10 +206,10 @@ class _ImagePreviewCard extends StatelessWidget {
                 height: 200.h,
                 width: 200.h,
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+                  color: _teal.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16.r),
                   border: Border.all(
-                      color: Colors.teal.shade100, width: 2),
+                      color: _teal.withOpacity(0.15), width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

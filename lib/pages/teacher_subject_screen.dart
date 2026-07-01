@@ -13,7 +13,7 @@ class TeacherSubjectScreen extends GetView<TeacherSubjectController> {
 //
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF99144E);
 
     return DefaultTabController(
       length: 2,
@@ -48,20 +48,20 @@ class _AddTab extends GetView<TeacherSubjectController> {
   const _AddTab();
 
   InputDecoration _dec(String label) => InputDecoration(
-        labelText: "$label *",
-        border: const OutlineInputBorder(),
-        isDense: true,
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      );
+    labelText: "$label *",
+    border: const OutlineInputBorder(),
+    isDense: true,
+    filled: true,
+    fillColor: Colors.white,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+  );
 
   Widget _ellipsis(String t) => Text(
-        t,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        softWrap: false,
-      );
+    t,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    softWrap: false,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +136,7 @@ class _AddTab extends GetView<TeacherSubjectController> {
                     height: 46.h,
                     child: ElevatedButton(
                       // ✅ FIX: missing comma + block when duplicate
-                     onPressed: controller.isSaving.value ? null : controller.saveTeacherSubjectAssign,
+                      onPressed: controller.isSaving.value ? null : controller.saveTeacherSubjectAssign,
 
                       style: ElevatedButton.styleFrom(
                         backgroundColor: duplicate ? Colors.grey : Colors.orange.shade700,
@@ -146,14 +146,14 @@ class _AddTab extends GetView<TeacherSubjectController> {
                       ),
                       child: controller.isSaving.value
                           ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
                           : const Text(
-                              "Save",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                            ),
+                        "Save",
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ],
@@ -178,9 +178,9 @@ class _AddTab extends GetView<TeacherSubjectController> {
         hint: _ellipsis("Select Teacher"),
         items: items
             .map((t) => DropdownMenuItem(
-                  value: t,
-                  child: _ellipsis((t.name ?? "-").toString()),
-                ))
+          value: t,
+          child: _ellipsis((t.name ?? "-").toString()),
+        ))
             .toList(),
         onChanged: (v) => controller.selectedTeacher.value = v,
         decoration: _dec("Teacher"),
@@ -198,9 +198,9 @@ class _AddTab extends GetView<TeacherSubjectController> {
         hint: _ellipsis("Select Class"),
         items: items
             .map((c) => DropdownMenuItem(
-                  value: c,
-                  child: _ellipsis(c.className ?? ""),
-                ))
+          value: c,
+          child: _ellipsis(c.className ?? ""),
+        ))
             .toList(),
         onChanged: (v) => controller.selectedClass.value = v,
         decoration: _dec("Class"),
@@ -218,9 +218,9 @@ class _AddTab extends GetView<TeacherSubjectController> {
         hint: _ellipsis("Select Section"),
         items: items
             .map((s) => DropdownMenuItem(
-                  value: s,
-                  child: _ellipsis(s.section ?? ""),
-                ))
+          value: s,
+          child: _ellipsis(s.section ?? ""),
+        ))
             .toList(),
         onChanged: (v) => controller.selectedSection.value = v,
         decoration: _dec("Section"),
@@ -238,9 +238,9 @@ class _AddTab extends GetView<TeacherSubjectController> {
         hint: _ellipsis("Select Subject"),
         items: items
             .map((s) => DropdownMenuItem(
-                  value: s,
-                  child: _ellipsis((s.subject ?? "-").toString()),
-                ))
+          value: s,
+          child: _ellipsis((s.subject ?? "-").toString()),
+        ))
             .toList(),
         onChanged: (v) => controller.selectedSubject.value = v,
         decoration: _dec("Subject"),
@@ -304,55 +304,55 @@ class _ViewTab extends GetView<TeacherSubjectController> {
                 child: controller.isListLoading.value
                     ? const Center(child: CircularProgressIndicator())
                     : list.isEmpty
-                        ? const Center(child: Text("No record found"))
-                        : Scrollbar(
-                            thumbVisibility: true,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.vertical,
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text("S.no")),
-                                    DataColumn(label: Text("Teacher")),
-                                    DataColumn(label: Text("Class")),
-                                    DataColumn(label: Text("Section")),
-                                    DataColumn(label: Text("Subject")),
-                                    DataColumn(label: Text("Create Date")),
-                                    DataColumn(label: Text("Create By")),
-                                   // DataColumn(label: Text("Action")),
-                                  ],
-                                  rows: List.generate(list.length, (i) {
-                                    final x = list[i];
-                                    final isActive = x.action == "1";
-                                    return DataRow(
-                                      cells: [
-                                        DataCell(Text("${i + 1}")),
-                                        DataCell(Text(x.teacherName ?? "-")),
-                                        DataCell(Text(x.className ?? "-")),
-                                        DataCell(Text(x.sectionName ?? "-")),
-                                        DataCell(Text(x.subjectName ?? "-")),
-                                        DataCell(Text(_formatDdMmYyyy(x.createDate))),
-                                        DataCell(Text(x.createBy ?? "-")),
-                                        // DataCell(
-                                        //   Row(
-                                        //     children: [
-                                        //       InkWell(
-                                        //         onTap: () => controller.openEditDialog(context, x),
-                                        //         child: const Icon(Icons.edit, color: Colors.orange),
-                                        //       ),
-                                        //       const SizedBox(width: 10),
-                                        //       Icon(Icons.check_circle, color: isActive ? Colors.green : Colors.grey),
-                                        //     ],
-                                        //   ),
-                                        // ),
-                                      ],
-                                    );
-                                  }),
-                                ),
-                              ),
-                            ),
-                          ),
+                    ? const Center(child: Text("No record found"))
+                    : Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text("S.no")),
+                          DataColumn(label: Text("Teacher")),
+                          DataColumn(label: Text("Class")),
+                          DataColumn(label: Text("Section")),
+                          DataColumn(label: Text("Subject")),
+                          DataColumn(label: Text("Create Date")),
+                          DataColumn(label: Text("Create By")),
+                          // DataColumn(label: Text("Action")),
+                        ],
+                        rows: List.generate(list.length, (i) {
+                          final x = list[i];
+                          final isActive = x.action == "1";
+                          return DataRow(
+                            cells: [
+                              DataCell(Text("${i + 1}")),
+                              DataCell(Text(x.teacherName ?? "-")),
+                              DataCell(Text(x.className ?? "-")),
+                              DataCell(Text(x.sectionName ?? "-")),
+                              DataCell(Text(x.subjectName ?? "-")),
+                              DataCell(Text(_formatDdMmYyyy(x.createDate))),
+                              DataCell(Text(x.createBy ?? "-")),
+                              // DataCell(
+                              //   Row(
+                              //     children: [
+                              //       InkWell(
+                              //         onTap: () => controller.openEditDialog(context, x),
+                              //         child: const Icon(Icons.edit, color: Colors.orange),
+                              //       ),
+                              //       const SizedBox(width: 10),
+                              //       Icon(Icons.check_circle, color: isActive ? Colors.green : Colors.grey),
+                              //     ],
+                              //   ),
+                              // ),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

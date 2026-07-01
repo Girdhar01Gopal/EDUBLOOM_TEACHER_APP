@@ -17,7 +17,7 @@ class ClassScreen extends GetView<ClassController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           iconTheme: const IconThemeData(color: Colors.white),
           centerTitle: true,
           title: const Text(

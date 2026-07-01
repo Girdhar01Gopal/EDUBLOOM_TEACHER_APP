@@ -16,6 +16,13 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
 
+const Color axisMaroon = Color(0xFF97144D);
+const Color axisMaroonShade50 = Color(0xFFF3E0E9);
+const Color axisMaroonShade300 = Color(0xFFC0568C);
+const Color axisMaroonShade400 = Color(0xFFAE3B77);
+const Color axisMaroonShade600 = Color(0xFFA61856);
+const Color axisMaroonShade700 = Color(0xFF97144D);
+const Color axisMaroonShade800 = Color(0xFF800F40);
 
 class NoteScreen extends GetView<NoteController> {
   const NoteScreen({super.key});
@@ -27,7 +34,7 @@ class NoteScreen extends GetView<NoteController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: axisMaroonShade800,
           title: const Text(
             "📝 Notes",
             style: TextStyle(color: Colors.white),
@@ -215,9 +222,9 @@ class AddNoteTab extends GetView<NoteController> {
               height: 160.h,
               width: double.infinity,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.teal.shade300, width: 1.5),
+                border: Border.all(color: axisMaroonShade300, width: 1.5),
                 borderRadius: BorderRadius.circular(12.r),
-                color: Colors.teal.shade50,
+                color: axisMaroonShade50,
               ),
               child: file != null
                   ? _buildFilePreview(file)
@@ -225,12 +232,12 @@ class AddNoteTab extends GetView<NoteController> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_circle_outline,
-                      size: 40.sp, color: Colors.teal.shade400),
+                      size: 40.sp, color: axisMaroonShade400),
                   SizedBox(height: 8.h),
                   Text(
                     "Tap to select file",
                     style: TextStyle(
-                        fontSize: 14.sp, color: Colors.teal.shade600),
+                        fontSize: 14.sp, color: axisMaroonShade600),
                   ),
                   SizedBox(height: 4.h),
                   Text(
@@ -751,7 +758,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                               LinearProgressIndicator(
                                 value: progress,
                                 backgroundColor: Colors.grey.shade200,
-                                color: Colors.teal,
+                                color: axisMaroon,
                                 minHeight: 6,
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -760,7 +767,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                                 "Downloading ${(progress * 100).toStringAsFixed(0)}%",
                                 style: TextStyle(
                                     fontSize: 12.sp,
-                                    color: Colors.teal.shade700),
+                                    color: axisMaroonShade700),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -793,7 +800,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                                 icon: const Icon(Icons.download, size: 18),
                                 label: const Text("Download & Share"),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal.shade700,
+                                  backgroundColor: axisMaroonShade700,
                                   foregroundColor: Colors.white,
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 14.w, vertical: 10.h),

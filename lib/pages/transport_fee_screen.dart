@@ -16,7 +16,7 @@ class TransportFeeScreen extends GetView<TransportFeeController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return DefaultTabController(
       length: 2,
@@ -466,11 +466,11 @@ class _ViewTab extends GetView<TransportFeeController> {
           scrollDirection: Axis.horizontal,
           child: DataTable(
             headingRowColor:
-            WidgetStateProperty.all(Colors.teal.shade50),
+            WidgetStateProperty.all(const Color(0xFFF3E0E8)),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13.sp,
-              color: Colors.teal.shade900,
+              color: const Color(0xFF6E0F39),
             ),
             dataTextStyle: TextStyle(fontSize: 12.sp, color: Colors.black87),
             columnSpacing: 18,

@@ -11,6 +11,9 @@ import '../controller/fees_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 
+// ─── Axis Bank maroon accent ───────────────────────────────────────────────
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class FeesScreen extends GetView<FeesController> {
   @override
   Widget build(BuildContext context) {
@@ -30,7 +33,7 @@ class FeesScreen extends GetView<FeesController> {
               fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade700, // Darker teal for the app bar
+        backgroundColor: kAxisMaroon, // Darker teal for the app bar
         elevation: 4,
       ),
       body: Padding(
@@ -107,7 +110,7 @@ class FeesScreen extends GetView<FeesController> {
         }).toList(),
         decoration: InputDecoration(
           labelText: 'Session',
-          labelStyle: TextStyle(color: Colors.teal),
+          labelStyle: TextStyle(color: kAxisMaroon),
           border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
@@ -138,7 +141,7 @@ class FeesScreen extends GetView<FeesController> {
         }).toList(),
         decoration: InputDecoration(
           labelText: 'Class',
-          labelStyle: TextStyle(color: Colors.teal),
+          labelStyle: TextStyle(color: kAxisMaroon),
           border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
@@ -170,7 +173,7 @@ class FeesScreen extends GetView<FeesController> {
         }).toList(),
         decoration: InputDecoration(
           labelText: "Section",
-          labelStyle: TextStyle(color: Colors.teal),
+          labelStyle: TextStyle(color: kAxisMaroon),
           border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
@@ -270,7 +273,7 @@ class FeesScreen extends GetView<FeesController> {
           },
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            backgroundColor: Colors.teal,
+            backgroundColor: kAxisMaroon,
           ),
           child: Text(
             'FeePay',

@@ -5,6 +5,15 @@ import 'package:get/get.dart';
 import '../controller/pay_daycare_controller.dart';
 import '../infrastructures/routes/page_constants.dart';
 
+const Color axisMaroon = Color(0xFF97144D);
+const Color axisMaroonShade50 = Color(0xFFF3E0E9);
+const Color axisMaroonShade100 = Color(0xFFE3B8CC);
+const Color axisMaroonShade200 = Color(0xFFD08FAE);
+const Color axisMaroonShade600 = Color(0xFFA61856);
+const Color axisMaroonShade700 = Color(0xFF97144D);
+const Color axisMaroonShade800 = Color(0xFF800F40);
+const Color axisMaroonShade900 = Color(0xFF690C33);
+
 class PayDayCScreen extends StatelessWidget {
   final PayDayCController controller = Get.put(PayDayCController());
 
@@ -29,11 +38,11 @@ class PayDayCScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: axisMaroonShade800,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.teal.shade800, Colors.teal.shade600],
+              colors: [axisMaroonShade800, axisMaroonShade600],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -41,7 +50,7 @@ class PayDayCScreen extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 8,
-        shadowColor: Colors.teal.withOpacity(0.4),
+        shadowColor: axisMaroon.withOpacity(0.4),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -58,10 +67,10 @@ class PayDayCScreen extends StatelessWidget {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: Colors.teal.shade800,
+                foregroundColor: axisMaroonShade800,
                 elevation: 4,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -83,7 +92,7 @@ class PayDayCScreen extends StatelessWidget {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
+                ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +102,7 @@ class PayDayCScreen extends StatelessWidget {
                     // Data Table Card
                     Card(
                       elevation: 8,
-                      shadowColor: Colors.teal.withOpacity(0.15),
+                      shadowColor: axisMaroon.withOpacity(0.15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -103,7 +112,7 @@ class PayDayCScreen extends StatelessWidget {
                           gradient: LinearGradient(
                             colors: [
                               Colors.white,
-                              Colors.teal.shade50.withOpacity(0.5)
+                              axisMaroonShade50.withOpacity(0.5)
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -122,11 +131,11 @@ class PayDayCScreen extends StatelessWidget {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.teal.shade100,
+                                        color: axisMaroonShade100,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Icon(Icons.table_chart,
-                                          color: Colors.teal.shade700,
+                                          color: axisMaroonShade700,
                                           size: 24),
                                     ),
                                     const SizedBox(width: 12),
@@ -135,7 +144,7 @@ class PayDayCScreen extends StatelessWidget {
                                       style: TextStyle(
                                         fontSize: 18.sp,
                                         fontWeight: FontWeight.w700,
-                                        color: Colors.teal.shade900,
+                                        color: axisMaroonShade900,
                                         letterSpacing: 0.3,
                                       ),
                                     ),
@@ -153,7 +162,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Select",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -163,7 +172,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "S.No",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -173,7 +182,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Fee Type",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -183,7 +192,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Login",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -193,7 +202,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Logout",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -203,7 +212,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Hours",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -213,7 +222,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Amount",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -223,7 +232,7 @@ class PayDayCScreen extends StatelessWidget {
                                           "Status",
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal.shade800,
+                                            color: axisMaroonShade800,
                                             fontSize: 13,
                                           ),
                                         ),
@@ -241,18 +250,18 @@ class PayDayCScreen extends StatelessWidget {
                                           .getCalculatedTotalHours(data);
 
                                       int calculatedAmount =
-                                          controller.calculateRowTotalPay(data);
+                                      controller.calculateRowTotalPay(data);
 
                                       bool isFullyPaid =
-                                          controller.isPaymentStatusPaid(data);
+                                      controller.isPaymentStatusPaid(data);
 
                                       return DataRow(
                                         color:
-                                            MaterialStateProperty.resolveWith(
-                                          (states) {
+                                        MaterialStateProperty.resolveWith(
+                                              (states) {
                                             if (states.contains(
                                                 MaterialState.selected)) {
-                                              return Colors.teal.shade100;
+                                              return axisMaroonShade100;
                                             }
                                             return isEvenRow
                                                 ? Colors.grey.shade50
@@ -263,41 +272,41 @@ class PayDayCScreen extends StatelessWidget {
                                           DataCell(
                                             isFullyPaid
                                                 ? Container(
-                                                    width: 28,
-                                                    height: 28,
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.green.shade400,
-                                                      shape: BoxShape.circle,
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.green
-                                                              .withOpacity(0.3),
-                                                          blurRadius: 6,
-                                                          offset: const Offset(
-                                                              0, 2),
-                                                        )
-                                                      ],
-                                                    ),
-                                                    child: const Icon(
-                                                        Icons.check,
-                                                        color: Colors.white,
-                                                        size: 16),
+                                              width: 28,
+                                              height: 28,
+                                              decoration: BoxDecoration(
+                                                color:
+                                                Colors.green.shade400,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.green
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 6,
+                                                    offset: const Offset(
+                                                        0, 2),
                                                   )
+                                                ],
+                                              ),
+                                              child: const Icon(
+                                                  Icons.check,
+                                                  color: Colors.white,
+                                                  size: 16),
+                                            )
                                                 : Checkbox(
-                                                    value: controller
-                                                        .selectedRows
-                                                        .contains(data),
-                                                    onChanged: (isSelected) {
-                                                      controller
-                                                          .toggleRowSelection(
-                                                              data,
-                                                              isSelected ??
-                                                                  false);
-                                                    },
-                                                    activeColor:
-                                                        Colors.teal.shade700,
-                                                  ),
+                                              value: controller
+                                                  .selectedRows
+                                                  .contains(data),
+                                              onChanged: (isSelected) {
+                                                controller
+                                                    .toggleRowSelection(
+                                                    data,
+                                                    isSelected ??
+                                                        false);
+                                              },
+                                              activeColor:
+                                              axisMaroonShade700,
+                                            ),
                                           ),
                                           DataCell(
                                             Text(
@@ -318,29 +327,29 @@ class PayDayCScreen extends StatelessWidget {
                                           DataCell(Text(
                                             data.fromTime ?? '--',
                                             style:
-                                                const TextStyle(fontSize: 13),
+                                            const TextStyle(fontSize: 13),
                                           )),
                                           DataCell(Text(
                                             data.toTime ?? '--',
                                             style:
-                                                const TextStyle(fontSize: 13),
+                                            const TextStyle(fontSize: 13),
                                           )),
                                           DataCell(
                                             Obx(
-                                              () => Text(
+                                                  () => Text(
                                                 controller.selectedRows
-                                                        .contains(data)
+                                                    .contains(data)
                                                     ? displayTotalHours
                                                     : (data.totalHour ??
-                                                        '0:00'),
+                                                    '0:00'),
                                                 style: TextStyle(
                                                   fontWeight: controller
-                                                          .selectedRows
-                                                          .contains(data)
+                                                      .selectedRows
+                                                      .contains(data)
                                                       ? FontWeight.bold
                                                       : FontWeight.w500,
                                                   color: controller.selectedRows
-                                                          .contains(data)
+                                                      .contains(data)
                                                       ? Colors.blue.shade700
                                                       : Colors.black87,
                                                   fontSize: 13,
@@ -356,22 +365,22 @@ class PayDayCScreen extends StatelessWidget {
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 13,
-                                                color: Colors.teal.shade700,
+                                                color: axisMaroonShade700,
                                               ),
                                             ),
                                           ),
                                           DataCell(
                                             Container(
                                               padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6),
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 6),
                                               decoration: BoxDecoration(
                                                 color: isFullyPaid
                                                     ? Colors.green.shade100
                                                     : Colors.orange.shade100,
                                                 borderRadius:
-                                                    BorderRadius.circular(16),
+                                                BorderRadius.circular(16),
                                                 border: Border.all(
                                                   color: isFullyPaid
                                                       ? Colors.green.shade500
@@ -426,7 +435,7 @@ class PayDayCScreen extends StatelessWidget {
   Widget _buildSummarySection() {
     return Card(
       elevation: 10,
-      shadowColor: Colors.teal.withOpacity(0.25),
+      shadowColor: axisMaroon.withOpacity(0.25),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         decoration: BoxDecoration(
@@ -434,13 +443,13 @@ class PayDayCScreen extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               Colors.white,
-              Colors.teal.shade50.withOpacity(0.6),
+              axisMaroonShade50.withOpacity(0.6),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           border: Border.all(
-            color: Colors.teal.shade100,
+            color: axisMaroonShade100,
             width: 1.2,
           ),
         ),
@@ -455,19 +464,19 @@ class PayDayCScreen extends StatelessWidget {
 
             final items = modes.isEmpty
                 ? const <DropdownMenuItem<String>>[
-                    DropdownMenuItem<String>(
-                      value: '',
-                      enabled: false,
-                      child: Text("No payment modes"),
-                    ),
-                  ]
+              DropdownMenuItem<String>(
+                value: '',
+                enabled: false,
+                child: Text("No payment modes"),
+              ),
+            ]
                 : modes
-                    .map((m) => DropdownMenuItem<String>(
-                          value: m.paymentMode!,
-                          child: Text(m.paymentMode!,
-                              overflow: TextOverflow.ellipsis),
-                        ))
-                    .toList();
+                .map((m) => DropdownMenuItem<String>(
+              value: m.paymentMode!,
+              child: Text(m.paymentMode!,
+                  overflow: TextOverflow.ellipsis),
+            ))
+                .toList();
 
             final selectedMode = controller.selectedPaymentMode.value.trim();
             final modeUpper = selectedMode.toUpperCase();
@@ -540,14 +549,14 @@ class PayDayCScreen extends StatelessWidget {
                   icon: Icons.trending_down,
                   label: "Total Due Amount",
                   value:
-                      "₹${controller.getTotalDueAmount().toStringAsFixed(0)}",
+                  "₹${controller.getTotalDueAmount().toStringAsFixed(0)}",
                   color: Colors.orange,
                 ),
                 _buildSummaryRow(
                   icon: Icons.attach_money,
                   label: "Total Amount",
                   value: "₹${controller.getTotalAmount().toStringAsFixed(0)}",
-                  color: Colors.teal,
+                  color: axisMaroon,
                   isBold: true,
                 ),
                 if (controller.getdiscount() != 0)
@@ -563,9 +572,9 @@ class PayDayCScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.teal.withOpacity(0.2),
-                        Colors.teal.withOpacity(0.5),
-                        Colors.teal.withOpacity(0.2),
+                        axisMaroon.withOpacity(0.2),
+                        axisMaroon.withOpacity(0.5),
+                        axisMaroon.withOpacity(0.2),
                       ],
                     ),
                   ),
@@ -600,19 +609,19 @@ class PayDayCScreen extends StatelessWidget {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide:
-                                  BorderSide(color: Colors.teal.shade200),
+                              BorderSide(color: axisMaroonShade200),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.teal.shade600,
+                                color: axisMaroonShade600,
                                 width: 2,
                               ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 14),
                             filled: true,
-                            fillColor: Colors.teal.shade50.withOpacity(0.3),
+                            fillColor: axisMaroonShade50.withOpacity(0.3),
                           ),
                         ),
                       ),
@@ -644,19 +653,19 @@ class PayDayCScreen extends StatelessWidget {
                           prefixIcon: const Icon(Icons.currency_rupee),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.teal.shade200),
+                            borderSide: BorderSide(color: axisMaroonShade200),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.teal.shade600,
+                              color: axisMaroonShade600,
                               width: 2,
                             ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
                           filled: true,
-                          fillColor: Colors.teal.shade50.withOpacity(0.3),
+                          fillColor: axisMaroonShade50.withOpacity(0.3),
                         ),
                         onChanged: (value) {
                           controller.totalPay.value =
@@ -690,47 +699,47 @@ class PayDayCScreen extends StatelessWidget {
                           hintText: 'Select payment method',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.teal.shade200),
+                            borderSide: BorderSide(color: axisMaroonShade200),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.teal.shade600,
+                              color: axisMaroonShade600,
                               width: 2,
                             ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
                           filled: true,
-                          fillColor: Colors.teal.shade50.withOpacity(0.3),
+                          fillColor: axisMaroonShade50.withOpacity(0.3),
                           prefixIcon: Icon(
                             Icons.payment,
-                            color: Colors.teal.shade600,
+                            color: axisMaroonShade600,
                           ),
                         ),
                         items: items,
                         onChanged: modes.isEmpty
                             ? null
                             : (value) {
-                                controller.selectedPaymentMode.value =
-                                    (value ?? '').trim();
-                                final m = controller.selectedPaymentMode.value
-                                    .toUpperCase();
-                                if (m == "CASH") {
-                                  controller.bankNameController.clear();
-                                  controller.chequeNoController.clear();
-                                  controller.chequeDateController.clear();
-                                  controller.upiTxnController.clear();
-                                } else if (m == "UPI") {
-                                  controller.bankNameController.clear();
-                                  controller.chequeNoController.clear();
-                                  controller.chequeDateController.clear();
-                                } else if (m == "NEFT" ||
-                                    m == "RTGS" ||
-                                    m == "IMPS") {
-                                  controller.upiTxnController.clear();
-                                }
-                              },
+                          controller.selectedPaymentMode.value =
+                              (value ?? '').trim();
+                          final m = controller.selectedPaymentMode.value
+                              .toUpperCase();
+                          if (m == "CASH") {
+                            controller.bankNameController.clear();
+                            controller.chequeNoController.clear();
+                            controller.chequeDateController.clear();
+                            controller.upiTxnController.clear();
+                          } else if (m == "UPI") {
+                            controller.bankNameController.clear();
+                            controller.chequeNoController.clear();
+                            controller.chequeDateController.clear();
+                          } else if (m == "NEFT" ||
+                              m == "RTGS" ||
+                              m == "IMPS") {
+                            controller.upiTxnController.clear();
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -775,15 +784,15 @@ class PayDayCScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                           gradient: LinearGradient(
                             colors: [
-                              Colors.teal.shade600,
-                              Colors.teal.shade800,
+                              axisMaroonShade600,
+                              axisMaroonShade800,
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.teal.withOpacity(0.3),
+                              color: axisMaroon.withOpacity(0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -792,9 +801,9 @@ class PayDayCScreen extends StatelessWidget {
                         child: ElevatedButton.icon(
                           onPressed: canPay
                               ? () async {
-                                  await controller.addFees();
-                                  await _refresh();
-                                }
+                            await controller.addFees();
+                            await _refresh();
+                          }
                               : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
@@ -872,35 +881,35 @@ class PayDayCScreen extends StatelessWidget {
           labelText: label,
           labelStyle: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.teal.shade700,
+            color: axisMaroonShade700,
           ),
           hintText: hint,
           hintStyle: TextStyle(color: Colors.grey.shade400),
           prefixIcon: icon == null
               ? null
               : Icon(
-                  icon,
-                  color: Colors.teal.shade600,
-                ),
+            icon,
+            color: axisMaroonShade600,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.teal.shade200),
+            borderSide: BorderSide(color: axisMaroonShade200),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Colors.teal.shade600,
+              color: axisMaroonShade600,
               width: 2,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.teal.shade200),
+            borderSide: BorderSide(color: axisMaroonShade200),
           ),
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           filled: true,
-          fillColor: Colors.teal.shade50.withOpacity(0.3),
+          fillColor: axisMaroonShade50.withOpacity(0.3),
         ),
       ),
     );
@@ -910,7 +919,7 @@ class PayDayCScreen extends StatelessWidget {
     required String label,
     required String value,
     IconData? icon,
-    Color color = Colors.teal,
+    Color color = axisMaroon,
     bool isBold = false,
   }) {
     return Padding(
@@ -953,7 +962,7 @@ class PayDayCScreen extends StatelessWidget {
             style: TextStyle(
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w700,
               fontSize: isBold ? 16 : 15,
-              color: isBold ? Colors.teal.shade900 : color,
+              color: isBold ? axisMaroonShade900 : color,
             ),
           ),
         ],

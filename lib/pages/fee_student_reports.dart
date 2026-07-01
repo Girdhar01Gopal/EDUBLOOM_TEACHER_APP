@@ -8,6 +8,9 @@ import '../controller/fee_student_controller_reports.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
   @override
   Widget build(BuildContext context) {
@@ -28,7 +31,7 @@ class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         elevation: 4,
       ),
       body: Padding(
@@ -77,7 +80,7 @@ class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
                       }).toList(),
                       decoration: const InputDecoration(
                         labelText: 'Session',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -107,7 +110,7 @@ class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
                       },
                       decoration: const InputDecoration(
                         labelText: 'Class',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -145,7 +148,7 @@ class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
                       },
                       decoration: const InputDecoration(
                         labelText: "Section",
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,

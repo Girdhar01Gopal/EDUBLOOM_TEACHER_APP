@@ -27,7 +27,7 @@ class HomeworkScreen extends GetView<HomeworkController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           title: const Text(
             "📚 Homework",
             style: TextStyle(color: Colors.white),
@@ -241,9 +241,9 @@ class AddHomeworkTab extends GetView<HomeworkController> {
               height: 160.h,
               width: double.infinity,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.teal.shade300, width: 1.5),
+                border: Border.all(color: const Color(0xFF97144D).withOpacity(0.5), width: 1.5),
                 borderRadius: BorderRadius.circular(12.r),
-                color: Colors.teal.shade50,
+                color: const Color(0xFF97144D).withOpacity(0.06),
               ),
               child: file != null
                   ? _buildFilePreview(file)
@@ -251,12 +251,12 @@ class AddHomeworkTab extends GetView<HomeworkController> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_circle_outline,
-                      size: 40.sp, color: Colors.teal.shade400),
+                      size: 40.sp, color: const Color(0xFF97144D).withOpacity(0.6)),
                   SizedBox(height: 8.h),
                   Text("Tap to select file",
                       style: TextStyle(
                           fontSize: 14.sp,
-                          color: Colors.teal.shade600)),
+                          color: const Color(0xFF97144D).withOpacity(0.8))),
                   SizedBox(height: 4.h),
                   Text("Camera • Gallery • PDF",
                       style: TextStyle(
@@ -717,7 +717,7 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                             LinearProgressIndicator(
                               value: progress,
                               backgroundColor: Colors.grey.shade200,
-                              color: Colors.teal,
+                              color: const Color(0xFF97144D),
                               minHeight: 6,
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -726,7 +726,7 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                               "Downloading ${(progress * 100).toStringAsFixed(0)}%",
                               style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.teal.shade700),
+                                  color: const Color(0xFF97144D)),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -758,7 +758,7 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                               icon: const Icon(Icons.download, size: 18),
                               label: const Text("Download & Share"),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal.shade700,
+                                backgroundColor: const Color(0xFF97144D),
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(
                                     horizontal: 14.w, vertical: 10.h),

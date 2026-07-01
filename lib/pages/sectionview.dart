@@ -15,7 +15,7 @@ class sectionview extends GetView<Sectioncontroller> {
           title: const Text('📘 Section Management',
             style: TextStyle(color: Colors.white),),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800, // AppBar color
+          backgroundColor: const Color(0xFF6E0F38), // AppBar color
           iconTheme: IconThemeData(color: Colors.white), // Change the back arrow to white
           bottom: const TabBar(
             tabs: [

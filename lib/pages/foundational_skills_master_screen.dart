@@ -50,7 +50,7 @@ class _FoundationalSkillsMasterScreenState
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         iconTheme: const IconThemeData(color: Colors.white),
         bottom: TabBar(
           controller: _tabController,
@@ -137,7 +137,7 @@ class _AddFoundationalSkillsTab
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6.r),
                         borderSide:
-                        BorderSide(color: Colors.teal.shade700),
+                        const BorderSide(color: Color(0xFF97144D)),
                       ),
                     ),
                   ),

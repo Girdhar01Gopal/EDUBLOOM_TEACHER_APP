@@ -9,7 +9,7 @@ class ClassWiseFeeStructureScreen extends GetView<ClassWiseFeeStructureControlle
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF97144D);
 
     return Scaffold(
       appBar: AppBar(

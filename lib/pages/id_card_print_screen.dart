@@ -632,7 +632,7 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: _theme.primary,
+        backgroundColor: const Color(0xFF97144D),
         title: const Text(
           '🪪 ID Card Preview',
           style: TextStyle(

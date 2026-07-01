@@ -14,6 +14,12 @@ import '../controller/notification_controller.dart';
 import '../models/sectionmodel.dart';
 import '../models/class_list_model.dart';
 
+const Color axisMaroon = Color(0xFF97144D);
+const Color axisMaroonShade50 = Color(0xFFF3E0E9);
+const Color axisMaroonShade300 = Color(0xFFC0568C);
+const Color axisMaroonShade700 = Color(0xFF97144D);
+const Color axisMaroonShade800 = Color(0xFF800F40);
+
 // ─────────────────────────────────────────────
 //  ROOT SCREEN
 // ─────────────────────────────────────────────
@@ -27,7 +33,7 @@ class NotificationScreen extends GetView<NotificationController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: axisMaroonShade800,
           title: const Text(
             "📢 Notifications",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
@@ -183,7 +189,7 @@ class AddNotificationTab extends GetView<NotificationController> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(color: Colors.teal.shade700, width: 1.5),
+          borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
         ),
       ),
       onChanged: (val) => value.value = val,
@@ -234,7 +240,7 @@ class AddNotificationTab extends GetView<NotificationController> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: Colors.teal.shade700, width: 1.5),
+            borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
           ),
         ),
         menuMaxHeight: 300,
@@ -289,7 +295,7 @@ class AddNotificationTab extends GetView<NotificationController> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: Colors.teal.shade700, width: 1.5),
+            borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
           ),
         ),
         menuMaxHeight: 300,
@@ -320,7 +326,7 @@ class AddNotificationTab extends GetView<NotificationController> {
               child: Row(
                 children: [
                   Icon(Icons.calendar_today_rounded,
-                      size: 18, color: Colors.teal.shade700),
+                      size: 18, color: axisMaroonShade700),
                   SizedBox(width: 10.w),
                   Text(
                     controller.getFormattedDate(isCreate
@@ -350,7 +356,7 @@ class AddNotificationTab extends GetView<NotificationController> {
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: imageFile.value != null
-                  ? Colors.teal.shade300
+                  ? axisMaroonShade300
                   : Colors.grey.shade300,
               width: 1.5,
             ),
@@ -373,7 +379,7 @@ class AddNotificationTab extends GetView<NotificationController> {
                   children: [
                     _overlayBtn(
                       icon: Icons.edit_rounded,
-                      color: Colors.teal,
+                      color: axisMaroon,
                       onTap: () => _showImageSourceSheet(imageFile),
                     ),
                     SizedBox(width: 6.w),
@@ -753,12 +759,12 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                           height: 34.r,
                           width: 34.r,
                           decoration: BoxDecoration(
-                            color: Colors.teal.shade50,
+                            color: axisMaroonShade50,
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
                             Icons.campaign_rounded,
-                            color: Colors.teal[700],
+                            color: axisMaroonShade700,
                             size: 18.sp,
                           ),
                         ),
@@ -826,7 +832,7 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                             LinearProgressIndicator(
                               value: progress,
                               backgroundColor: Colors.grey.shade200,
-                              color: Colors.teal,
+                              color: axisMaroon,
                               minHeight: 6,
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -835,7 +841,7 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                               "Downloading ${(progress * 100).toStringAsFixed(0)}%",
                               style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.teal.shade700),
+                                  color: axisMaroonShade700),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -863,7 +869,7 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                               icon: const Icon(Icons.download, size: 18),
                               label: const Text("Download & Share"),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal.shade700,
+                                backgroundColor: axisMaroonShade700,
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(
                                     horizontal: 14.w, vertical: 10.h),

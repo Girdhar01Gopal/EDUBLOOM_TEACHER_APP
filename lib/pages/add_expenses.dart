@@ -17,7 +17,7 @@ class AddExpenseScreen extends GetView<AddExpenseController> {
           'Add Expenses',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -417,7 +417,7 @@ class AddExpenseScreen extends GetView<AddExpenseController> {
           borderSide: BorderSide(color: Colors.grey.shade400)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
-          borderSide: BorderSide(color: Colors.teal.shade600)),
+          borderSide: const BorderSide(color: Color(0xFF97144D))),
     );
   }
 
@@ -435,7 +435,7 @@ class AddExpenseScreen extends GetView<AddExpenseController> {
           borderSide: BorderSide(color: Colors.grey.shade400)),
       focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
-          borderSide: BorderSide(color: Colors.teal.shade600)),
+          borderSide: const BorderSide(color: Color(0xFF97144D))),
     );
   }
 

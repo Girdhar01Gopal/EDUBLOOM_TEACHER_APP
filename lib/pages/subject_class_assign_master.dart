@@ -12,7 +12,7 @@ class SubjectClassAssignMasterScreen extends GetView<SubjectClassAssignControlle
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF99144E);
 
     return DefaultTabController(
       length: 2,
@@ -316,7 +316,7 @@ class _ViewTab extends GetView<SubjectClassAssignController> {
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
                         headingRowColor: WidgetStateProperty.all(
-                          Colors.teal.shade50,
+                          const Color(0xFFF7EEF2),
                         ),
                         columns: const [
                           DataColumn(label: Text("S.no")),

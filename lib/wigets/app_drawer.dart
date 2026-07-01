@@ -30,7 +30,15 @@ class AppDrawer extends GetView<Appdrawercontroller> {
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 30.h),
               decoration: const BoxDecoration(
-                gradient: ksecondryGradientColor,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF5E0E29),
+                    Color(0xFF8F1542),
+                    Colors.white,
+                  ],
+                ),
               ),
               child: Obx(
                     () => Column(

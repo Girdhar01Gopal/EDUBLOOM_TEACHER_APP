@@ -300,7 +300,7 @@ class Daycaretakeattendanceview extends GetView<Daycareattendencecontroller> {
         }),
       ),
       bottomNavigationBar: BottomAppBar(
-        color: Colors.teal.shade800,
+        color: const Color(0xFF97144D),
         child: Padding(
           padding:
           const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
@@ -355,7 +355,7 @@ class Daycaretakeattendanceview extends GetView<Daycareattendencecontroller> {
       child: Obx(() {
         final searching = _isSearching.value;
         return AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           elevation: 0,
           centerTitle: true,
           leading: IconButton(

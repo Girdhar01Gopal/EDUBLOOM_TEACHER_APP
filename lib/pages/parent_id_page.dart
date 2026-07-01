@@ -8,6 +8,8 @@ import '../models/session_model.dart' as session_model;
 
 import '../controller/parent_id_controller.dart';
 
+const Color axisMaroon = Color(0xFF97144D);
+
 class ParentIdPage extends StatefulWidget {
   const ParentIdPage({super.key});
 
@@ -42,7 +44,7 @@ class _ParentIdPageState extends State<ParentIdPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: axisMaroon,
         title: const Text(
           "View Parents Id",
           style: TextStyle(color: Colors.white),
@@ -224,7 +226,7 @@ class _ParentIdPageState extends State<ParentIdPage>
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.r),
             borderSide:
-            BorderSide(color: Colors.teal.shade800, width: 1.2),
+            BorderSide(color: axisMaroon, width: 1.2),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -255,10 +257,10 @@ class _ParentIdPageState extends State<ParentIdPage>
           );
         }).toList(),
         onChanged: (val) => controller.setSelectedClass(val),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           labelText: 'Class',
-          labelStyle: TextStyle(color: Colors.teal),
-          border: OutlineInputBorder(),
+          labelStyle: TextStyle(color: axisMaroon),
+          border: const OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
         ),
@@ -294,13 +296,13 @@ class _ParentIdPageState extends State<ParentIdPage>
           );
         }).toList(),
         onChanged: controller.setSelectedSection,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           labelText: 'Section',
-          labelStyle: TextStyle(color: Colors.teal),
-          border: OutlineInputBorder(),
+          labelStyle: TextStyle(color: axisMaroon),
+          border: const OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         ),
       );
     });

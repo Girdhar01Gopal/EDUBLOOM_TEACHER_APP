@@ -9,7 +9,7 @@ class StationaryInventoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teal = Colors.teal.shade800;
+    final teal = const Color(0xFF6E0F38);
     final controller = Get.put(StationaryInventoryController());
 
     return Scaffold(

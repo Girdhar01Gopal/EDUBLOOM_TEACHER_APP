@@ -13,8 +13,8 @@ import 'id_card_print_screen.dart';
 import 'next_screen.dart';
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal = Color(0xFF97144D);
+const _tealLight = Color(0xFFC2185B);
 const _accent = Color(0xFFFF6B6B);
 const _cardBg = Color(0xFFF8FFFE);
 const _surface = Color(0xFFFFFFFF);
@@ -207,7 +207,7 @@ class AddStudentTab extends GetView<StudentController> {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF00897B), Color(0xFF00695C)],
+            colors: [Color(0xFFC2185B), Color(0xFF97144D)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -804,7 +804,7 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                   child: Container(
                     height: 68.w,
                     width: 68.w,
-                    color: Colors.teal.shade50,
+                    color: const Color(0xFFF3E5EA),
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
@@ -869,14 +869,14 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                       child: Row(
                         children: [
                           Icon(Icons.phone_outlined,
-                              size: 12, color: Colors.teal.shade600),
+                              size: 12, color: _tealLight),
                           SizedBox(width: 4.w),
                           Expanded(
                             child: Text(
                               s.phone ?? '-',
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: Colors.teal.shade700,
+                                color: _teal,
                                 height: 1.4,
                               ),
                               overflow: TextOverflow.ellipsis,

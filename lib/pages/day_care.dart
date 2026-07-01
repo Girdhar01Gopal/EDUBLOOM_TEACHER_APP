@@ -17,7 +17,7 @@ class DayCare extends GetView<DayCareController> {
         title: const Text("👶 Day Care Management",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         elevation: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -215,7 +215,7 @@ class DayCare extends GetView<DayCareController> {
               style: TextStyle(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                color: Colors.teal.shade800,
+                color: const Color(0xFF97144D),
               ),
             ),
             subtitle: Column(
@@ -294,7 +294,7 @@ class DayCare extends GetView<DayCareController> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.teal,
+          backgroundColor: const Color(0xFF97144D),
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(vertical: 12.h),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),

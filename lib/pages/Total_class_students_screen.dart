@@ -8,8 +8,8 @@ import '../infrastructures/utils/local_storage/pref_const.dart';     // ✅ fixe
 import '../models/student_model.dart';                               // ✅ fixed: relative import (matches StudentDetailScreen's model)
 import 'studentdetialsview.dart';                                    // ✅ fixed: relative import (same pages folder)
 
-const _teal = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal = Color(0xFF97144D);
+const _tealLight = Color(0xFFC2185B);
 const _surface = Color(0xFFFFFFFF);
 const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
@@ -287,7 +287,7 @@ class _ClassStudentsScreenState extends State<ClassStudentsScreen> {
                   child: Container(
                     height: 68.w,
                     width: 68.w,
-                    color: Colors.teal.shade50,
+                    color: const Color(0xFFF3E0E8),
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,

@@ -758,7 +758,7 @@ class _TcCertificateDownloadScreenState
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF99144E),
         elevation: 4,
         actions: [
           IconButton(
@@ -792,7 +792,7 @@ class _TcCertificateDownloadScreenState
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal.shade800,
+                  backgroundColor: const Color(0xFF99144E),
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -831,7 +831,7 @@ class _TcCertificateDownloadScreenState
           // ── Swipeable certificate cards ───────────
           Expanded(
             child: RefreshIndicator(
-              color: Colors.teal.shade800,
+              color: const Color(0xFF99144E),
               onRefresh: _fetchTcDetails,
               child: PageView.builder(
                 controller: _pageController,

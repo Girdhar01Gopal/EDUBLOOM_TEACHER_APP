@@ -43,7 +43,7 @@ class AttendancePage extends GetView<AttendanceController> {
       child: Obx(() {
         final searching = controller.isSearching.value;
         return AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
@@ -231,8 +231,8 @@ class AttendancePage extends GetView<AttendanceController> {
                   decoration: InputDecoration(
                     labelText: 'Select Date',
                     labelStyle: const TextStyle(fontSize: 11),
-                    prefixIcon: Icon(Icons.calendar_month_rounded,
-                        color: Colors.teal.shade700, size: 16),
+                    prefixIcon: const Icon(Icons.calendar_month_rounded,
+                        color: Color(0xFF97144D), size: 16),
                     prefixIconConstraints: const BoxConstraints(
                         minWidth: 32, minHeight: 32),
                     border: OutlineInputBorder(
@@ -252,8 +252,8 @@ class AttendancePage extends GetView<AttendanceController> {
                       lastDate: today,
                       builder: (ctx, child) => Theme(
                         data: Theme.of(ctx).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: Colors.teal.shade800,
+                          colorScheme: const ColorScheme.light(
+                            primary: Color(0xFF97144D),
                             onPrimary: Colors.white,
                             surface: Colors.white,
                             onSurface: Colors.black87,
@@ -415,7 +415,7 @@ class AttendancePage extends GetView<AttendanceController> {
   // ─── Bottom Submit Button ─────────────────────────────────────────────────
   Widget _buildBottomBar() {
     return BottomAppBar(
-      color: Colors.teal.shade800,
+      color: const Color(0xFF97144D),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: Container(
@@ -557,7 +557,7 @@ class _StudentCardState extends State<_StudentCard> {
             padding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.teal.shade800,
+              color: const Color(0xFF97144D),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),

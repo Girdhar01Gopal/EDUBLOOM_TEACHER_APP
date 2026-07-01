@@ -8,8 +8,8 @@ import '../controller/student_controller.dart';
 import '../models/student_model.dart';
 
 // ─── Palette ───────────────────────────────────────────────
-const _teal = Color(0xFF00695C);
-const _tealLight = Color(0xFF26A69A);
+const _teal = Color(0xFF99144E);
+const _tealLight = Color(0xFFC17294);
 const _surface = Color(0xFFFFFFFF);
 const _cardBg = Color(0xFFF8FFFE);
 const _textPrimary = Color(0xFF1A2B3C);
@@ -152,7 +152,7 @@ class StudentDetailScreen extends StatelessWidget {
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF00695C)],
+          colors: [Color(0xFFC17294), Color(0xFF99144E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -405,7 +405,7 @@ class StudentDetailScreen extends StatelessWidget {
       height: 70,
       width: 70,
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: const Color(0xFFF7EEF2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(Icons.person_outline, color: _tealLight),
@@ -806,7 +806,7 @@ class StudentDetailScreen extends StatelessWidget {
       height: 56,
       width: 56,
       decoration: BoxDecoration(
-          color: Colors.teal.shade50,
+          color: const Color(0xFFF7EEF2),
           borderRadius: BorderRadius.circular(10)),
       child: const Icon(Icons.image_outlined, color: _tealLight),
     );

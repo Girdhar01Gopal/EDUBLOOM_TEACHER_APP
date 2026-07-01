@@ -154,7 +154,7 @@ class _ReportCardDetailScreenState extends State<ReportCardDetailScreen> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF6E0F38),
         elevation: 4,
         actions: [
           IconButton(
@@ -210,7 +210,7 @@ class _ReportCardDetailScreenState extends State<ReportCardDetailScreen> {
             // ── Swipeable report card pages ─────────────────
             Expanded(
               child: RefreshIndicator(
-                color: Colors.teal.shade800,
+                color: const Color(0xFF97144D),
                 onRefresh: controller.init,
                 child: PageView.builder(
                   controller: _pageController,

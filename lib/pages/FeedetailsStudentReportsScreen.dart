@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../controller/FeedetailsStudentReportsController.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class Feedetailsstudentreportsscreen extends GetView<Feedetailsstudentreportscontroller> {
   @override
   Widget build(BuildContext context) {
@@ -16,7 +19,7 @@ class Feedetailsstudentreportsscreen extends GetView<Feedetailsstudentreportscon
         ),
         title: Text("Fee Student Report", style: TextStyle(fontSize: 22.sp, color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         elevation: 4,
       ),
       body: Padding(
@@ -47,7 +50,7 @@ class Feedetailsstudentreportsscreen extends GetView<Feedetailsstudentreportscon
                       }).toList(),
                       decoration: InputDecoration(
                         labelText: 'Session',
-                        labelStyle: TextStyle(color: Colors.teal),
+                        labelStyle: TextStyle(color: kAxisMaroon),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,

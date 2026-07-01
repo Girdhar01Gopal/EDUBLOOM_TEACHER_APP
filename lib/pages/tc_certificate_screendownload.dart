@@ -51,13 +51,13 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
           errorBuilder: (_, __, ___) => const Icon(
             Icons.school,
             size: 36,
-            color: Colors.teal,
+            color: Color(0xFF99144E),
           ),
         )
             : const Icon(
           Icons.school,
           size: 36,
-          color: Colors.teal,
+          color: Color(0xFF99144E),
         ),
       ),
     );
@@ -81,7 +81,7 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF99144E),
         elevation: 4,
       ),
       body: Obx(() {
@@ -247,9 +247,9 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
                       ? null // disable while saving
                       : () => controller.saveTcCertificate(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal.shade700,
+                    backgroundColor: const Color(0xFF99144E),
                     disabledBackgroundColor:
-                    Colors.teal.shade200,
+                    const Color(0xFFD195AF),
                     padding:
                     const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(

@@ -29,7 +29,7 @@ class Viewtransactionview extends GetView<Viewtransactioncontroller> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF00796B),
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         shape: const RoundedRectangleBorder(
@@ -108,7 +108,7 @@ class _TransactionCard extends StatelessWidget {
           // ── Header bar ──
           Container(
             decoration: const BoxDecoration(
-              color: Color(0xFF00796B),
+              color: Color(0xFF97144D),
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             padding:
@@ -158,11 +158,11 @@ class _TransactionCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 21,
-                  backgroundColor: const Color(0xFFE0F2F1),
+                  backgroundColor: const Color(0xFFF3E0E8),
                   child: Text(
                     (item.studentName ?? 'S')[0].toUpperCase(),
                     style: const TextStyle(
-                      color: Color(0xFF00796B),
+                      color: Color(0xFF97144D),
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
                     ),
@@ -261,14 +261,14 @@ class _TransactionCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F2F1),
+                    color: const Color(0xFFF3E0E8),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     item.feeMonth ?? '',
                     style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF00796B),
+                        color: Color(0xFF97144D),
                         fontWeight: FontWeight.w600),
                   ),
                 ),

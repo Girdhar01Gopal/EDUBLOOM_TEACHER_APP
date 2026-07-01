@@ -23,7 +23,7 @@ class TermResultScreen extends StatelessWidget {
             ),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF99144E),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -102,7 +102,7 @@ class _AddTermTab extends GetView<TermResultController> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6.r),
-                        borderSide: BorderSide(color: Colors.teal.shade700),
+                        borderSide: const BorderSide(color: Color(0xFF99144E)),
                       ),
                     ),
                   ),

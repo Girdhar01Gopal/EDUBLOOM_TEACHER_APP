@@ -232,7 +232,7 @@ class _MapcategoryviewState extends State<Mapcategoryview>
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,
@@ -470,7 +470,7 @@ class _MapcategoryviewState extends State<Mapcategoryview>
                   "${images.length} photo${images.length > 1 ? 's' : ''}",
                   style: TextStyle(
                     fontSize: 10.sp,
-                    color: Colors.teal.shade700,
+                    color: const Color(0xFF97144D),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -591,7 +591,7 @@ class _MapcategoryviewState extends State<Mapcategoryview>
                         Row(
                           children: [
                             Icon(Icons.class_rounded,
-                                size: 16.r, color: Colors.teal),
+                                size: 16.r, color: const Color(0xFFAD1457)),
                             SizedBox(width: 6.w),
                             Text(
                               "Class: $className",
@@ -607,7 +607,7 @@ class _MapcategoryviewState extends State<Mapcategoryview>
                         Row(
                           children: [
                             Icon(Icons.people_rounded,
-                                size: 16.r, color: Colors.teal),
+                                size: 16.r, color: const Color(0xFFAD1457)),
                             SizedBox(width: 6.w),
                             Text(
                               "Section: $sectionName",

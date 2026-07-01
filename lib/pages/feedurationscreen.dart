@@ -6,6 +6,9 @@ import 'package:intl/intl.dart';
 import '../controller/feedurationcontroller.dart';
 import '../models/feedurationmodel.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class FeeDurationMasterScreen extends StatelessWidget {
   const FeeDurationMasterScreen({super.key});
 
@@ -21,7 +24,7 @@ class FeeDurationMasterScreen extends StatelessWidget {
             style: TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -208,7 +211,7 @@ class _FeeDurationListTab extends GetView<FeeDurationController> {
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
                       headingRowColor: WidgetStateProperty.all(
-                          Colors.teal.shade50),
+                          kAxisMaroon.withOpacity(0.08)),
                       columnSpacing: 20,
                       columns: const [
                         DataColumn(label: Text("S.No")),

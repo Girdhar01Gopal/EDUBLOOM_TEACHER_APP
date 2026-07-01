@@ -15,7 +15,7 @@ class GradeMasterScreen extends GetView<GradeMasterController> {
         appBar: AppBar(
           title: const Text("Grade Master", style: TextStyle(color: Colors.white)),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -250,8 +250,8 @@ class ViewGradeTab extends GetView<GradeMasterController> {
                         children: [
                           CircleAvatar(
                             radius: 22.r,
-                            backgroundColor: Colors.teal.shade50,
-                            child: Icon(Icons.grade, color: Colors.teal.shade800),
+                            backgroundColor: const Color(0xFF97144D).withOpacity(0.08),
+                            child: const Icon(Icons.grade, color: Color(0xFF97144D)),
                           ),
                           SizedBox(width: 12.w),
 

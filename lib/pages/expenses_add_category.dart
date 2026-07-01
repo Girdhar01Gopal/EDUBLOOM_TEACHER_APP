@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/expenses_add_category_controller.dart';
 
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class ExpensesCategoryScreen extends GetView<ExpensesCategoryController> {
   const ExpensesCategoryScreen({super.key});
 
@@ -17,7 +20,7 @@ class ExpensesCategoryScreen extends GetView<ExpensesCategoryController> {
             style: TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -92,7 +95,7 @@ class _AddTab extends GetView<ExpensesCategoryController> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Colors.teal),
+                  borderSide: const BorderSide(color: kAxisMaroon),
                 ),
               ),
             ),
@@ -207,66 +210,66 @@ class _ViewTab extends GetView<ExpensesCategoryController> {
                       columnSpacing: 20,
                       dataRowMinHeight: 48,
                       dataRowMaxHeight: 56,
-                  columns: const [
-                    DataColumn(
-                        label: Text("S.no", style: TextStyle(fontWeight: FontWeight.w600))),
-                    DataColumn(
-                        label: Text("Category Name", style: TextStyle(fontWeight: FontWeight.w600))),
-                    DataColumn(
-                        label: Text("Create Date", style: TextStyle(fontWeight: FontWeight.w600))),
-                    DataColumn(
-                        label: Text("Update Date", style: TextStyle(fontWeight: FontWeight.w600))),
-                    DataColumn(
-                        label: Text("Action", style: TextStyle(fontWeight: FontWeight.w600))),
-                  ],
-                  rows: List.generate(list.length, (index) {
-                    final item = list[index];
+                      columns: const [
+                        DataColumn(
+                            label: Text("S.no", style: TextStyle(fontWeight: FontWeight.w600))),
+                        DataColumn(
+                            label: Text("Category Name", style: TextStyle(fontWeight: FontWeight.w600))),
+                        DataColumn(
+                            label: Text("Create Date", style: TextStyle(fontWeight: FontWeight.w600))),
+                        DataColumn(
+                            label: Text("Update Date", style: TextStyle(fontWeight: FontWeight.w600))),
+                        DataColumn(
+                            label: Text("Action", style: TextStyle(fontWeight: FontWeight.w600))),
+                      ],
+                      rows: List.generate(list.length, (index) {
+                        final item = list[index];
 
-                    return DataRow(cells: [
-                      DataCell(Text("${index + 1}")),
-                      DataCell(
-                        SizedBox(
-                          width: 130,
-                          child: Text(item.category!, overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
-                      DataCell(Text(formatDate(item.createDate))),
-                      DataCell(Text(formatDate(item.updateDate))),
-
-                      // Action — only Edit button (orange)
-                      DataCell(
-                        Row(
-                          children: [
-                            // Edit Button
-                            Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: const Icon(Icons.edit, color: Colors.white, size: 18),
-                                onPressed: () => controller.openEditDialog(index),
-                              ),
+                        return DataRow(cells: [
+                          DataCell(Text("${index + 1}")),
+                          DataCell(
+                            SizedBox(
+                              width: 130,
+                              child: Text(item.category!, overflow: TextOverflow.ellipsis),
                             ),
-                            const SizedBox(width: 10),
+                          ),
+                          DataCell(Text(formatDate(item.createDate))),
+                          DataCell(Text(formatDate(item.updateDate))),
 
-                            // Green Tick icon for action 1
-                            if (item.action == '1') ...[
-                              Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 24,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ]);
-                  }),
-                ),
+                          // Action — only Edit button (orange)
+                          DataCell(
+                            Row(
+                              children: [
+                                // Edit Button
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.edit, color: Colors.white, size: 18),
+                                    onPressed: () => controller.openEditDialog(index),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+
+                                // Green Tick icon for action 1
+                                if (item.action == '1') ...[
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 24,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ]);
+                      }),
+                    ),
                   ));
             }),
           ],
