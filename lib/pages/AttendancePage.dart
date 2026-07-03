@@ -23,7 +23,6 @@ class AttendancePage extends GetView<AttendanceController> {
                 children: [
                   _buildFilterCard(context),
                   const SizedBox(height: 14),
-                  _buildAlreadyMarkedBanner(),
                   _buildStudentList(),
                   const SizedBox(height: 80),
                 ],
@@ -100,41 +99,6 @@ class AttendancePage extends GetView<AttendanceController> {
         );
       }),
     );
-  }
-
-  // ─── Already-marked Banner ─────────────────────────────────────────────────
-  Widget _buildAlreadyMarkedBanner() {
-    return Obx(() {
-      if (!controller.isAttendanceAlreadyMarked.value ||
-          controller.students.isEmpty) {
-        return const SizedBox.shrink();
-      }
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade300),
-        ),
-        child: Row(
-          children: [
-            // Icon(Icons.event_available_rounded,
-            //     color: Colors.blue.shade600, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                "",
-                style: TextStyle(
-                    fontSize: 12,
-                    //color: Colors.blue.shade800,
-                    fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
-      );
-    });
   }
 
   // ─── Filter Card ──────────────────────────────────────────────────────────
