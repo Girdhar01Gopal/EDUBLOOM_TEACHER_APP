@@ -88,27 +88,38 @@ class Appdrawercontroller extends GetxController {
         selectedWidget = Get.toNamed(RouteName.communicationview);
         break;
       case 4:
-        selectedWidget = Get.toNamed(RouteName.activitymaster);
+        selectedWidget = Get.toNamed(RouteName.feesmaster);
         break;
       case 5:
+        selectedWidget = Get.toNamed(RouteName.activitymaster);
+        break;
+      case 6:
         selectedWidget = Get.toNamed(RouteName.reports);
         break;
-
-      case 6:
-        selectedWidget = Get.toNamed(RouteName.results);
-        break;
       case 7:
-        selectedWidget = Get.toNamed(RouteName.products);
+        selectedWidget = Get.toNamed(RouteName.teacher);
         break;
       case 8:
+        selectedWidget = Get.toNamed(RouteName.staffView);
+        break;
+
+      case 9:
+        selectedWidget = Get.toNamed(RouteName.results);
+        break;
+      case 10:
+        selectedWidget = Get.toNamed(RouteName.products);
+        break;
+      case 11:
         selectedWidget = Get.toNamed(RouteName.masterexpenses);
         break;
 
 
-      case 9:
+      case 12:
         selectedWidget = Get.toNamed(RouteName.mastercertificate);
         break;
-
+      case 13:
+        selectedWidget = Get.toNamed(RouteName.userdetails);
+        break;
     }
   }
 
@@ -146,6 +157,14 @@ class Appdrawercontroller extends GetxController {
         const Color(0xFFF3E5F5), // purple 50
       ),
 
+      // Fees's — wallet/payment → amber
+      DhashboardItemsModel(
+        "Fees's",
+        Icons.account_balance_wallet_rounded,
+        const Color(0xFFFFB300), // amber 600
+        const Color(0xFFFFF8E1), // amber 50
+      ),
+
       // Activity's — paintbrush/art → cyan
       DhashboardItemsModel(
         "Activity's",
@@ -162,6 +181,21 @@ class Appdrawercontroller extends GetxController {
         const Color(0xFFFFEBEE), // red 50
       ),
 
+      // Teacher's — person chalkboard → green
+      DhashboardItemsModel(
+        "Teacher's",
+        Icons.person_pin_rounded,
+        const Color(0xFF43A047), // green 600
+        const Color(0xFFE8F5E9), // green 50
+      ),
+
+      // Staff — people → brown
+      DhashboardItemsModel(
+        "Staff",
+        Icons.people_alt_rounded,
+        const Color(0xFF6D4C41), // brown 600
+        const Color(0xFFEFEBE9), // brown 50
+      ),
 
       // Results — star/grade → orange
       DhashboardItemsModel(
@@ -196,7 +230,12 @@ class Appdrawercontroller extends GetxController {
         const Color(0xFFEFEBE9), // brown 50 // blue grey 50
       ),
 
-
+      DhashboardItemsModel(
+        "User Access",
+        Icons.manage_accounts_rounded,
+        const Color(0xFF8E24AA), // blue grey 600
+        const Color(0xFFECEFF1), // blue grey 50
+      ),
     ];
 
     vehicleDocumentList.value = dhashboardItems;
