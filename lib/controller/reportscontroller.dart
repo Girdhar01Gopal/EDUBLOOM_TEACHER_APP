@@ -88,10 +88,10 @@ class Reportscontroller extends GetxController {
       case 7:
         selectedWidget = Get.toNamed(RouteName.feePaymentDetailsReports);
         break;
+      // case 8:
+      //   selectedWidget = Get.toNamed(RouteName.allFeeReportmonths);
+      //   break;
       case 8:
-        selectedWidget = Get.toNamed(RouteName.allFeeReportmonths);
-        break;
-      case 9:
         selectedWidget = Get.toNamed(RouteName.studentwiseyearlyreport);
         break;
         // Added break here
@@ -108,7 +108,7 @@ class Reportscontroller extends GetxController {
       DhashboardItemsModel("Fee type report", Icons.category_rounded, const Color.fromARGB(255, 125, 8, 108)),
       DhashboardItemsModel("View Girls Boys Report", Icons.people_alt_rounded, const Color.fromARGB(255, 17, 5, 58)),
       DhashboardItemsModel("Fee Payment Detail Reports", Icons.receipt_long_rounded, const Color.fromARGB(255, 88, 14, 14)),
-      DhashboardItemsModel("ALL Payment Months Reports", Icons.calendar_month_rounded, const Color.fromARGB(255, 199, 99, 22)),
+      //DhashboardItemsModel("ALL Payment Months Reports", Icons.calendar_month_rounded, const Color.fromARGB(255, 199, 99, 22)),
       DhashboardItemsModel("Yearly Reports Students", Icons.account_balance_rounded, const Color.fromARGB(255, 156, 194, 17)),
 
     ];

@@ -80,6 +80,30 @@ class AddNoteTab extends GetView<NoteController> {
       padding: EdgeInsets.all(16.r),
       child: Column(
         children: [
+          // Class Dropdown
+          Obx(
+                () => DropdownButtonFormField<ListDataa>(
+              value: controller.listDataa
+                  .contains(controller.selectedClass.value)
+                  ? controller.selectedClass.value
+                  : null,
+              items: controller.listDataa
+                  .map(
+                    (item) => DropdownMenuItem<ListDataa>(
+                  value: item,
+                  child: Text(item.className ?? ''),
+                ),
+              )
+                  .toList(),
+              onChanged: controller.setSelectedClass,
+              decoration: const InputDecoration(
+                labelText: 'Select Class',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          SizedBox(height: 16.h),
+
           // Section Dropdown
           Obx(
                 () => DropdownButtonFormField<ListDatta>(
@@ -104,29 +128,6 @@ class AddNoteTab extends GetView<NoteController> {
           ),
           SizedBox(height: 16.h),
 
-          // Class Dropdown
-          Obx(
-                () => DropdownButtonFormField<ListDataa>(
-              value: controller.listDataa
-                  .contains(controller.selectedClass.value)
-                  ? controller.selectedClass.value
-                  : null,
-              items: controller.listDataa
-                  .map(
-                    (item) => DropdownMenuItem<ListDataa>(
-                  value: item,
-                  child: Text(item.className ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: controller.setSelectedClass,
-              decoration: const InputDecoration(
-                labelText: 'Select Class',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          SizedBox(height: 16.h),
 
           // Subject Dropdown
           Obx(
