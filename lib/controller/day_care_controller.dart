@@ -30,7 +30,6 @@ class DayCareController extends GetxController {
     await fetchSessions();
     super.onInit();
   }
-
   Future<void> refreshData() async {
     if (feeDataList.isEmpty) return; // If there's no data, don't proceed
 
@@ -119,28 +118,19 @@ class DayCareController extends GetxController {
         // Purana sessionList ko clear karte hain
         sessionList.clear();
 
-        // ✅ poori list daalo (pehle sirf currentSession add ho rahi thi)
-        if (jsonData['listData'] != null) {
-          final List<dynamic> listRaw = jsonData['listData'];
-          sessionList.addAll(
-            listRaw.map((e) => session_model.sListDdata.fromJson(e)).toList(),
-          );
-        }
-
         if (jsonData['currentSession'] != null) {
-          final currentId = jsonData['currentSession']['currentSessionId'];
+          final cs = session_model.sListDdata(
+            sessionId: jsonData['currentSession']['currentSessionId'],
+            session: jsonData['currentSession']['currentSession'],
+            action: jsonData['currentSession']['action'],
+            schoolId: jsonData['currentSession']['schoolId'],
+          );
 
-          // ✅ list mein se match karke select karo (default session)
-          session_model.sListDdata? matched;
-          for (final s in sessionList) {
-            if (s.sessionId == currentId) {
-              matched = s;
-              break;
-            }
-          }
+          sessionList.add(cs);
 
-          selectedSession.value = matched;
-          session.value = matched?.session ?? ''; // Ye line ensure karegi ki session default select ho
+          // Default session ko select kar rahe hain
+          selectedSession.value = cs;
+          session.value = cs.session ?? '';// Ye line ensure karegi ki session default select ho
         }
       }
     } catch (e) {
@@ -369,3 +359,4 @@ class DayCareController extends GetxController {
     super.onClose();
   }
 }
+
