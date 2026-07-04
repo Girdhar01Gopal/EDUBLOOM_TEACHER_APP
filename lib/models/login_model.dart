@@ -47,7 +47,7 @@ class Data {
   String? name;
   String? schoolName;
   String? logoWithName;
-  String? webandApp;
+  Null? webandApp;
 
   Data(
       {this.userId,

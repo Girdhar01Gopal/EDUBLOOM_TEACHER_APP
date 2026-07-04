@@ -6,10 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:permission_handler/permission_handler.dart';
-
 import 'package:provider/provider.dart';
 import 'package:teacher_app_edubloom/view_model/login_view_model.dart';
-
 import 'firebase_options.dart';
 import 'infrastructures/routes/page_constants.dart';
 import 'infrastructures/routes/page_routes.dart';

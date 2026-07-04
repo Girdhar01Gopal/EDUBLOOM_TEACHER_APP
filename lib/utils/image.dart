@@ -13,6 +13,6 @@ class ImageConstants {
   static String homework = "assets/image/homework.gif";
   static String background = "assets/image/background_splash_1.png";
   static String backgroun = "assets/images/42961.jpg";
-  static String backgroundl = "assets/image/EDUBLOOM.png";
+  static String backgroundl = "assets/images/33463.jpg";
   static String logo = "assets/image/eduagent_logo.png";
 }

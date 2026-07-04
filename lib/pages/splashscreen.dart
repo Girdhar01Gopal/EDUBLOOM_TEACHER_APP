@@ -16,17 +16,18 @@ class SplashScreen extends GetView<SplashScreenController> {
         decoration: BoxDecoration(
           image: DecorationImage(
               image: AssetImage(
-                ImageConstants.backgroun,
+                ImageConstants.backgroundl,
+                
               ),
-              fit: BoxFit.cover),
+             ),
         ),
-        child: Center(
-            child: Image.asset(
-          ImageConstants.backgroundl,
-          height: 400.h,
-          width: 400.w,
-        )
-            ),
+        // child: Center(
+        //     child: Image.asset(
+        //   ImageConstants.backgroundl,
+        //   height: 400.h,
+        //   width: 400.w,
+        // )
+        //     ),
         // child: Center(
         //   child: Column(
         //     mainAxisAlignment: MainAxisAlignment.center,
