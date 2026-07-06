@@ -398,6 +398,7 @@ class _DashboardBodyState extends State<_DashboardBody> with TickerProviderState
           await widget.controller.fetchBirthday();
           await widget.controller.totalamount();
           await widget.controller.totaldue();
+           widget.controller.onInit();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

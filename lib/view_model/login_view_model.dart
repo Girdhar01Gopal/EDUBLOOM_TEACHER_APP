@@ -106,6 +106,7 @@ class LoginViewModel with ChangeNotifier {
       final uri = Uri.parse(
         '${AppUrl.base_url}api/SchoolApp/GetUserAccessApp?userId=$userId&schoolId=$schoolId',
       );
+      
       final response = await https.get(uri, headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",

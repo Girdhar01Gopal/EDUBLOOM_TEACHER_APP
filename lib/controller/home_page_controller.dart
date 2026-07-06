@@ -53,16 +53,24 @@ class DashboardScreenController extends GetxController {
   var schoollname = "".obs;
   var schoollogo = "".obs;
   var expiryDate = "".obs;
-var userid= 0.obs;
+RxInt userid= 0.obs;
+var list = [].obs;
   @override
   void onInit() async {
     session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
     schoolid.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     schoolname.value = await PrefManager().readValue(key: PrefConst.Name) ?? "";
     schoollogo.value = await PrefManager().readValue(key: PrefConst.schoollogo) ?? "";
-    userid.value = await PrefManager().readValue(key: PrefConst.Userid) ?? 0;
+    userid.value = int.tryParse(
+          (await PrefManager().readValue(key: PrefConst.Userid))?.toString() ?? '',
+        ) ??
+        0;
     print(schoollogo.value);
+
     schoollname.value = await PrefManager().readValue(key: PrefConst.schoolname) ?? "";
+    final moduleAccessRaw = await PrefManager().readValue(key: PrefConst.moduleAccess);
+    list.value = moduleAccessRaw is String ? jsonDecode(moduleAccessRaw) as List : (moduleAccessRaw ?? []);
+    print("module access list is ${list.value}");
     expiry();
     await checkForAppUpdate();
     loginViewModel.fetchModuleAccess(
