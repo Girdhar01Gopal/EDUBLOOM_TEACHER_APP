@@ -116,6 +116,8 @@ class LoginViewModel with ChangeNotifier {
         final rawList = decoded is List
             ? decoded
             : (decoded is Map && decoded['data'] != null ? decoded['data'] as List : []);
+                        print("module access list is ${rawList}");
+
         await PrefManager()
             .writeValue(key: PrefConst.moduleAccess, value: jsonEncode(rawList));
       } else {
