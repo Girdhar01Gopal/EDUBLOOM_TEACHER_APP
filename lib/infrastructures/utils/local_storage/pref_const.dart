@@ -1,7 +1,7 @@
 class PrefConst {
   static String isLoggedIn = "isLoggedIn";
   static String isIntroFirst = "isIntroFirst";
-
+  static String Userid = "Userid";
   static String fcmToken = "";
   static String UserPass = "UserPass";
   static String UserName = "UserName";
@@ -31,4 +31,5 @@ class PrefConst {
   static String teacherCheckoutTime = "teacherCheckoutTime";
 
     static String RName= "RName";
+    static String moduleAccess = "moduleAccess";
 }

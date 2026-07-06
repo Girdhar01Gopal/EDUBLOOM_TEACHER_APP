@@ -53,17 +53,22 @@ class DashboardScreenController extends GetxController {
   var schoollname = "".obs;
   var schoollogo = "".obs;
   var expiryDate = "".obs;
-
+var userid= 0.obs;
   @override
   void onInit() async {
     session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
     schoolid.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     schoolname.value = await PrefManager().readValue(key: PrefConst.Name) ?? "";
     schoollogo.value = await PrefManager().readValue(key: PrefConst.schoollogo) ?? "";
+    userid.value = await PrefManager().readValue(key: PrefConst.Userid) ?? 0;
     print(schoollogo.value);
     schoollname.value = await PrefManager().readValue(key: PrefConst.schoolname) ?? "";
     expiry();
     await checkForAppUpdate();
+    loginViewModel.fetchModuleAccess(
+      userid.value,
+      schoolid.value,
+    );
     fetchBirthday();
     fetchtoken();
     dashboardCategory();

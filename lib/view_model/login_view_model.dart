@@ -1,13 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-
+import 'package:http/http.dart' as https;
 import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
+import '../res/app_url.dart';
 
 class LoginViewModel with ChangeNotifier {
   final myRepo = LoginRepository();
@@ -34,9 +37,6 @@ class LoginViewModel with ChangeNotifier {
         ShortMessage.toast(
           title: data.messages.toString(),
         );
-      
-        Get.offAllNamed(RouteName.dashboard_screen);
-        isLoading.value = false;
 
         debugPrint("please proceed ! path is clear");
         PrefManager().writeValue(key: PrefConst.isLoggedIn, value: "Yes");
@@ -55,6 +55,9 @@ class LoginViewModel with ChangeNotifier {
         PrefManager().writeValue(
             key: PrefConst.Name,
             value: data.data!.name.toString());
+             PrefManager().writeValue(
+            key: PrefConst.Userid,
+            value: data.data!.userId.toString());
             PrefManager().writeValue(
             key: PrefConst.RName,
             value: data.data?.role?.roleName .toString());
@@ -66,6 +69,13 @@ class LoginViewModel with ChangeNotifier {
         print(data.data!.accessToker!.expireIn.toString());
         print("school id  is ${user}");
         // PrefManager().writeValue(key: PrefConst.userPassword, value:  userPassword value.text.toString());
+
+        // Fetch the per-user module access list before navigating so the
+        // drawer/dashboard menu is filtered correctly on first render.
+        await fetchModuleAccess(data.data!.userId, data.data!.schoolId);
+
+        Get.offAllNamed(RouteName.dashboard_screen);
+        isLoading.value = false;
 
         if (kDebugMode) {
           print(" no error this side");
@@ -85,4 +95,37 @@ class LoginViewModel with ChangeNotifier {
       }
     });
   }
+
+  /// Fetches the logged-in user's per-module access rights and caches the
+  /// raw list under [PrefConst.moduleAccess] so [RoleBasedModuleVisibility]
+  /// can filter the drawer/dashboard menu against it.
+  Future<void> fetchModuleAccess(int? userId, String? schoolId) async {
+    if (userId == null || schoolId == null) return;
+    try {
+      final token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+      final uri = Uri.parse(
+        '${AppUrl.base_url}api/SchoolApp/GetUserAccessApp?userId=$userId&schoolId=$schoolId',
+      );
+      final response = await https.get(uri, headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      });
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final rawList = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['data'] != null ? decoded['data'] as List : []);
+        await PrefManager()
+            .writeValue(key: PrefConst.moduleAccess, value: jsonEncode(rawList));
+      } else {
+        debugPrint("GetUserAccessApp error: ${response.statusCode}");
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print(e.toString());
+      }
+    }
+  }
+
 }
