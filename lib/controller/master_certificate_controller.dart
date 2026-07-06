@@ -88,7 +88,7 @@ class MastercertificateController extends GetxController {
     // FIX 3: removed stray Color.fromARGB lines that were not part of any object
     var dashboardItems = [
       ProductMasterDashboardItemsModel(
-        "DOB Certificate",
+        "DOB Certification",
         Icons.view_list_rounded,
         Colors.brown,
       ),

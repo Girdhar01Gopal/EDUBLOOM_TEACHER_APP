@@ -91,7 +91,7 @@ class ProductMasterViewController extends GetxController {
   void dashboardCategory() {
     var dashboardItems = [
       ProductMasterDashboardItemsModel(
-        "Add Product ",
+        "Add Product",
         Icons.add_box_rounded,
         const Color.fromARGB(255, 143, 243, 30),
       ),
@@ -103,13 +103,13 @@ class ProductMasterViewController extends GetxController {
       //Color.fromARGB(255, 125, 8, 108))
       //Color.fromARGB(255, 26, 86, 175))
       ProductMasterDashboardItemsModel(
-        "Stationary Fee ",
+        "Stationary Fee",
         Icons.add_box_rounded,
         const Color.fromARGB(255,  125, 8, 108),
 
       ),
       ProductMasterDashboardItemsModel(
-        "Stationary Eventory",
+        "Stationary Inventory",
         Icons.view_list_rounded,
         const Color.fromARGB(255,  26, 86, 175),
       ),

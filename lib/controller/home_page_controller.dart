@@ -448,9 +448,9 @@ var userid= 0.obs;
 
   void dashboardCategory() {
     final dhashboardItems = [
-      DhashboardItemsModel("Student's", Icons.school_rounded, const Color(0xFF6366F1),
+      DhashboardItemsModel("Student", Icons.school_rounded, const Color(0xFF6366F1),
           gradientColors: [Color(0xFF6366F1), Color(0xFF818CF8)], emoji: '🎓'),
-      DhashboardItemsModel("Communication's", Icons.forum_rounded, const Color(0xFF0EA5E9),
+      DhashboardItemsModel("Communication", Icons.forum_rounded, const Color(0xFF0EA5E9),
           gradientColors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)], emoji: '💬'),
       DhashboardItemsModel("Fees's", Icons.account_balance_wallet_rounded, const Color(0xFFEF4444),
           gradientColors: [Color(0xFFEF4444), Color(0xFFFB7185)], emoji: '💰'),
@@ -460,11 +460,11 @@ var userid= 0.obs;
           gradientColors: [Color(0xFF10B981), Color(0xFF34D399)], emoji: '👩‍🏫'),
       DhashboardItemsModel("Staff", Icons.badge_rounded, const Color(0xFF8B5CF6),
           gradientColors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)], emoji: '🪪'),
-      DhashboardItemsModel("Reports", Icons.bar_chart_rounded, const Color(0xFFF59E0B),
+      DhashboardItemsModel("Report", Icons.bar_chart_rounded, const Color(0xFFF59E0B),
           gradientColors: [Color(0xFFF59E0B), Color(0xFFFBBF24)], emoji: '📊'),
       DhashboardItemsModel("Master's", Icons.admin_panel_settings_rounded, const Color(0xFF64748B),
           gradientColors: [Color(0xFF64748B), Color(0xFF94A3B8)], emoji: '⚙️'),
-      DhashboardItemsModel("Results", Icons.emoji_events_rounded, const Color(0xFFF43F5E),
+      DhashboardItemsModel("Result", Icons.emoji_events_rounded, const Color(0xFFF43F5E),
           gradientColors: [Color(0xFFF43F5E), Color(0xFFFF7070)], emoji: '🏆'),
       DhashboardItemsModel("Products", Icons.inventory_2_rounded, const Color(0xFFF97316),
           gradientColors: [Color(0xFFF97316), Color(0xFFFB923C)], emoji: '📦'),

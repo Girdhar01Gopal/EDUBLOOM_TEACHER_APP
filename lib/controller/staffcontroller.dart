@@ -88,7 +88,7 @@ class Staffcontroller extends GetxController {
 //
   void dashboardCategory() {
     var dhashboardItems = [
-      DhashboardItemsModel("Add & View Staff", Icons.person_add_rounded, const Color.fromARGB(255, 143, 243, 30)),
+      DhashboardItemsModel("Add Staff & View Staff", Icons.person_add_rounded, const Color.fromARGB(255, 143, 243, 30)),
       DhashboardItemsModel("Staff Type", Icons.badge_rounded, const Color.fromARGB(225, 199, 99, 22)),
       DhashboardItemsModel("Staff Attendance", Icons.how_to_reg_rounded, const Color.fromARGB(255, 88, 14, 14)),
       DhashboardItemsModel("View Attendance", Icons.fact_check_rounded, const Color.fromARGB(255, 17, 5, 58)),

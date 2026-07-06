@@ -100,12 +100,12 @@ class Reportscontroller extends GetxController {
 
   void dashboardCategory() {
     var dhashboardItems = [
-      DhashboardItemsModel("Fee Daily collection", Icons.payments_rounded, const Color.fromARGB(255, 143, 243, 30)),
-      DhashboardItemsModel("Daily collection class wise", Icons.class_rounded, Colors.brown),
-      DhashboardItemsModel("Class wise fee structure", Icons.account_balance_rounded, const Color.fromARGB(255, 34, 215, 173)),
-      DhashboardItemsModel("Daily collection fee head wise", Icons.summarize_rounded, const Color.fromARGB(255, 26, 86, 175)),
-      DhashboardItemsModel("Fee Student Reports", Icons.school_rounded, const Color.fromARGB(255, 156, 194, 17)),
-      DhashboardItemsModel("Fee type report", Icons.category_rounded, const Color.fromARGB(255, 125, 8, 108)),
+      DhashboardItemsModel("All Daily Collection", Icons.payments_rounded, const Color.fromARGB(255, 143, 243, 30)),
+      DhashboardItemsModel("Daily Collection Class Wise", Icons.class_rounded, Colors.brown),
+      DhashboardItemsModel("Class Wise Fee Structure", Icons.account_balance_rounded, const Color.fromARGB(255, 34, 215, 173)),
+      DhashboardItemsModel("Daily Collection Fee Head Wise", Icons.summarize_rounded, const Color.fromARGB(255, 26, 86, 175)),
+      DhashboardItemsModel("Student Fees", Icons.school_rounded, const Color.fromARGB(255, 156, 194, 17)),
+      DhashboardItemsModel("Fee Type Report", Icons.category_rounded, const Color.fromARGB(255, 125, 8, 108)),
       DhashboardItemsModel("View Girls Boys Report", Icons.people_alt_rounded, const Color.fromARGB(255, 17, 5, 58)),
       DhashboardItemsModel("Fee Payment Detail Reports", Icons.receipt_long_rounded, const Color.fromARGB(255, 88, 14, 14)),
       //DhashboardItemsModel("ALL Payment Months Reports", Icons.calendar_month_rounded, const Color.fromARGB(255, 199, 99, 22)),

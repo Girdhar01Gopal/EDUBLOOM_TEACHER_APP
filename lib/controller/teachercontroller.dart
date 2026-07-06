@@ -94,7 +94,7 @@ class Teachercontroller extends GetxController {
     var dhashboardItems = [
       // Add & View Teacher — person add → indigo
       DhashboardItemsModel(
-        "Add & View Teacher",
+        "AddTeacher & AllTeacher",
         Icons.person_add_alt_1_rounded,
         const Color(0xFF3949AB), // indigo 600
         const Color(0xFFE8EAF6), // indigo 50
@@ -118,7 +118,7 @@ class Teachercontroller extends GetxController {
 
       // View Attendance — bar chart → teal
       DhashboardItemsModel(
-        "View Attendance",
+        "View Teacher Attendance",
         Icons.bar_chart_rounded,
         const Color(0xFF00897B), // teal 600
         const Color(0xFFE0F2F1), // teal 50
@@ -126,7 +126,7 @@ class Teachercontroller extends GetxController {
 
       // Assign Subject — assignment → orange
       DhashboardItemsModel(
-        "Assign Subject",
+        "Teacher Subject",
         Icons.assignment_rounded,
         const Color(0xFFF4511E), // deep orange 600
         const Color(0xFFFBE9E7), // deep orange 50
@@ -134,7 +134,7 @@ class Teachercontroller extends GetxController {
 
       // Class Teacher — school → blue
       DhashboardItemsModel(
-        "Class Teacher",
+        "Teacher Class Assign",
         Icons.school_rounded,
         const Color(0xFF1E88E5), // blue 600
         const Color(0xFFE3F2FD), // blue 50

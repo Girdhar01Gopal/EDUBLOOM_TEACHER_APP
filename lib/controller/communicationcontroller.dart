@@ -95,7 +95,7 @@ class Communicationcontroller extends GetxController {
     var dhashboardItems = [
       // Notifications — bell → amber
       DhashboardItemsModel(
-        "Notifications",
+        "Notifiaction",
         Icons.notifications_active_rounded,
         const Color(0xFFFFB300), // amber 600
         const Color(0xFFFFF8E1), // amber 50
@@ -103,7 +103,7 @@ class Communicationcontroller extends GetxController {
 
       // Notes — sticky note → orange
       DhashboardItemsModel(
-        "Notes",
+        "Note",
         Icons.sticky_note_2_rounded,
         const Color(0xFFF4511E), // deep orange 600
         const Color(0xFFFBE9E7), // deep orange 50
@@ -111,7 +111,7 @@ class Communicationcontroller extends GetxController {
 
       // Events — event/calendar → purple
       DhashboardItemsModel(
-        "Events",
+        "Event",
         Icons.event_rounded,
         const Color(0xFF8E24AA), // purple 600
         const Color(0xFFF3E5F5), // purple 50
@@ -119,7 +119,7 @@ class Communicationcontroller extends GetxController {
 
       // Home Work — book + pencil → indigo
       DhashboardItemsModel(
-        "Home Work",
+        "HomeWork",
         Icons.edit_note_rounded,
         const Color(0xFF3949AB), // indigo 600
         const Color(0xFFE8EAF6), // indigo 50

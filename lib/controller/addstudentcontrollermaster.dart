@@ -101,7 +101,7 @@ class Addstudentcontrollermaster extends GetxController {
     var dhashboardItems = [
       // Add/View Student — person add → indigo
       DhashboardItemsModel(
-        "Pre School Students",
+        "Add Student View Student",
         Icons.person_add_alt_1_rounded,
         const Color(0xFF3949AB), // indigo 600
         const Color(0xFFE8EAF6), // indigo 50
@@ -109,7 +109,7 @@ class Addstudentcontrollermaster extends GetxController {
 
       // Search/View Parent ID — search person → purple
       DhashboardItemsModel(
-        "Search/View Parent Id",
+        "Show ParentId",
         Icons.manage_search_rounded,
         const Color(0xFF8E24AA), // purple 600
         const Color(0xFFF3E5F5), // purple 50
@@ -117,7 +117,7 @@ class Addstudentcontrollermaster extends GetxController {
 
       // Take Attendance — checklist/tick → green
       DhashboardItemsModel(
-        "Take Attendance",
+        "Student Attendance",
         Icons.how_to_reg_rounded,
         const Color(0xFF2E7D32), // green 800
         const Color(0xFFE8F5E9), // green 50
@@ -133,7 +133,7 @@ class Addstudentcontrollermaster extends GetxController {
 
       // Day Care Student — child face → pink
       DhashboardItemsModel(
-        "Day Care Students",
+        "Add Daycare Student View Daycare Student",
         Icons.child_care_rounded,
         const Color(0xFFD81B60), // pink 600
         const Color(0xFFFCE4EC), // pink 50
@@ -141,7 +141,7 @@ class Addstudentcontrollermaster extends GetxController {
 
       // Day Care Attendance — clock + check → orange
       DhashboardItemsModel(
-        "Day Care Attendance",
+        "Daycare Attendance",
         Icons.alarm_on_rounded,
         const Color(0xFFF4511E), // deep orange 600
         const Color(0xFFFBE9E7), // deep orange 50
@@ -149,7 +149,7 @@ class Addstudentcontrollermaster extends GetxController {
 
       // View Attendance DayCare — list view → cyan
       DhashboardItemsModel(
-        "View Day Care Attendance ",
+        "View Daycare Attendance ",
         Icons.fact_check_rounded,
         const Color(0xFF00ACC1), // cyan 600
         const Color(0xFFE0F7FA), // cyan 50
@@ -157,7 +157,7 @@ class Addstudentcontrollermaster extends GetxController {
 
       // Day Care Attendance Details — details/info → blue
       DhashboardItemsModel(
-        "Day Care Attendance Details",
+        "Daycare Attendance Detail",
         Icons.assignment_turned_in_rounded,
         const Color(0xFF1E88E5), // blue 600
         const Color(0xFFE3F2FD), // blue 50

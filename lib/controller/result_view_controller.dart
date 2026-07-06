@@ -90,11 +90,11 @@ class ResultViewController extends GetxController {
 
   void dashboardCategory() {
     var dhashboardItems = [
-      DhashboardItemsModel("Foundational Skills", Icons.school_rounded, const Color.fromARGB(255, 143, 243, 30)),
+      DhashboardItemsModel("FoundationalSkills", Icons.school_rounded, const Color.fromARGB(255, 143, 243, 30)),
       DhashboardItemsModel("Descriptors", Icons.description_rounded, Colors.brown),
-      DhashboardItemsModel("Map Descriptor", Icons.map_rounded, const Color.fromARGB(255, 34, 215, 173)),
+      DhashboardItemsModel("MapDescriptors", Icons.map_rounded, const Color.fromARGB(255, 34, 215, 173)),
       DhashboardItemsModel("Map Foundational Skills", Icons.account_tree_rounded, const Color.fromARGB(255, 26, 86, 175)),
-      DhashboardItemsModel("Add Terms", Icons.calendar_month_rounded, const Color.fromARGB(255, 156, 194, 17)),
+      DhashboardItemsModel("Add Term", Icons.calendar_month_rounded, const Color.fromARGB(255, 156, 194, 17)),
       DhashboardItemsModel(
         "Add Result",
         Icons.fact_check_rounded,
@@ -102,7 +102,7 @@ class ResultViewController extends GetxController {
       ),
 
       DhashboardItemsModel(
-        "Report card",
+        "RePortCard",
         Icons.school_rounded,
         const Color.fromARGB(255, 59, 130, 246), // clean academic blue
       ),

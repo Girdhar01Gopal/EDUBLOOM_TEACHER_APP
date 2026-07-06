@@ -150,7 +150,7 @@ class Mastercontroller extends GetxController {
 
       // Fee Type — label/tag → amber
       DhashboardItemsModel(
-        "Fee Type",
+        "FeeType",
         Icons.label_rounded,
         const Color(0xFFFFB300), // amber 600
         const Color(0xFFFFF8E1), // amber 50
@@ -158,7 +158,7 @@ class Mastercontroller extends GetxController {
 
       // Fee Duration — hourglass/time → cyan
       DhashboardItemsModel(
-        "Fee Duration",
+        "FeeDuration",
         Icons.hourglass_top_rounded,
         const Color(0xFF00ACC1), // cyan 600
         const Color(0xFFE0F7FA), // cyan 50
@@ -182,7 +182,7 @@ class Mastercontroller extends GetxController {
 
       // Fee Head Master — account balance → blue
       DhashboardItemsModel(
-        "Fee Head Master",
+        "Add Fee",
         Icons.account_balance_rounded,
         const Color(0xFF1E88E5), // blue 600
         const Color(0xFFE3F2FD), // blue 50
@@ -190,7 +190,7 @@ class Mastercontroller extends GetxController {
 
       // Day Care Fee — child care → pink
       DhashboardItemsModel(
-        "Day Care Fee Master",
+        "DayCare Fee",
         Icons.child_care_rounded,
         const Color(0xFFD81B60), // pink 600
         const Color(0xFFFCE4EC), // pink 50
@@ -198,7 +198,7 @@ class Mastercontroller extends GetxController {
 
       // Payment Master — payments/wallet → light green
       DhashboardItemsModel(
-        "Payment Master",
+        "Payment Mode",
         Icons.account_balance_wallet_rounded,
         const Color(0xFF7CB342), // light green 600
         const Color(0xFFF1F8E9), // light green 50
@@ -206,7 +206,7 @@ class Mastercontroller extends GetxController {
 
       // Class Subject Assign — assignment → brown
       DhashboardItemsModel(
-        "Class Subject Assign",
+        "Subject Assign Class",
         Icons.assignment_rounded,
         const Color(0xFF6D4C41), // brown 600
         const Color(0xFFEFEBE9), // brown 50

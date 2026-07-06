@@ -135,7 +135,7 @@ class Appdrawercontroller extends GetxController {
 
       // Masters's — settings/tune → indigo
       DhashboardItemsModel(
-        "Masters's",
+        "Master",
         Icons.tune_rounded,
         const Color(0xFF3949AB), // indigo 600
         const Color(0xFFE8EAF6), // indigo 50
@@ -143,7 +143,7 @@ class Appdrawercontroller extends GetxController {
 
       // Student's — school/students → blue
       DhashboardItemsModel(
-        "Student's",
+        "Student",
         Icons.groups_rounded,
         const Color(0xFF1E88E5), // blue 600
         const Color(0xFFE3F2FD), // blue 50
@@ -151,7 +151,7 @@ class Appdrawercontroller extends GetxController {
 
       // Communication's — chat bubble → purple
       DhashboardItemsModel(
-        "Communication's",
+        "Communication",
         Icons.forum_rounded,
         const Color(0xFF8E24AA), // purple 600
         const Color(0xFFF3E5F5), // purple 50
@@ -159,7 +159,7 @@ class Appdrawercontroller extends GetxController {
 
       // Fees's — wallet/payment → amber
       DhashboardItemsModel(
-        "Fees's",
+        "Fee Payments",
         Icons.account_balance_wallet_rounded,
         const Color(0xFFFFB300), // amber 600
         const Color(0xFFFFF8E1), // amber 50
@@ -167,7 +167,7 @@ class Appdrawercontroller extends GetxController {
 
       // Activity's — paintbrush/art → cyan
       DhashboardItemsModel(
-        "Activity's",
+        "Gallery",
         Icons.palette_rounded,
         const Color(0xFF00ACC1), // cyan 600
         const Color(0xFFE0F7FA), // cyan 50
@@ -175,7 +175,7 @@ class Appdrawercontroller extends GetxController {
 
       // Report's — bar chart → red
       DhashboardItemsModel(
-        "Report's",
+        "Report",
         Icons.insert_chart_rounded,
         const Color(0xFFE53935), // red 600
         const Color(0xFFFFEBEE), // red 50
@@ -183,7 +183,7 @@ class Appdrawercontroller extends GetxController {
 
       // Teacher's — person chalkboard → green
       DhashboardItemsModel(
-        "Teacher's",
+        "Teachers",
         Icons.person_pin_rounded,
         const Color(0xFF43A047), // green 600
         const Color(0xFFE8F5E9), // green 50
@@ -207,7 +207,7 @@ class Appdrawercontroller extends GetxController {
 
       // Products — inventory/box → blue grey
       DhashboardItemsModel(
-        "Products",
+        "Product",
         Icons.inventory_2_rounded,
         const Color(0xFF546E7A), // blue grey 600
         const Color(0xFFECEFF1), // blue grey 50
@@ -224,14 +224,14 @@ class Appdrawercontroller extends GetxController {
 
 
       DhashboardItemsModel(
-        "Certificates",
+        "Certification",
         Icons.person_pin_rounded,
         const Color(0xFF6D4C41), // brown 600
         const Color(0xFFEFEBE9), // brown 50 // blue grey 50
       ),
 
       DhashboardItemsModel(
-        "User Access",
+        "User",
         Icons.manage_accounts_rounded,
         const Color(0xFF8E24AA), // blue grey 600
         const Color(0xFFECEFF1), // blue grey 50

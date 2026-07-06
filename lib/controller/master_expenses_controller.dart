@@ -89,7 +89,7 @@ class MasterExpensesViewController extends GetxController {
   void dashboardCategory() {
     var dashboardItems = [
       ProductMasterDashboardItemsModel(
-        "Add Category ",
+        "Add Category",
         Icons.add_box_rounded,
         const Color.fromARGB(255, 143, 243, 30),
       ),

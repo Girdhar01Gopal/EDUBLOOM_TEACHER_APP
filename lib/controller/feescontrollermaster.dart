@@ -85,19 +85,19 @@ class Feescontrollermaster extends GetxController {
   void dashboardCategory() {
     var dhashboardItems = [
       DhashboardItemsModel(
-        "Pre School Fees",
+        "Fee Payment",
         CupertinoIcons.money_dollar_circle_fill,
         const Color(0xFF6C63FF),
       ),
 
       DhashboardItemsModel(
-        "Day Care Fees",
+        "FeePayment Daycare",
         CupertinoIcons.sun_max_fill,
         const Color(0xFFFF9F43),
       ),
 
       DhashboardItemsModel(
-        "Discount List Fees",
+        "Discount List",
         CupertinoIcons.tag_fill,
         const Color(0xFF9C27B0),
       ),

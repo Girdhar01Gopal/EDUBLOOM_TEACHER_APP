@@ -94,12 +94,12 @@ class Activitymastercontroller extends GetxController {
   void dashboardCategory() {
     var dhashboardItems = [
       DhashboardItemsModel(
-        "Upload Gallery & Video",
+        "Upload Picture",
         CupertinoIcons.cloud_upload_fill,
         const Color(0xFF2196F3), // Blue - upload/cloud action
       ),
       DhashboardItemsModel(
-        "View Gallery & Video",
+        "View video",
         CupertinoIcons.photo_on_rectangle,
         const Color(0xFF9C27B0), // Purple - media viewing
       ),
