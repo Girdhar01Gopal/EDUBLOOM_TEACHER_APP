@@ -12,7 +12,29 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
-//
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final String route;
+  // Which top-level module this tile's access lives under — this screen
+  // mixes tiles from two different modules (FeePayments, FeePaymentDaycare).
+  final String parentActivityName;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.route, this.parentActivityName, this.activityNames);
+}
+
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Fee Payment", CupertinoIcons.money_dollar_circle_fill, Color(0xFF6C63FF),
+      RouteName.fees_screen, 'FeePayments', ['FeePayment']),
+  _TileSpec("FeePayment Daycare", CupertinoIcons.sun_max_fill, Color(0xFFFF9F43),
+      RouteName.day_care, 'FeePaymentDaycare', ['DayCareFeePayment']),
+  _TileSpec("Discount List", CupertinoIcons.tag_fill, Color(0xFF9C27B0),
+      RouteName.discountfeelist, 'FeePayments', ['DiscountList']),
+];
+
 class Feescontrollermaster extends GetxController {
   final myRepo = LoginRepository();
 
@@ -21,13 +43,22 @@ class Feescontrollermaster extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessibleByParent = <String, Set<String>>{};
+    return _tileSpecs.where((s) {
+      final accessible = accessibleByParent.putIfAbsent(
+          s.parentActivityName, () => accessibleChildNames(s.parentActivityName));
+      return s.activityNames.any(accessible.contains);
+    }).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList =>
+      _visibleTiles.map((s) => DhashboardItemsModel(s.name, s.icon, s.color)).toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -64,48 +95,10 @@ class Feescontrollermaster extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-        
-    
-      
-    // Added break here
-     
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.fees_screen);
-        break; // Added break here
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.day_care);
-        break; // Added break here
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.discountfeelist);
-        break; // Added break here
-   
-    }
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
-  void dashboardCategory() {
-    var dhashboardItems = [
-      DhashboardItemsModel(
-        "Fee Payment",
-        CupertinoIcons.money_dollar_circle_fill,
-        const Color(0xFF6C63FF),
-      ),
-
-      DhashboardItemsModel(
-        "FeePayment Daycare",
-        CupertinoIcons.sun_max_fill,
-        const Color(0xFFFF9F43),
-      ),
-
-      DhashboardItemsModel(
-        "Discount List",
-        CupertinoIcons.tag_fill,
-        const Color(0xFF9C27B0),
-      ),
-    ];
-
-    vehicleDocumentList.value = dhashboardItems;
-  }
-
 }
 
 class DhashboardItemsModel {

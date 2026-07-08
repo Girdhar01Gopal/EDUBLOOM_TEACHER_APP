@@ -11,6 +11,29 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.route, this.activityNames);
+}
+
+// Matched against the "Product" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart).
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Add Product", Icons.add_box_rounded, Color.fromARGB(255, 143, 243, 30),
+      RouteName.addproducts, ['AddProduct']),
+  _TileSpec("Product Quantity", Icons.view_list_rounded, Colors.brown,
+      RouteName.productquantity, ['ProductQuantity']),
+  _TileSpec("Stationary Fee", Icons.add_box_rounded, Color.fromARGB(255, 125, 8, 108),
+      RouteName.stationaryfee, ['StationaryFee']),
+  _TileSpec("Stationary Inventory", Icons.view_list_rounded, Color.fromARGB(255, 26, 86, 175),
+      RouteName.stationaryinventory, ['StationaryInventory']),
+];
 
 class ProductMasterViewController extends GetxController {
   final myRepo = LoginRepository();
@@ -21,13 +44,18 @@ class ProductMasterViewController extends GetxController {
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
 
-  RxList<ProductMasterDashboardItemsModel> vehicleDocumentList =
-      List<ProductMasterDashboardItemsModel>.empty().obs;
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Product');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<ProductMasterDashboardItemsModel> get vehicleDocumentList => _visibleTiles
+      .map((s) => ProductMasterDashboardItemsModel(s.name, s.icon, s.color))
+      .toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -72,50 +100,9 @@ class ProductMasterViewController extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.addproducts);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.productquantity);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.stationaryfee);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.stationaryinventory);
-        break;
-    }
-  }
-
-  void dashboardCategory() {
-    var dashboardItems = [
-      ProductMasterDashboardItemsModel(
-        "Add Product",
-        Icons.add_box_rounded,
-        const Color.fromARGB(255, 143, 243, 30),
-      ),
-      ProductMasterDashboardItemsModel(
-        "Product Quantity",
-        Icons.view_list_rounded,
-        Colors.brown,
-      ),
-      //Color.fromARGB(255, 125, 8, 108))
-      //Color.fromARGB(255, 26, 86, 175))
-      ProductMasterDashboardItemsModel(
-        "Stationary Fee",
-        Icons.add_box_rounded,
-        const Color.fromARGB(255,  125, 8, 108),
-
-      ),
-      ProductMasterDashboardItemsModel(
-        "Stationary Inventory",
-        Icons.view_list_rounded,
-        const Color.fromARGB(255,  26, 86, 175),
-      ),
-    ];
-
-    vehicleDocumentList.value = dashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

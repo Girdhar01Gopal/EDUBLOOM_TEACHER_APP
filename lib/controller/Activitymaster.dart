@@ -12,6 +12,32 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final String route;
+  // Which top-level module this tile's access lives under — this screen
+  // mixes tiles from two different modules (Gallery, DailyActivity).
+  final String parentActivityName;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.route, this.parentActivityName, this.activityNames);
+}
+
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Upload Picture", CupertinoIcons.cloud_upload_fill, Color(0xFF2196F3),
+      RouteName.galeryvideo, 'Gallery', ['UploadPicture']),
+  _TileSpec("View video", CupertinoIcons.photo_on_rectangle, Color(0xFF9C27B0),
+      RouteName.mapcategory, 'Gallery', ['Video', 'Viewvideo']),
+  _TileSpec("Activity", CupertinoIcons.sportscourt_fill, Color(0xFF4CAF50),
+      RouteName.activity, 'DailyActivity', ['Activity']),
+  _TileSpec("Meal Activity", CupertinoIcons.flame_fill, Color(0xFFFF5722),
+      RouteName.mealactivity, 'DailyActivity', ['Meal']),
+  _TileSpec("Behaviour Activity", CupertinoIcons.person_crop_circle_badge_checkmark, Color(0xFF00BCD4),
+      RouteName.behaviour, 'DailyActivity', ['Behaviour']),
+];
 
 class Activitymastercontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -21,13 +47,22 @@ class Activitymastercontroller extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessibleByParent = <String, Set<String>>{};
+    return _tileSpecs.where((s) {
+      final accessible = accessibleByParent.putIfAbsent(
+          s.parentActivityName, () => accessibleChildNames(s.parentActivityName));
+      return s.activityNames.any(accessible.contains);
+    }).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList =>
+      _visibleTiles.map((s) => DhashboardItemsModel(s.name, s.icon, s.color)).toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -64,71 +99,10 @@ class Activitymastercontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      
-    
-        
-      
-        case 0:
-        selectedWidget = Get.toNamed(RouteName.galeryvideo);
-         break;
-         case 1:
-        selectedWidget = Get.toNamed(RouteName.mapcategory);
-        break;
-         case 2:
-        selectedWidget = Get.toNamed(RouteName.activity);
-        break; /// Added break here
-         case 3:
-        selectedWidget = Get.toNamed(RouteName.mealactivity);
-        break; 
-         case 4:
-        selectedWidget = Get.toNamed(RouteName.behaviour);
-        break;
-
-      // case 5:
-      //   selectedWidget = Get.toNamed(RouteName.DailyActivity);
-      //   break;
-    }
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      DhashboardItemsModel(
-        "Upload Picture",
-        CupertinoIcons.cloud_upload_fill,
-        const Color(0xFF2196F3), // Blue - upload/cloud action
-      ),
-      DhashboardItemsModel(
-        "View video",
-        CupertinoIcons.photo_on_rectangle,
-        const Color(0xFF9C27B0), // Purple - media viewing
-      ),
-      DhashboardItemsModel(
-        "Activity",
-        CupertinoIcons.sportscourt_fill,
-        const Color(0xFF4CAF50), // Green - activity/sports
-      ),
-      DhashboardItemsModel(
-        "Meal Activity",
-        CupertinoIcons.flame_fill,
-        const Color(0xFFFF5722), // Deep Orange - food/meal
-      ),
-      DhashboardItemsModel(
-        "Behaviour Activity",
-        CupertinoIcons.person_crop_circle_badge_checkmark,
-        const Color(0xFF00BCD4), // Cyan - behaviour/person
-      ),
-
-      // DhashboardItemsModel(
-      //   "Daily Activity",
-      //   CupertinoIcons.person_crop_circle_badge_checkmark,
-      //   const Color(0xFF9C27B0), // Cyan - behaviour/person
-      // ),
-    ];
-
-    vehicleDocumentList.value = dhashboardItems;
-  }
-
 }
 
 class DhashboardItemsModel {

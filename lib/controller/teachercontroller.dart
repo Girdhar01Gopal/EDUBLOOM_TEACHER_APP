@@ -11,6 +11,35 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.bgColor, this.route, this.activityNames);
+}
+
+// Each tile's activityNames are matched against the "Teachers" module's
+// accessible children (see accessibleChildNames in home_page_controller.dart)
+// so a tile only shows when the current user actually has access to it.
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("AddTeacher & AllTeacher", Icons.person_add_alt_1_rounded, Color(0xFF3949AB),
+      Color(0xFFE8EAF6), RouteName.addteachers, ['AddTeacher', 'AllTeacher']),
+  _TileSpec("Teacher Designation", Icons.badge_rounded, Color(0xFF8E24AA),
+      Color(0xFFF3E5F5), RouteName.teacherdesignation, ['TeacherDesignation']),
+  _TileSpec("Teacher Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
+      Color(0xFFE8F5E9), RouteName.teacherattendance, ['TeacherAttendance']),
+  _TileSpec("View Teacher Attendance", Icons.bar_chart_rounded, Color(0xFF00897B),
+      Color(0xFFE0F2F1), RouteName.viewteacherattendance, ['ViewTeacherAttendance']),
+  _TileSpec("Teacher Subject", Icons.assignment_rounded, Color(0xFFF4511E),
+      Color(0xFFFBE9E7), RouteName.teachersubject, ['TeacherSubject']),
+  _TileSpec("Teacher Class Assign", Icons.school_rounded, Color(0xFF1E88E5),
+      Color(0xFFE3F2FD), RouteName.classteacher, ['ClassTeacher']),
+];
 
 class Teachercontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -20,13 +49,19 @@ class Teachercontroller extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Teachers');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList => _visibleTiles
+      .map((s) => DhashboardItemsModel(s.name, s.icon, s.color, s.bgColor))
+      .toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -68,80 +103,9 @@ class Teachercontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.addteachers);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.teacherdesignation);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.teacherattendance);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.viewteacherattendance);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.teachersubject);
-        break;
-      case 5:
-        selectedWidget = Get.toNamed(RouteName.classteacher);
-        break;
-    }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      // Add & View Teacher — person add → indigo
-      DhashboardItemsModel(
-        "AddTeacher & AllTeacher",
-        Icons.person_add_alt_1_rounded,
-        const Color(0xFF3949AB), // indigo 600
-        const Color(0xFFE8EAF6), // indigo 50
-      ),
-
-      // Teacher Designation — badge/id → purple
-      DhashboardItemsModel(
-        "Teacher Designation",
-        Icons.badge_rounded,
-        const Color(0xFF8E24AA), // purple 600
-        const Color(0xFFF3E5F5), // purple 50
-      ),
-
-      // Teacher Attendance — how to reg → green
-      DhashboardItemsModel(
-        "Teacher Attendance",
-        Icons.how_to_reg_rounded,
-        const Color(0xFF2E7D32), // green 800
-        const Color(0xFFE8F5E9), // green 50
-      ),
-
-      // View Attendance — bar chart → teal
-      DhashboardItemsModel(
-        "View Teacher Attendance",
-        Icons.bar_chart_rounded,
-        const Color(0xFF00897B), // teal 600
-        const Color(0xFFE0F2F1), // teal 50
-      ),
-
-      // Assign Subject — assignment → orange
-      DhashboardItemsModel(
-        "Teacher Subject",
-        Icons.assignment_rounded,
-        const Color(0xFFF4511E), // deep orange 600
-        const Color(0xFFFBE9E7), // deep orange 50
-      ),
-
-      // Class Teacher — school → blue
-      DhashboardItemsModel(
-        "Teacher Class Assign",
-        Icons.school_rounded,
-        const Color(0xFF1E88E5), // blue 600
-        const Color(0xFFE3F2FD), // blue 50
-      ),
-    ];
-
-    vehicleDocumentList.value = dhashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

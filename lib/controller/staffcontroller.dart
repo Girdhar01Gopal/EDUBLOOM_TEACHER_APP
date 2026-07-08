@@ -11,6 +11,31 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.route, this.activityNames);
+}
+
+// Matched against the "Staff" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart).
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Add Staff & View Staff", Icons.person_add_rounded, Color.fromARGB(255, 143, 243, 30),
+      RouteName.addstaff, ['AddStaff', 'ViewStaff']),
+  _TileSpec("Staff Type", Icons.badge_rounded, Color.fromARGB(225, 199, 99, 22),
+      RouteName.stafftype, ['StaffType']),
+  _TileSpec("Staff Attendance", Icons.how_to_reg_rounded, Color.fromARGB(255, 88, 14, 14),
+      RouteName.staffattendance, ['StaffAttendance']),
+  _TileSpec("View Attendance", Icons.fact_check_rounded, Color.fromARGB(255, 17, 5, 58),
+      RouteName.viewstaffattendance, ['ViewAttendance']),
+  _TileSpec("Staff Details", Icons.manage_accounts_rounded, Color.fromARGB(255, 143, 243, 30),
+      RouteName.staffdetails, ['StaffDetails']),
+];
 
 class Staffcontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -20,13 +45,18 @@ class Staffcontroller extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Staff');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList =>
+      _visibleTiles.map((s) => DhashboardItemsModel(s.name, s.icon, s.color)).toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -63,38 +93,9 @@ class Staffcontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.addstaff);
-        break; // Added break here
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.stafftype);
-        break; // Added break here
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.staffattendance);
-        break; // Added break here
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.viewstaffattendance);
-        break; // Added break here
-       case 4:
-         selectedWidget = Get.toNamed(RouteName.staffdetails);
-        break; // Added break here
-      // case 5:
-      //   selectedWidget = Get.toNamed(RouteName.classteacher);
-      //   break; // Added break here
-    //
-    }
-  }
-//
-  void dashboardCategory() {
-    var dhashboardItems = [
-      DhashboardItemsModel("Add Staff & View Staff", Icons.person_add_rounded, const Color.fromARGB(255, 143, 243, 30)),
-      DhashboardItemsModel("Staff Type", Icons.badge_rounded, const Color.fromARGB(225, 199, 99, 22)),
-      DhashboardItemsModel("Staff Attendance", Icons.how_to_reg_rounded, const Color.fromARGB(255, 88, 14, 14)),
-      DhashboardItemsModel("View Attendance", Icons.fact_check_rounded, const Color.fromARGB(255, 17, 5, 58)),
-      DhashboardItemsModel("Staff Details", Icons.manage_accounts_rounded, const Color.fromARGB(255, 143, 243, 30)),
-    ];
-    vehicleDocumentList.value = dhashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

@@ -16,7 +16,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../infrastructures/constant/image_constant.dart';
-import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/birthdaymodel.dart';
@@ -24,8 +23,31 @@ import '../models/login_model.dart';
 import '../models/school_expiry_model.dart';
 import '../repo/repo.dart';
 import '../res/app_url.dart';
+import '../utils/module_display.dart';
 import '../view_model/login_view_model.dart';
 import 'package:http/http.dart' as https;
+
+// Finds the app-wide DashboardScreenController (registering it if some
+// screen reaches for it before AppDrawer/home has had a chance to), so any
+// sub-module controller can read the real, cached module-access list.
+DashboardScreenController getDashboardController() =>
+    Get.isRegistered<DashboardScreenController>()
+        ? Get.find<DashboardScreenController>()
+        : Get.put(DashboardScreenController());
+
+// The activityName set of a top-level module's accessible children, e.g.
+// accessibleChildNames('Teachers') -> {AddTeacher, TeacherAttendance, ...}.
+// Used by sub-module screens to gate their (otherwise hardcoded) tiles by
+// the current user's real per-child access instead of always showing them.
+Set<String> accessibleChildNames(String parentActivityName) {
+  for (final module in getDashboardController().accessibleModuleList) {
+    if (module['activityName'] == parentActivityName) {
+      final children = (module['childActivity'] as List?) ?? [];
+      return children.map((c) => (c['activityName'] ?? '').toString()).toSet();
+    }
+  }
+  return <String>{};
+}
 
 class DashboardScreenController extends GetxController {
   final myRepo = LoginRepository();
@@ -45,8 +67,9 @@ class DashboardScreenController extends GetxController {
   // Expiry data observable
   Rx<ExpiryData?> expiryInfo = Rx<ExpiryData?>(null);
 
-  List<DhashboardItemsModel> get filteredList =>
-      vehicleDocumentList.where((item) => item.name != "Master's" && item.name != "Dashboard").toList();
+  List<DhashboardItemsModel> get filteredList => vehicleDocumentList
+      .where((item) => item.moduleKey != "Master" && item.moduleKey != "Dashboard")
+      .toList();
 
   var session = "".obs;
   var schoolid = "".obs;
@@ -55,6 +78,30 @@ class DashboardScreenController extends GetxController {
   var expiryDate = "".obs;
 RxInt userid= 0.obs;
 var list = [].obs;
+
+  // Only the modules (and sub-modules) whose "access" flag is true.
+  // A parent with access:false is still kept if it has at least one
+  // accessible child, but its childActivity is trimmed to just those.
+  List<Map<String, dynamic>> get accessibleModuleList =>
+      _filterAccessibleModules(list);
+
+  List<Map<String, dynamic>> _filterAccessibleModules(List items) {
+    final result = <Map<String, dynamic>>[];
+    for (final raw in items) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      final children = item['childActivity'] as List?;
+      final filteredChildren = (children != null && children.isNotEmpty)
+          ? _filterAccessibleModules(children)
+          : <Map<String, dynamic>>[];
+      final hasAccess = item['access'] == true;
+      if (hasAccess || filteredChildren.isNotEmpty) {
+        item['childActivity'] = filteredChildren;
+        result.add(item);
+      }
+    }
+    return result;
+  }
+
   @override
   void onInit() async {
     session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
@@ -70,13 +117,15 @@ var list = [].obs;
     schoollname.value = await PrefManager().readValue(key: PrefConst.schoolname) ?? "";
     final moduleAccessRaw = await PrefManager().readValue(key: PrefConst.moduleAccess);
     list.value = moduleAccessRaw is String ? jsonDecode(moduleAccessRaw) as List : (moduleAccessRaw ?? []);
-    print("module access list is ${list.value}");
+    print("module access list is $list");
     expiry();
     await checkForAppUpdate();
-    loginViewModel.fetchModuleAccess(
-      userid.value,
-      schoolid.value,
-    );
+    loginViewModel.fetchModuleAccess(userid.value, schoolid.value).then((_) async {
+      final refreshed = await PrefManager().readValue(key: PrefConst.moduleAccess);
+      final refreshedList = refreshed is String ? jsonDecode(refreshed) as List : (refreshed ?? []);
+      list.value = refreshedList;
+      dashboardCategory();
+    });
     fetchBirthday();
     fetchtoken();
     dashboardCategory();
@@ -439,45 +488,26 @@ var list = [].obs;
   void onSelectedBottom(int index) {
     selectedIndex = index;
     if (index < 0 || index >= filteredList.length) return;
-    final selectedItem = filteredList[index];
-    switch (selectedItem.name) {
-      case "Student's": selectedWidget = Get.toNamed(RouteName.addstudentmaster); break;
-      case "Communication's": selectedWidget = Get.toNamed(RouteName.communicationview); break;
-      case "Fees's": selectedWidget = Get.toNamed(RouteName.feesmaster); break;
-      case "Activity's": selectedWidget = Get.toNamed(RouteName.activitymaster); break;
-      case "Reports": selectedWidget = Get.toNamed(RouteName.reports); break;
-      case "Teacher's": selectedWidget = Get.toNamed(RouteName.teacher); break;
-      case "Staff": selectedWidget = Get.toNamed(RouteName.staffView); break;
-      case "Master's": selectedWidget = Get.toNamed(RouteName.master); break;
-      case "Results": selectedWidget = Get.toNamed(RouteName.results); break;
-      case "Products": selectedWidget = Get.toNamed(RouteName.products); break;
+    final route = displayMetaFor(filteredList[index].moduleKey).route;
+    if (route != null) {
+      selectedWidget = Get.toNamed(route);
     }
   }
 
   void dashboardCategory() {
-    final dhashboardItems = [
-      DhashboardItemsModel("Student", Icons.school_rounded, const Color(0xFF6366F1),
-          gradientColors: [Color(0xFF6366F1), Color(0xFF818CF8)], emoji: '🎓'),
-      DhashboardItemsModel("Communication", Icons.forum_rounded, const Color(0xFF0EA5E9),
-          gradientColors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)], emoji: '💬'),
-      DhashboardItemsModel("Fees's", Icons.account_balance_wallet_rounded, const Color(0xFFEF4444),
-          gradientColors: [Color(0xFFEF4444), Color(0xFFFB7185)], emoji: '💰'),
-      DhashboardItemsModel("Activity's", Icons.directions_run_rounded, const Color(0xFF14B8A6),
-          gradientColors: [Color(0xFF14B8A6), Color(0xFF2DD4BF)], emoji: '🎨'),
-      DhashboardItemsModel("Teacher's", Icons.cast_for_education_rounded, const Color(0xFF10B981),
-          gradientColors: [Color(0xFF10B981), Color(0xFF34D399)], emoji: '👩‍🏫'),
-      DhashboardItemsModel("Staff", Icons.badge_rounded, const Color(0xFF8B5CF6),
-          gradientColors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)], emoji: '🪪'),
-      DhashboardItemsModel("Report", Icons.bar_chart_rounded, const Color(0xFFF59E0B),
-          gradientColors: [Color(0xFFF59E0B), Color(0xFFFBBF24)], emoji: '📊'),
-      DhashboardItemsModel("Master's", Icons.admin_panel_settings_rounded, const Color(0xFF64748B),
-          gradientColors: [Color(0xFF64748B), Color(0xFF94A3B8)], emoji: '⚙️'),
-      DhashboardItemsModel("Result", Icons.emoji_events_rounded, const Color(0xFFF43F5E),
-          gradientColors: [Color(0xFFF43F5E), Color(0xFFFF7070)], emoji: '🏆'),
-      DhashboardItemsModel("Products", Icons.inventory_2_rounded, const Color(0xFFF97316),
-          gradientColors: [Color(0xFFF97316), Color(0xFFFB923C)], emoji: '📦'),
-    ];
-    vehicleDocumentList.value = dhashboardItems;
+    vehicleDocumentList.value = accessibleModuleList.map((module) {
+      final key = (module['activityName'] ?? '').toString();
+      final meta = displayMetaFor(key);
+      final label = (module['displayName'] ?? module['activityName'] ?? '').toString();
+      return DhashboardItemsModel(
+        label,
+        key,
+        meta.icon,
+        meta.color,
+        gradientColors: [meta.color, meta.bgColor],
+        emoji: meta.emoji,
+      );
+    }).toList();
   }
 }
 
@@ -509,11 +539,12 @@ class _DialogInfoRow extends StatelessWidget {
 
 class DhashboardItemsModel {
   String name;
+  String moduleKey;
   IconData? image;
   Color color;
   List<Color>? gradientColors;
   String emoji;
 
-  DhashboardItemsModel(this.name, this.image, this.color,
+  DhashboardItemsModel(this.name, this.moduleKey, this.image, this.color,
       {this.gradientColors, this.emoji = ''});
 }

@@ -11,6 +11,53 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.iconColor, this.bgColor, this.route, this.activityNames);
+}
+
+// Matched against the "Master" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart). "Transport Fee" and
+// "Add Grade" aren't in the sample access tree this was built from — the
+// activityNames below are a best guess and should be checked against a
+// real account if either tile unexpectedly stays hidden.
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Session", Icons.calendar_today_rounded, Color(0xFF00897B), Color(0xFFE0F2F1),
+      RouteName.session_screen, ['Session']),
+  _TileSpec("Subject", Icons.menu_book_rounded, Color(0xFF3949AB), Color(0xFFE8EAF6),
+      RouteName.subject_screen, ['Subject']),
+  _TileSpec("Class", Icons.school_rounded, Color(0xFFF4511E), Color(0xFFFBE9E7),
+      RouteName.class_screen, ['Class']),
+  _TileSpec("Section", Icons.layers_rounded, Color(0xFF8E24AA), Color(0xFFF3E5F5),
+      RouteName.section, ['Section']),
+  _TileSpec("FeeType", Icons.label_rounded, Color(0xFFFFB300), Color(0xFFFFF8E1),
+      RouteName.feetypemaster, ['FeeType']),
+  _TileSpec("FeeDuration", Icons.hourglass_top_rounded, Color(0xFF00ACC1), Color(0xFFE0F7FA),
+      RouteName.feedurationmaster, ['FeeDuration']),
+  _TileSpec("Add Route", Icons.alt_route_rounded, Color(0xFF43A047), Color(0xFFE8F5E9),
+      RouteName.addroutemaster, ['AddRoute']),
+  _TileSpec("Route Point", Icons.place_rounded, Color(0xFFE53935), Color(0xFFFFEBEE),
+      RouteName.routepointmaster, ['RoutePoint']),
+  _TileSpec("Add Fee", Icons.account_balance_rounded, Color(0xFF1E88E5), Color(0xFFE3F2FD),
+      RouteName.feeheadmaster, ['AddFee']),
+  _TileSpec("DayCare Fee", Icons.child_care_rounded, Color(0xFFD81B60), Color(0xFFFCE4EC),
+      RouteName.daycarefeemaster, ['DayCareFee']),
+  _TileSpec("Payment Mode", Icons.account_balance_wallet_rounded, Color(0xFF7CB342), Color(0xFFF1F8E9),
+      RouteName.paymentmaster, ['PaymentMode']),
+  _TileSpec("Subject Assign Class", Icons.assignment_rounded, Color(0xFF6D4C41), Color(0xFFEFEBE9),
+      RouteName.subjectclassassign, ['SubjectAssignClass']),
+  _TileSpec("Transport Fee", Icons.directions_bus_rounded, Color(0xFF546E7A), Color(0xFFECEFF1),
+      RouteName.transportFee, ['TransportFee']),
+  _TileSpec("Add Grade", Icons.menu_book_rounded, Color(0xFFFFB300), Color(0xFFE8EAF6),
+      RouteName.grademaster, ['GradeMaster', 'Grade', 'AddGrade']),
+];
 
 class Mastercontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -20,13 +67,19 @@ class Mastercontroller extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Master');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList => _visibleTiles
+      .map((s) => DhashboardItemsModel(s.name, s.icon, s.iconColor, s.bgColor))
+      .toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -68,168 +121,9 @@ class Mastercontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.session_screen);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.subject_screen);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.class_screen);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.section);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.feetypemaster);
-        break;
-      case 5:
-        selectedWidget = Get.toNamed(RouteName.feedurationmaster);
-        break;
-      case 6:
-        selectedWidget = Get.toNamed(RouteName.addroutemaster);
-        break;
-      case 7:
-        selectedWidget = Get.toNamed(RouteName.routepointmaster);
-        break;
-      case 8:
-        selectedWidget = Get.toNamed(RouteName.feeheadmaster);
-        break;
-      case 9:
-        selectedWidget = Get.toNamed(RouteName.daycarefeemaster);
-        break;
-      case 10:
-        selectedWidget = Get.toNamed(RouteName.paymentmaster);
-        break;
-      case 11:
-        selectedWidget = Get.toNamed(RouteName.subjectclassassign);
-        break;
-      case 12:
-        selectedWidget = Get.toNamed(RouteName.transportFee);
-        break;
-      case 13:
-        selectedWidget = Get.toNamed(RouteName.grademaster);
-        break;
-    }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      // Session — calendar/time feel → teal
-      DhashboardItemsModel(
-        "Session",
-        Icons.calendar_today_rounded,
-        const Color(0xFF00897B), // teal 600
-        const Color(0xFFE0F2F1), // teal 50
-      ),
-
-      // Subject — book/study → indigo
-      DhashboardItemsModel(
-        "Subject",
-        Icons.menu_book_rounded,
-        const Color(0xFF3949AB), // indigo 600
-        const Color(0xFFE8EAF6), // indigo 50
-      ),
-
-      // Class — school building → orange
-      DhashboardItemsModel(
-        "Class",
-        Icons.school_rounded,
-        const Color(0xFFF4511E), // deep orange 600
-        const Color(0xFFFBE9E7), // deep orange 50
-      ),
-
-      // Section — layers/groups → purple
-      DhashboardItemsModel(
-        "Section",
-        Icons.layers_rounded,
-        const Color(0xFF8E24AA), // purple 600
-        const Color(0xFFF3E5F5), // purple 50
-      ),
-
-      // Fee Type — label/tag → amber
-      DhashboardItemsModel(
-        "FeeType",
-        Icons.label_rounded,
-        const Color(0xFFFFB300), // amber 600
-        const Color(0xFFFFF8E1), // amber 50
-      ),
-
-      // Fee Duration — hourglass/time → cyan
-      DhashboardItemsModel(
-        "FeeDuration",
-        Icons.hourglass_top_rounded,
-        const Color(0xFF00ACC1), // cyan 600
-        const Color(0xFFE0F7FA), // cyan 50
-      ),
-
-      // Add Route — route/map → green
-      DhashboardItemsModel(
-        "Add Route",
-        Icons.alt_route_rounded,
-        const Color(0xFF43A047), // green 600
-        const Color(0xFFE8F5E9), // green 50
-      ),
-
-      // Route Point — pin/location → red
-      DhashboardItemsModel(
-        "Route Point",
-        Icons.place_rounded,
-        const Color(0xFFE53935), // red 600
-        const Color(0xFFFFEBEE), // red 50
-      ),
-
-      // Fee Head Master — account balance → blue
-      DhashboardItemsModel(
-        "Add Fee",
-        Icons.account_balance_rounded,
-        const Color(0xFF1E88E5), // blue 600
-        const Color(0xFFE3F2FD), // blue 50
-      ),
-
-      // Day Care Fee — child care → pink
-      DhashboardItemsModel(
-        "DayCare Fee",
-        Icons.child_care_rounded,
-        const Color(0xFFD81B60), // pink 600
-        const Color(0xFFFCE4EC), // pink 50
-      ),
-
-      // Payment Master — payments/wallet → light green
-      DhashboardItemsModel(
-        "Payment Mode",
-        Icons.account_balance_wallet_rounded,
-        const Color(0xFF7CB342), // light green 600
-        const Color(0xFFF1F8E9), // light green 50
-      ),
-
-      // Class Subject Assign — assignment → brown
-      DhashboardItemsModel(
-        "Subject Assign Class",
-        Icons.assignment_rounded,
-        const Color(0xFF6D4C41), // brown 600
-        const Color(0xFFEFEBE9), // brown 50
-      ),
-
-      // Transport Fee — bus → blue grey
-      DhashboardItemsModel(
-        "Transport Fee",
-        Icons.directions_bus_rounded,
-        const Color(0xFF546E7A), // blue grey 600
-        const Color(0xFFECEFF1), // blue grey 50
-      ),
-
-      DhashboardItemsModel(
-        "Add Grade",
-        Icons.menu_book_rounded,
-        const Color(0xFFFFB300), // indigo 600
-        const Color(0xFFE8EAF6), // indigo 50
-      ),
-    ];
-
-
-    vehicleDocumentList.value = dhashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

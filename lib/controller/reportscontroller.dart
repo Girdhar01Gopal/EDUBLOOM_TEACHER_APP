@@ -11,6 +11,42 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.route, this.activityNames);
+}
+
+// Matched against the "Report" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart). "Fee Payment Detail
+// Reports" and "Yearly Reports Students" don't map 1:1 onto the sample
+// access tree this was built from — their activityNames are a best guess
+// and should be checked against a real account if either stays hidden.
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("All Daily Collection", Icons.payments_rounded, Color.fromARGB(255, 143, 243, 30),
+      RouteName.feedailycollection, ['AllDailyCollection']),
+  _TileSpec("Daily Collection Class Wise", Icons.class_rounded, Colors.brown,
+      RouteName.DailyCollectionclassWise, ['DailyCollectionUserWise']),
+  _TileSpec("Class Wise Fee Structure", Icons.account_balance_rounded, Color.fromARGB(255, 34, 215, 173),
+      RouteName.ClassWiseFee, ['FeeStructure']),
+  _TileSpec("Daily Collection Fee Head Wise", Icons.summarize_rounded, Color.fromARGB(255, 26, 86, 175),
+      RouteName.DailyCollectionHeadWise, ['DailyCollection']),
+  _TileSpec("Student Fees", Icons.school_rounded, Color.fromARGB(255, 156, 194, 17),
+      RouteName.FeeStudentreports, ['StudentFees']),
+  _TileSpec("Fee Type Report", Icons.category_rounded, Color.fromARGB(255, 125, 8, 108),
+      RouteName.feetypereport, ['FeeTypeReport']),
+  _TileSpec("View Girls Boys Report", Icons.people_alt_rounded, Color.fromARGB(255, 17, 5, 58),
+      RouteName.ViewGirlsBoysReport, ['ViewGirlsBoysReport']),
+  _TileSpec("Fee Payment Detail Reports", Icons.receipt_long_rounded, Color.fromARGB(255, 88, 14, 14),
+      RouteName.feePaymentDetailsReports, ['FeesReceipt', 'TodayFeeLedger']),
+  _TileSpec("Yearly Reports Students", Icons.account_balance_rounded, Color.fromARGB(255, 156, 194, 17),
+      RouteName.studentwiseyearlyreport, ['all_month_fees_reports']),
+];
 
 class Reportscontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -20,13 +56,18 @@ class Reportscontroller extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Report');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList =>
+      _visibleTiles.map((s) => DhashboardItemsModel(s.name, s.icon, s.color)).toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -63,56 +104,9 @@ class Reportscontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.feedailycollection);
-        break; // Added break here
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.DailyCollectionclassWise);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.ClassWiseFee);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.DailyCollectionHeadWise);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.FeeStudentreports);
-        break;
-      case 5:
-        selectedWidget = Get.toNamed(RouteName.feetypereport);
-        break;
-      case 6:
-        selectedWidget = Get.toNamed(RouteName.ViewGirlsBoysReport);
-        break;
-      case 7:
-        selectedWidget = Get.toNamed(RouteName.feePaymentDetailsReports);
-        break;
-      // case 8:
-      //   selectedWidget = Get.toNamed(RouteName.allFeeReportmonths);
-      //   break;
-      case 8:
-        selectedWidget = Get.toNamed(RouteName.studentwiseyearlyreport);
-        break;
-        // Added break here
-    }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      DhashboardItemsModel("All Daily Collection", Icons.payments_rounded, const Color.fromARGB(255, 143, 243, 30)),
-      DhashboardItemsModel("Daily Collection Class Wise", Icons.class_rounded, Colors.brown),
-      DhashboardItemsModel("Class Wise Fee Structure", Icons.account_balance_rounded, const Color.fromARGB(255, 34, 215, 173)),
-      DhashboardItemsModel("Daily Collection Fee Head Wise", Icons.summarize_rounded, const Color.fromARGB(255, 26, 86, 175)),
-      DhashboardItemsModel("Student Fees", Icons.school_rounded, const Color.fromARGB(255, 156, 194, 17)),
-      DhashboardItemsModel("Fee Type Report", Icons.category_rounded, const Color.fromARGB(255, 125, 8, 108)),
-      DhashboardItemsModel("View Girls Boys Report", Icons.people_alt_rounded, const Color.fromARGB(255, 17, 5, 58)),
-      DhashboardItemsModel("Fee Payment Detail Reports", Icons.receipt_long_rounded, const Color.fromARGB(255, 88, 14, 14)),
-      //DhashboardItemsModel("ALL Payment Months Reports", Icons.calendar_month_rounded, const Color.fromARGB(255, 199, 99, 22)),
-      DhashboardItemsModel("Yearly Reports Students", Icons.account_balance_rounded, const Color.fromARGB(255, 156, 194, 17)),
-
-    ];
-    vehicleDocumentList.value = dhashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

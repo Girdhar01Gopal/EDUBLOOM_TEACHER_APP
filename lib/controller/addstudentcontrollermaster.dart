@@ -12,6 +12,38 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.bgColor, this.route, this.activityNames);
+}
+
+// Matched against the "Student" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart).
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Add Student View Student", Icons.person_add_alt_1_rounded, Color(0xFF3949AB),
+      Color(0xFFE8EAF6), RouteName.student_screen, ['AddStudent', 'ViewStudent']),
+  _TileSpec("Show ParentId", Icons.manage_search_rounded, Color(0xFF8E24AA),
+      Color(0xFFF3E5F5), RouteName.parentsidscreens, ['ShowParentId']),
+  _TileSpec("Student Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
+      Color(0xFFE8F5E9), RouteName.attendance_screen, ['StudentAttendance']),
+  _TileSpec("View Attendance", Icons.bar_chart_rounded, Color(0xFF00897B),
+      Color(0xFFE0F2F1), RouteName.view_attendance_screen, ['ViewAttendance']),
+  _TileSpec("Add Daycare Student View Daycare Student", Icons.child_care_rounded, Color(0xFFD81B60),
+      Color(0xFFFCE4EC), RouteName.adddaycarestudent, ['AddDaycareStudent', 'ViewDaycareStudent']),
+  _TileSpec("Daycare Attendance", Icons.alarm_on_rounded, Color(0xFFF4511E),
+      Color(0xFFFBE9E7), RouteName.daycaretakeattendanceview, ['DaycareAttendance']),
+  _TileSpec("View Daycare Attendance ", Icons.fact_check_rounded, Color(0xFF00ACC1),
+      Color(0xFFE0F7FA), RouteName.viewdaycareattendance, ['ViewDaycareAttendance']),
+  _TileSpec("Daycare Attendance Detail", Icons.assignment_turned_in_rounded, Color(0xFF1E88E5),
+      Color(0xFFE3F2FD), RouteName.attendancedetailsdaycareview, ['DaycareAttendanceDetail']),
+];
 
 class Addstudentcontrollermaster extends GetxController {
   final myRepo = LoginRepository();
@@ -21,13 +53,19 @@ class Addstudentcontrollermaster extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Student');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList => _visibleTiles
+      .map((s) => DhashboardItemsModel(s.name, s.icon, s.color, s.bgColor))
+      .toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -69,102 +107,9 @@ class Addstudentcontrollermaster extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.student_screen);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.parentsidscreens);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.attendance_screen);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.view_attendance_screen);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.adddaycarestudent);
-        break;
-      case 5:
-        selectedWidget = Get.toNamed(RouteName.daycaretakeattendanceview);
-        break;
-      case 6:
-        selectedWidget = Get.toNamed(RouteName.viewdaycareattendance);
-        break;
-      case 7:
-        selectedWidget = Get.toNamed(RouteName.attendancedetailsdaycareview);
-        break;
-    }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      // Add/View Student — person add → indigo
-      DhashboardItemsModel(
-        "Add Student View Student",
-        Icons.person_add_alt_1_rounded,
-        const Color(0xFF3949AB), // indigo 600
-        const Color(0xFFE8EAF6), // indigo 50
-      ),
-
-      // Search/View Parent ID — search person → purple
-      DhashboardItemsModel(
-        "Show ParentId",
-        Icons.manage_search_rounded,
-        const Color(0xFF8E24AA), // purple 600
-        const Color(0xFFF3E5F5), // purple 50
-      ),
-
-      // Take Attendance — checklist/tick → green
-      DhashboardItemsModel(
-        "Student Attendance",
-        Icons.how_to_reg_rounded,
-        const Color(0xFF2E7D32), // green 800
-        const Color(0xFFE8F5E9), // green 50
-      ),
-
-      // View Attendance — bar chart / analytics → teal
-      DhashboardItemsModel(
-        "View Attendance",
-        Icons.bar_chart_rounded,
-        const Color(0xFF00897B), // teal 600
-        const Color(0xFFE0F2F1), // teal 50
-      ),
-
-      // Day Care Student — child face → pink
-      DhashboardItemsModel(
-        "Add Daycare Student View Daycare Student",
-        Icons.child_care_rounded,
-        const Color(0xFFD81B60), // pink 600
-        const Color(0xFFFCE4EC), // pink 50
-      ),
-
-      // Day Care Attendance — clock + check → orange
-      DhashboardItemsModel(
-        "Daycare Attendance",
-        Icons.alarm_on_rounded,
-        const Color(0xFFF4511E), // deep orange 600
-        const Color(0xFFFBE9E7), // deep orange 50
-      ),
-
-      // View Attendance DayCare — list view → cyan
-      DhashboardItemsModel(
-        "View Daycare Attendance ",
-        Icons.fact_check_rounded,
-        const Color(0xFF00ACC1), // cyan 600
-        const Color(0xFFE0F7FA), // cyan 50
-      ),
-
-      // Day Care Attendance Details — details/info → blue
-      DhashboardItemsModel(
-        "Daycare Attendance Detail",
-        Icons.assignment_turned_in_rounded,
-        const Color(0xFF1E88E5), // blue 600
-        const Color(0xFFE3F2FD), // blue 50
-      ),
-    ];
-
-    vehicleDocumentList.value = dhashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

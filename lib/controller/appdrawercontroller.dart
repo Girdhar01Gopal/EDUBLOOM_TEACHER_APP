@@ -6,12 +6,13 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../infrastructures/constant/image_constant.dart';
-import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
+import '../utils/module_display.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
 
 class Appdrawercontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -22,17 +23,22 @@ class Appdrawercontroller extends GetxController {
   var schoolname = "".obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
 
-  List<DhashboardItemsModel> get filteredList =>
-      vehicleDocumentList.where((item) => item.name != "Master's" && item.name != "Dashboard").toList();
+  // Built live from the logged-in user's module access (see
+  // DashboardScreenController.accessibleModuleList), so the drawer only
+  // ever shows modules the user actually has access to.
+  List<DhashboardItemsModel> get vehicleDocumentList =>
+      getDashboardController().accessibleModuleList.map((module) {
+        final key = (module['activityName'] ?? '').toString();
+        final meta = displayMetaFor(key);
+        final label = (module['displayName'] ?? module['activityName'] ?? '').toString();
+        return DhashboardItemsModel(label, key, meta.icon, meta.color, meta.bgColor);
+      }).toList();
 
   @override
   void onInit() async {
     schoolname.value = await PrefManager().readValue(key: PrefConst.Name) ?? "";
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -74,179 +80,21 @@ class Appdrawercontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.dashboard_screen);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.master);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.addstudentmaster);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.communicationview);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.feesmaster);
-        break;
-      case 5:
-        selectedWidget = Get.toNamed(RouteName.activitymaster);
-        break;
-      case 6:
-        selectedWidget = Get.toNamed(RouteName.reports);
-        break;
-      case 7:
-        selectedWidget = Get.toNamed(RouteName.teacher);
-        break;
-      case 8:
-        selectedWidget = Get.toNamed(RouteName.staffView);
-        break;
-
-      case 9:
-        selectedWidget = Get.toNamed(RouteName.results);
-        break;
-      case 10:
-        selectedWidget = Get.toNamed(RouteName.products);
-        break;
-      case 11:
-        selectedWidget = Get.toNamed(RouteName.masterexpenses);
-        break;
-
-
-      case 12:
-        selectedWidget = Get.toNamed(RouteName.mastercertificate);
-        break;
-      case 13:
-        selectedWidget = Get.toNamed(RouteName.userdetails);
-        break;
+    final items = vehicleDocumentList;
+    if (index < 0 || index >= items.length) return;
+    final route = displayMetaFor(items[index].moduleKey).route;
+    if (route != null) {
+      selectedWidget = Get.toNamed(route);
     }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      // Dashboard — home → teal
-      DhashboardItemsModel(
-        "Dashboard",
-        Icons.dashboard_rounded,
-        const Color(0xFF00897B), // teal 600
-        const Color(0xFFE0F2F1), // teal 50
-      ),
-
-      // Masters's — settings/tune → indigo
-      DhashboardItemsModel(
-        "Master",
-        Icons.tune_rounded,
-        const Color(0xFF3949AB), // indigo 600
-        const Color(0xFFE8EAF6), // indigo 50
-      ),
-
-      // Student's — school/students → blue
-      DhashboardItemsModel(
-        "Student",
-        Icons.groups_rounded,
-        const Color(0xFF1E88E5), // blue 600
-        const Color(0xFFE3F2FD), // blue 50
-      ),
-
-      // Communication's — chat bubble → purple
-      DhashboardItemsModel(
-        "Communication",
-        Icons.forum_rounded,
-        const Color(0xFF8E24AA), // purple 600
-        const Color(0xFFF3E5F5), // purple 50
-      ),
-
-      // Fees's — wallet/payment → amber
-      DhashboardItemsModel(
-        "Fee Payments",
-        Icons.account_balance_wallet_rounded,
-        const Color(0xFFFFB300), // amber 600
-        const Color(0xFFFFF8E1), // amber 50
-      ),
-
-      // Activity's — paintbrush/art → cyan
-      DhashboardItemsModel(
-        "Gallery",
-        Icons.palette_rounded,
-        const Color(0xFF00ACC1), // cyan 600
-        const Color(0xFFE0F7FA), // cyan 50
-      ),
-
-      // Report's — bar chart → red
-      DhashboardItemsModel(
-        "Report",
-        Icons.insert_chart_rounded,
-        const Color(0xFFE53935), // red 600
-        const Color(0xFFFFEBEE), // red 50
-      ),
-
-      // Teacher's — person chalkboard → green
-      DhashboardItemsModel(
-        "Teachers",
-        Icons.person_pin_rounded,
-        const Color(0xFF43A047), // green 600
-        const Color(0xFFE8F5E9), // green 50
-      ),
-
-      // Staff — people → brown
-      DhashboardItemsModel(
-        "Staff",
-        Icons.people_alt_rounded,
-        const Color(0xFF6D4C41), // brown 600
-        const Color(0xFFEFEBE9), // brown 50
-      ),
-
-      // Results — star/grade → orange
-      DhashboardItemsModel(
-        "Results",
-        Icons.grade_rounded,
-        const Color(0xFFF4511E), // deep orange 600
-        const Color(0xFFFBE9E7), // deep orange 50
-      ),
-
-      // Products — inventory/box → blue grey
-      DhashboardItemsModel(
-        "Product",
-        Icons.inventory_2_rounded,
-        const Color(0xFF546E7A), // blue grey 600
-        const Color(0xFFECEFF1), // blue grey 50
-      ),
-
-      // Expenses — money off / receipt → pink
-      DhashboardItemsModel(
-        "Expenses",
-        Icons.receipt_long_rounded,
-        const Color(0xFFD81B60), // pink 600
-        const Color(0xFFFCE4EC), // pink 50
-      ),
-
-
-
-      DhashboardItemsModel(
-        "Certification",
-        Icons.person_pin_rounded,
-        const Color(0xFF6D4C41), // brown 600
-        const Color(0xFFEFEBE9), // brown 50 // blue grey 50
-      ),
-
-      DhashboardItemsModel(
-        "User",
-        Icons.manage_accounts_rounded,
-        const Color(0xFF8E24AA), // blue grey 600
-        const Color(0xFFECEFF1), // blue grey 50
-      ),
-    ];
-
-    vehicleDocumentList.value = dhashboardItems;
   }
 }
 
 class DhashboardItemsModel {
   String name;
+  String moduleKey;
   IconData? image;
   Color color;   // icon color
   Color bgColor; // circle background color
 
-  DhashboardItemsModel(this.name, this.image, this.color, this.bgColor);
+  DhashboardItemsModel(this.name, this.moduleKey, this.image, this.color, this.bgColor);
 }

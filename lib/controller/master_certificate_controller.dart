@@ -11,6 +11,25 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.route, this.activityNames);
+}
+
+// Matched against the "Certification" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart).
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("DOB Certification", Icons.view_list_rounded, Colors.brown,
+      RouteName.dobcertificate, ['DOBCertification']),
+  _TileSpec("Transfer Certificate", Icons.add_box_rounded, Color.fromARGB(255, 125, 8, 108),
+      RouteName.tc, ['TransferCertificate']),
+];
 
 class MastercertificateController extends GetxController {
   final myRepo = LoginRepository();
@@ -21,13 +40,18 @@ class MastercertificateController extends GetxController {
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
 
-  RxList<ProductMasterDashboardItemsModel> vehicleDocumentList =
-      List<ProductMasterDashboardItemsModel>.empty().obs;
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Certification');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<ProductMasterDashboardItemsModel> get vehicleDocumentList => _visibleTiles
+      .map((s) => ProductMasterDashboardItemsModel(s.name, s.icon, s.color))
+      .toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -74,32 +98,9 @@ class MastercertificateController extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.dobcertificate);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.tc);
-        break;
-    }
-  }
-
-  void dashboardCategory() {
-    // FIX 3: removed stray Color.fromARGB lines that were not part of any object
-    var dashboardItems = [
-      ProductMasterDashboardItemsModel(
-        "DOB Certification",
-        Icons.view_list_rounded,
-        Colors.brown,
-      ),
-      ProductMasterDashboardItemsModel(
-        "Transfer Certificate",
-        Icons.add_box_rounded,
-        const Color.fromARGB(255, 125, 8, 108),
-      ),
-    ];
-
-    vehicleDocumentList.value = dashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 

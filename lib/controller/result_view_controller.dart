@@ -11,6 +11,33 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _ResultChildMeta {
+  final IconData icon;
+  final Color color;
+  final String route;
+  const _ResultChildMeta(this.icon, this.color, this.route);
+}
+
+// Icon/color/route for each child of the "Result" module, keyed by the
+// API's activityName so tiles stay in sync with per-user access.
+const Map<String, _ResultChildMeta> _resultChildMeta = {
+  'FoundationalSkills': _ResultChildMeta(
+      Icons.school_rounded, Color.fromARGB(255, 143, 243, 30), RouteName.foundationalskills),
+  'SubjectProgress': _ResultChildMeta(
+      Icons.description_rounded, Colors.brown, RouteName.descriptors),
+  'MapDescriptors': _ResultChildMeta(
+      Icons.map_rounded, Color.fromARGB(255, 34, 215, 173), RouteName.mapdescriptor),
+  'MapFoundationalSkills': _ResultChildMeta(
+      Icons.account_tree_rounded, Color.fromARGB(255, 26, 86, 175), RouteName.mapfoundationaldescriptioskills),
+  'AddTerm': _ResultChildMeta(
+      Icons.calendar_month_rounded, Color.fromARGB(255, 156, 194, 17), RouteName.termsresult),
+  'AddResult': _ResultChildMeta(
+      Icons.fact_check_rounded, Color.fromARGB(255, 34, 197, 94), RouteName.Resultadd),
+  'PrintRePortCard': _ResultChildMeta(
+      Icons.school_rounded, Color.fromARGB(255, 59, 130, 246), RouteName.ResultReportcard),
+};
 
 class ResultViewController extends GetxController {
   final myRepo = LoginRepository();
@@ -20,13 +47,35 @@ class ResultViewController extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  // Only the children of the "Result" module the current user has access
+  // to (DashboardScreenController.accessibleModuleList already trims each
+  // parent's childActivity down to access:true entries).
+  List<DhashboardItemsModel> get vehicleDocumentList {
+    final resultModule = getDashboardController()
+        .accessibleModuleList
+        .where((m) => m['activityName'] == 'Result')
+        .toList();
+    final children = resultModule.isEmpty
+        ? <dynamic>[]
+        : (resultModule.first['childActivity'] as List? ?? []);
+    return children.map((raw) {
+      final child = Map<String, dynamic>.from(raw as Map);
+      final key = (child['activityName'] ?? '').toString();
+      final meta = _resultChildMeta[key];
+      final label = (child['displayName'] ?? child['activityName'] ?? '').toString().trim();
+      return DhashboardItemsModel(
+        label,
+        key,
+        meta?.icon ?? Icons.apps_rounded,
+        meta?.color ?? Colors.blueGrey,
+      );
+    }).toList();
+  }
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -63,57 +112,19 @@ class ResultViewController extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.foundationalskills);
-        break; // Added break here
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.descriptors);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.mapdescriptor);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.mapfoundationaldescriptioskills);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.termsresult);
-        break;
-       case 5:
-         selectedWidget = Get.toNamed(RouteName.Resultadd);
-         break;
-       case 6:
-         selectedWidget = Get.toNamed(RouteName.ResultReportcard);
-         break;
+    final items = vehicleDocumentList;
+    if (index < 0 || index >= items.length) return;
+    final route = _resultChildMeta[items[index].moduleKey]?.route;
+    if (route != null) {
+      selectedWidget = Get.toNamed(route);
     }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      DhashboardItemsModel("FoundationalSkills", Icons.school_rounded, const Color.fromARGB(255, 143, 243, 30)),
-      DhashboardItemsModel("Descriptors", Icons.description_rounded, Colors.brown),
-      DhashboardItemsModel("MapDescriptors", Icons.map_rounded, const Color.fromARGB(255, 34, 215, 173)),
-      DhashboardItemsModel("Map Foundational Skills", Icons.account_tree_rounded, const Color.fromARGB(255, 26, 86, 175)),
-      DhashboardItemsModel("Add Term", Icons.calendar_month_rounded, const Color.fromARGB(255, 156, 194, 17)),
-      DhashboardItemsModel(
-        "Add Result",
-        Icons.fact_check_rounded,
-        const Color.fromARGB(255, 34, 197, 94), // fresh green
-      ),
-
-      DhashboardItemsModel(
-        "RePortCard",
-        Icons.school_rounded,
-        const Color.fromARGB(255, 59, 130, 246), // clean academic blue
-      ),
-    ];
-    vehicleDocumentList.value = dhashboardItems;
   }
 }
 
 class DhashboardItemsModel {
   String name;
+  String moduleKey;
   IconData icons;
   Color color;
-  DhashboardItemsModel(this.name, this.icons, this.color);
+  DhashboardItemsModel(this.name, this.moduleKey, this.icons, this.color);
 }

@@ -12,6 +12,34 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../view_model/login_view_model.dart';
+import 'home_page_controller.dart';
+
+class _TileSpec {
+  final String name;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+  final String route;
+  final List<String> activityNames;
+  const _TileSpec(this.name, this.icon, this.color, this.bgColor, this.route, this.activityNames);
+}
+
+// Matched against the "Communication" module's accessible children (see
+// accessibleChildNames in home_page_controller.dart).
+const List<_TileSpec> _tileSpecs = [
+  _TileSpec("Notifiaction", Icons.notifications_active_rounded, Color(0xFFFFB300),
+      Color(0xFFFFF8E1), RouteName.notification_screen, ['Notifiaction']),
+  _TileSpec("Note", Icons.sticky_note_2_rounded, Color(0xFFF4511E),
+      Color(0xFFFBE9E7), RouteName.note_screen, ['Note']),
+  _TileSpec("Event", Icons.event_rounded, Color(0xFF8E24AA),
+      Color(0xFFF3E5F5), RouteName.event_screen, ['Event']),
+  _TileSpec("HomeWork", Icons.edit_note_rounded, Color(0xFF3949AB),
+      Color(0xFFE8EAF6), RouteName.homework, ['HomeWork']),
+  _TileSpec("Syllabus", Icons.menu_book_rounded, Color(0xFF00897B),
+      Color(0xFFE0F2F1), RouteName.syllabus, ['Syllabus']),
+  _TileSpec("View Curriculum", Icons.collections_bookmark_rounded, Color(0xFF1E88E5),
+      Color(0xFFE3F2FD), RouteName.viewcurriculumview, ['ViewCurriculum']),
+];
 
 class Communicationcontroller extends GetxController {
   final myRepo = LoginRepository();
@@ -21,13 +49,19 @@ class Communicationcontroller extends GetxController {
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
-  RxList<DhashboardItemsModel> vehicleDocumentList =
-      List<DhashboardItemsModel>.empty().obs;
+
+  List<_TileSpec> get _visibleTiles {
+    final accessible = accessibleChildNames('Communication');
+    return _tileSpecs.where((s) => s.activityNames.any(accessible.contains)).toList();
+  }
+
+  List<DhashboardItemsModel> get vehicleDocumentList => _visibleTiles
+      .map((s) => DhashboardItemsModel(s.name, s.icon, s.color, s.bgColor))
+      .toList();
 
   @override
   void onInit() {
     fetchtoken();
-    dashboardCategory();
     super.onInit();
   }
 
@@ -69,80 +103,9 @@ class Communicationcontroller extends GetxController {
 
   void onSelectedBottom(int index) {
     selectedIndex = index;
-    switch (index) {
-      case 0:
-        selectedWidget = Get.toNamed(RouteName.notification_screen);
-        break;
-      case 1:
-        selectedWidget = Get.toNamed(RouteName.note_screen);
-        break;
-      case 2:
-        selectedWidget = Get.toNamed(RouteName.event_screen);
-        break;
-      case 3:
-        selectedWidget = Get.toNamed(RouteName.homework);
-        break;
-      case 4:
-        selectedWidget = Get.toNamed(RouteName.syllabus);
-        break;
-      case 5:
-        selectedWidget = Get.toNamed(RouteName.viewcurriculumview);
-        break;
-    }
-  }
-
-  void dashboardCategory() {
-    var dhashboardItems = [
-      // Notifications — bell → amber
-      DhashboardItemsModel(
-        "Notifiaction",
-        Icons.notifications_active_rounded,
-        const Color(0xFFFFB300), // amber 600
-        const Color(0xFFFFF8E1), // amber 50
-      ),
-
-      // Notes — sticky note → orange
-      DhashboardItemsModel(
-        "Note",
-        Icons.sticky_note_2_rounded,
-        const Color(0xFFF4511E), // deep orange 600
-        const Color(0xFFFBE9E7), // deep orange 50
-      ),
-
-      // Events — event/calendar → purple
-      DhashboardItemsModel(
-        "Event",
-        Icons.event_rounded,
-        const Color(0xFF8E24AA), // purple 600
-        const Color(0xFFF3E5F5), // purple 50
-      ),
-
-      // Home Work — book + pencil → indigo
-      DhashboardItemsModel(
-        "HomeWork",
-        Icons.edit_note_rounded,
-        const Color(0xFF3949AB), // indigo 600
-        const Color(0xFFE8EAF6), // indigo 50
-      ),
-
-      // Syllabus — menu book → teal
-      DhashboardItemsModel(
-        "Syllabus",
-        Icons.menu_book_rounded,
-        const Color(0xFF00897B), // teal 600
-        const Color(0xFFE0F2F1), // teal 50
-      ),
-
-      // View Curriculum — view list / curriculum → blue
-      DhashboardItemsModel(
-        "View Curriculum",
-        Icons.collections_bookmark_rounded,
-        const Color(0xFF1E88E5), // blue 600
-        const Color(0xFFE3F2FD), // blue 50
-      ),
-    ];
-
-    vehicleDocumentList.value = dhashboardItems;
+    final tiles = _visibleTiles;
+    if (index < 0 || index >= tiles.length) return;
+    selectedWidget = Get.toNamed(tiles[index].route);
   }
 }
 
