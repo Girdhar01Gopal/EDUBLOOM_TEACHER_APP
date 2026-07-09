@@ -27,11 +27,11 @@ class _TileSpec {
 }
 
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("Fee Payment", CupertinoIcons.money_dollar_circle_fill, Color(0xFF6C63FF),
+  _TileSpec("Pre School Fees", CupertinoIcons.money_dollar_circle_fill, Color(0xFF6C63FF),
       RouteName.fees_screen, 'FeePayments', ['FeePayment']),
-  _TileSpec("FeePayment Daycare", CupertinoIcons.sun_max_fill, Color(0xFFFF9F43),
+  _TileSpec("Day Care Fees", CupertinoIcons.sun_max_fill, Color(0xFFFF9F43),
       RouteName.day_care, 'FeePaymentDaycare', ['DayCareFeePayment']),
-  _TileSpec("Discount List", CupertinoIcons.tag_fill, Color(0xFF9C27B0),
+  _TileSpec("Discount List Fees", CupertinoIcons.tag_fill, Color(0xFF9C27B0),
       RouteName.discountfeelist, 'FeePayments', ['DiscountList']),
 ];
 

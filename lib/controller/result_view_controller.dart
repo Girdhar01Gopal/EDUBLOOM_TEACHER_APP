@@ -23,19 +23,19 @@ class _ResultChildMeta {
 // Icon/color/route for each child of the "Result" module, keyed by the
 // API's activityName so tiles stay in sync with per-user access.
 const Map<String, _ResultChildMeta> _resultChildMeta = {
-  'FoundationalSkills': _ResultChildMeta(
+  'Foundational Skills': _ResultChildMeta(
       Icons.school_rounded, Color.fromARGB(255, 143, 243, 30), RouteName.foundationalskills),
   'SubjectProgress': _ResultChildMeta(
       Icons.description_rounded, Colors.brown, RouteName.descriptors),
-  'MapDescriptors': _ResultChildMeta(
+  'Map Descriptor': _ResultChildMeta(
       Icons.map_rounded, Color.fromARGB(255, 34, 215, 173), RouteName.mapdescriptor),
-  'MapFoundationalSkills': _ResultChildMeta(
+  'Map Foundational Skills': _ResultChildMeta(
       Icons.account_tree_rounded, Color.fromARGB(255, 26, 86, 175), RouteName.mapfoundationaldescriptioskills),
-  'AddTerm': _ResultChildMeta(
+  'Add Terms': _ResultChildMeta(
       Icons.calendar_month_rounded, Color.fromARGB(255, 156, 194, 17), RouteName.termsresult),
-  'AddResult': _ResultChildMeta(
+  'Add Result': _ResultChildMeta(
       Icons.fact_check_rounded, Color.fromARGB(255, 34, 197, 94), RouteName.Resultadd),
-  'PrintRePortCard': _ResultChildMeta(
+  'Report Card': _ResultChildMeta(
       Icons.school_rounded, Color.fromARGB(255, 59, 130, 246), RouteName.ResultReportcard),
 };
 

@@ -5,6 +5,9 @@ import 'package:get/get.dart';
 import '../controller/stafftypecontroller.dart';
 import '../models/stafftypemodel.dart';
 
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class Stafftypeview extends StatelessWidget {
   const Stafftypeview({super.key});
 
@@ -19,7 +22,7 @@ class Stafftypeview extends StatelessWidget {
         appBar: AppBar(
           title: const Text("Staff Type", style: TextStyle(color: Colors.white)),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -47,13 +50,13 @@ class _AddTab extends StatelessWidget {
   const _AddTab({required this.controller});
 
   InputDecoration _dec(String label) => InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        filled: true,
-        fillColor: Colors.white,
-      );
+    labelText: label,
+    border: const OutlineInputBorder(),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+    filled: true,
+    fillColor: Colors.white,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -106,14 +109,14 @@ class _AddTab extends StatelessWidget {
                           ),
                           child: controller.isSaving.value
                               ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
                               : const Text(
-                                  "Save",
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
+                            "Save",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
                     ],
@@ -177,48 +180,48 @@ class _ViewTab extends StatelessWidget {
               Expanded(
                 child: list.isEmpty
                     ? Center(
-                        child: Text(
-                          controller.isListLoading.value ? "Loading..." : "No staff type found",
-                          style: TextStyle(fontSize: 14.sp),
-                        ),
-                      )
+                  child: Text(
+                    controller.isListLoading.value ? "Loading..." : "No staff type found",
+                    style: TextStyle(fontSize: 14.sp),
+                  ),
+                )
                     : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text("S.no")),
-                            DataColumn(label: Text("Staff Type")),
-                            DataColumn(label: Text("Create Date")),
-                            DataColumn(label: Text("Update Date")),
-                            DataColumn(label: Text("Action")),
-                          ],
-                          rows: List.generate(list.length, (i) {
-                            final StaffType x = list[i];
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text("S.no")),
+                      DataColumn(label: Text("Staff Type")),
+                      DataColumn(label: Text("Create Date")),
+                      DataColumn(label: Text("Update Date")),
+                      DataColumn(label: Text("Action")),
+                    ],
+                    rows: List.generate(list.length, (i) {
+                      final StaffType x = list[i];
 
-                            return DataRow(
-                              cells: [
-                                DataCell(Text("${i + 1}")),
-                                DataCell(Text(x.staffType ?? "-")),
-                                DataCell(Text(controller.formatDate(x.createDate != null ? DateTime.tryParse(x.createDate!) : null))),
-                                DataCell(Text(controller.formatDate(x.updateDate != null ? DateTime.tryParse(x.updateDate!) : null))),
-                                DataCell(
-                                  Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: () => controller.openEditDialog(x),
-                                        child: const Icon(Icons.edit, color: Colors.orange),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      // You said always green tick
-                                      const Icon(Icons.check_circle, color: Colors.green),
-                                    ],
-                                  ),
+                      return DataRow(
+                        cells: [
+                          DataCell(Text("${i + 1}")),
+                          DataCell(Text(x.staffType ?? "-")),
+                          DataCell(Text(controller.formatDate(x.createDate != null ? DateTime.tryParse(x.createDate!) : null))),
+                          DataCell(Text(controller.formatDate(x.updateDate != null ? DateTime.tryParse(x.updateDate!) : null))),
+                          DataCell(
+                            Row(
+                              children: [
+                                InkWell(
+                                  onTap: () => controller.openEditDialog(x),
+                                  child: const Icon(Icons.edit, color: Colors.orange),
                                 ),
+                                const SizedBox(width: 10),
+                                // You said always green tick
+                                const Icon(Icons.check_circle, color: Colors.green),
                               ],
-                            );
-                          }),
-                        ),
-                      ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
               ),
             ],
           ),

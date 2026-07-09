@@ -27,17 +27,17 @@ class _TileSpec {
 // Matched against the "Student" module's accessible children (see
 // accessibleChildNames in home_page_controller.dart).
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("Add Student View Student", Icons.person_add_alt_1_rounded, Color(0xFF3949AB),
+  _TileSpec("Pre School Students", Icons.person_add_alt_1_rounded, Color(0xFF3949AB),
       Color(0xFFE8EAF6), RouteName.student_screen, ['AddStudent', 'ViewStudent']),
-  _TileSpec("Show ParentId", Icons.manage_search_rounded, Color(0xFF8E24AA),
+  _TileSpec("View Parent ID", Icons.manage_search_rounded, Color(0xFF8E24AA),
       Color(0xFFF3E5F5), RouteName.parentsidscreens, ['ShowParentId']),
-  _TileSpec("Student Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
+  _TileSpec("Take Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
       Color(0xFFE8F5E9), RouteName.attendance_screen, ['StudentAttendance']),
   _TileSpec("View Attendance", Icons.bar_chart_rounded, Color(0xFF00897B),
       Color(0xFFE0F2F1), RouteName.view_attendance_screen, ['ViewAttendance']),
-  _TileSpec("Add Daycare Student View Daycare Student", Icons.child_care_rounded, Color(0xFFD81B60),
+  _TileSpec("Day Care Students", Icons.child_care_rounded, Color(0xFFD81B60),
       Color(0xFFFCE4EC), RouteName.adddaycarestudent, ['AddDaycareStudent', 'ViewDaycareStudent']),
-  _TileSpec("Daycare Attendance", Icons.alarm_on_rounded, Color(0xFFF4511E),
+  _TileSpec("Take Daycare Attendance", Icons.alarm_on_rounded, Color(0xFFF4511E),
       Color(0xFFFBE9E7), RouteName.daycaretakeattendanceview, ['DaycareAttendance']),
   _TileSpec("View Daycare Attendance ", Icons.fact_check_rounded, Color(0xFF00ACC1),
       Color(0xFFE0F7FA), RouteName.viewdaycareattendance, ['ViewDaycareAttendance']),

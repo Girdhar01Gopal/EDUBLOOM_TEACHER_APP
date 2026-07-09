@@ -6,6 +6,9 @@ import 'package:get/get.dart';
 import '../controller/addstaffcontroller.dart';
 import '../models/staff_details_model15.dart';
 
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class Staffaddview extends GetView<Addstaffcontroller> {
   const Staffaddview({super.key});
 
@@ -18,7 +21,7 @@ class Staffaddview extends GetView<Addstaffcontroller> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           foregroundColor: Colors.white,
           title: const Text(
             'Staff Management',
@@ -202,7 +205,7 @@ class ViewTeacherTab extends GetView<Addstaffcontroller> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [Colors.teal.shade500, Colors.teal.shade800]),
+                      gradient: LinearGradient(colors: [kAxisMaroon, kAxisMaroon]),
                     ),
                     child: Row(
                       children: [
@@ -249,7 +252,7 @@ class ViewTeacherTab extends GetView<Addstaffcontroller> {
                           flex: 2,
                           child: Obx(() => ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
+                              backgroundColor: kAxisMaroon,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
@@ -427,7 +430,7 @@ class _ActionButtons extends StatelessWidget {
       children: [
         btn(bg: Colors.orange, icon: Icons.edit, onTap: onEdit, tooltip: 'Edit'),
         const SizedBox(width: 6),
-        btn(bg: Colors.teal.shade600, icon: Icons.visibility, onTap: onView, tooltip: 'View Details'),
+        btn(bg: kAxisMaroon, icon: Icons.visibility, onTap: onView, tooltip: 'View Details'),
       ],
     );
   }
@@ -546,7 +549,7 @@ InputDecoration _inputDecoration({String? hint}) {
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
-    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.teal)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kAxisMaroon)),
     errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red)),
     focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red)),
   );

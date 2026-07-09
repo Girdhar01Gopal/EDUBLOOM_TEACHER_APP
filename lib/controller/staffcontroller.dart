@@ -25,7 +25,7 @@ class _TileSpec {
 // Matched against the "Staff" module's accessible children (see
 // accessibleChildNames in home_page_controller.dart).
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("Add Staff & View Staff", Icons.person_add_rounded, Color.fromARGB(255, 143, 243, 30),
+  _TileSpec("Add & View Staff", Icons.person_add_rounded, Color.fromARGB(255, 143, 243, 30),
       RouteName.addstaff, ['AddStaff', 'ViewStaff']),
   _TileSpec("Staff Type", Icons.badge_rounded, Color.fromARGB(225, 199, 99, 22),
       RouteName.stafftype, ['StaffType']),

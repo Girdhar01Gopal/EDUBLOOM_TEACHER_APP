@@ -27,17 +27,17 @@ class _TileSpec {
 // accessible children (see accessibleChildNames in home_page_controller.dart)
 // so a tile only shows when the current user actually has access to it.
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("AddTeacher & AllTeacher", Icons.person_add_alt_1_rounded, Color(0xFF3949AB),
+  _TileSpec("Add & View Teacher", Icons.person_add_alt_1_rounded, Color(0xFF3949AB),
       Color(0xFFE8EAF6), RouteName.addteachers, ['AddTeacher', 'AllTeacher']),
   _TileSpec("Teacher Designation", Icons.badge_rounded, Color(0xFF8E24AA),
       Color(0xFFF3E5F5), RouteName.teacherdesignation, ['TeacherDesignation']),
   _TileSpec("Teacher Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
       Color(0xFFE8F5E9), RouteName.teacherattendance, ['TeacherAttendance']),
-  _TileSpec("View Teacher Attendance", Icons.bar_chart_rounded, Color(0xFF00897B),
+  _TileSpec("View Attendance", Icons.bar_chart_rounded, Color(0xFF00897B),
       Color(0xFFE0F2F1), RouteName.viewteacherattendance, ['ViewTeacherAttendance']),
-  _TileSpec("Teacher Subject", Icons.assignment_rounded, Color(0xFFF4511E),
+  _TileSpec("Assign Subject", Icons.assignment_rounded, Color(0xFFF4511E),
       Color(0xFFFBE9E7), RouteName.teachersubject, ['TeacherSubject']),
-  _TileSpec("Teacher Class Assign", Icons.school_rounded, Color(0xFF1E88E5),
+  _TileSpec("Class Teacher", Icons.school_rounded, Color(0xFF1E88E5),
       Color(0xFFE3F2FD), RouteName.classteacher, ['ClassTeacher']),
 ];
 

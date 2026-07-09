@@ -8,6 +8,9 @@ import 'package:get/get.dart';
 import '../controller/view_staff_attendance_controller.dart';
 import '../models/view staff attendance details.dart';
 
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class ViewStaffAttendanceScreen
     extends GetView<ViewStaffAttendanceController> {
   // ── Search state ──────────────────────────────────────────────────────────
@@ -107,7 +110,7 @@ class ViewStaffAttendanceScreen
                           ? null
                           : controller.fetchReport,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade800,
+                        backgroundColor: kAxisMaroon,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
@@ -226,8 +229,8 @@ class ViewStaffAttendanceScreen
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.teal.shade600,
-                                  Colors.teal.shade900,
+                                  kAxisMaroon,
+                                  kAxisMaroon,
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -334,7 +337,7 @@ class ViewStaffAttendanceScreen
       child: Obx(() {
         final searching = _isSearching.value;
         return AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
@@ -416,7 +419,7 @@ class ViewStaffAttendanceScreen
                     fontWeight: FontWeight.bold,
                     color: (i == 0 || i == 6)
                         ? Colors.red.shade400
-                        : Colors.teal.shade700,
+                        : kAxisMaroon,
                   ),
                 ),
               ),

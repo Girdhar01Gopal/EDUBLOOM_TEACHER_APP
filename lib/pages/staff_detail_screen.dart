@@ -5,6 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../controller/staff_detail_conroller.dart';
 import '../models/staff_detail_model.dart';
 
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class StaffDetailScreen extends GetView<StaffDetailController> {
   const StaffDetailScreen({super.key});
 
@@ -13,7 +16,7 @@ class StaffDetailScreen extends GetView<StaffDetailController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         foregroundColor: Colors.white,
         title: const Text(
           'Staff Detail',
@@ -116,7 +119,7 @@ class _StaffDetailBody extends StatelessWidget {
                               staff.staffType!.trim(),
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.teal.shade700,
+                                color: kAxisMaroon,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -217,9 +220,9 @@ class _StaffDetailBody extends StatelessWidget {
                 title: 'Record Info',
                 icon: Icons.history_outlined,
                 children: [
-                 // _InfoRow('Created By', staff.createBy),
+                  // _InfoRow('Created By', staff.createBy),
                   _InfoRow('Create Date', ctrl.formatDate(staff.createDate)),
-                 // _InfoRow('Updated By', staff.updateBy),
+                  // _InfoRow('Updated By', staff.updateBy),
                   _InfoRow('Update Date', ctrl.formatDate(staff.updateDate)),
                 ],
               ),
@@ -296,13 +299,13 @@ class _AvatarFallback extends StatelessWidget {
       width: 90,
       height: 90,
       decoration: BoxDecoration(
-        color: Colors.teal.shade100,
+        color: kAxisMaroon.withOpacity(0.12),
         borderRadius: BorderRadius.circular(60),
       ),
       alignment: Alignment.center,
       child: Text(
         initials,
-        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.teal.shade800),
+        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: kAxisMaroon),
       ),
     );
   }
@@ -385,13 +388,13 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: kAxisMaroon.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.teal.shade200),
+        border: Border.all(color: kAxisMaroon.withOpacity(0.3)),
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 12, color: Colors.teal.shade800, fontWeight: FontWeight.w600),
+        style: TextStyle(fontSize: 12, color: kAxisMaroon, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -446,11 +449,11 @@ class _DocumentsRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.attach_file, size: 18, color: Colors.teal.shade700),
+              Icon(Icons.attach_file, size: 18, color: kAxisMaroon),
               const SizedBox(width: 6),
               Text(
                 'Documents',
-                style: TextStyle(fontWeight: FontWeight.w700, color: Colors.teal.shade800, fontSize: 14),
+                style: TextStyle(fontWeight: FontWeight.w700, color: kAxisMaroon, fontSize: 14),
               ),
             ],
           ),
@@ -551,11 +554,11 @@ class _SectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: Colors.teal.shade700),
+                Icon(icon, size: 18, color: kAxisMaroon),
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.teal.shade800),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kAxisMaroon),
                 ),
               ],
             ),

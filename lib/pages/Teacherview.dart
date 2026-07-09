@@ -6,6 +6,9 @@ import '../infrastructures/constant/image_constant.dart';
 import '../infrastructures/utils/custom_text.dart';
 import '../wigets/app_drawer.dart';
 
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class Teacherview extends GetView<Teachercontroller> {
   @override
   Widget build(BuildContext context) {
@@ -14,7 +17,7 @@ class Teacherview extends GetView<Teachercontroller> {
       drawer: AppDrawer(),
 
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         elevation: 0,
         toolbarHeight: 75.h,
         centerTitle: true,

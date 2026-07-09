@@ -27,9 +27,9 @@ class _TileSpec {
 }
 
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("Upload Picture", CupertinoIcons.cloud_upload_fill, Color(0xFF2196F3),
+  _TileSpec("Upload Gallery & Video", CupertinoIcons.cloud_upload_fill, Color(0xFF2196F3),
       RouteName.galeryvideo, 'Gallery', ['UploadPicture']),
-  _TileSpec("View video", CupertinoIcons.photo_on_rectangle, Color(0xFF9C27B0),
+  _TileSpec("View Gallery & video", CupertinoIcons.photo_on_rectangle, Color(0xFF9C27B0),
       RouteName.mapcategory, 'Gallery', ['Video', 'Viewvideo']),
   _TileSpec("Activity", CupertinoIcons.sportscourt_fill, Color(0xFF4CAF50),
       RouteName.activity, 'DailyActivity', ['Activity']),

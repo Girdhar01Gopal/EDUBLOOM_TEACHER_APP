@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import '../binding/staffattendancecontroller.dart';
+import '../controller/staffattendancecontroller.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/teacher_attendance.dart';
+
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
 
 class Staffattendanceview extends StatelessWidget {
   const Staffattendanceview({super.key});
@@ -17,7 +20,7 @@ class Staffattendanceview extends StatelessWidget {
       return Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: kAxisMaroon,
           iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
             "✅ Staff Attendance",
@@ -286,11 +289,11 @@ class _ListSection extends StatelessWidget {
 
                       return DataTable(
                         headingRowColor: MaterialStateProperty.all(
-                            Colors.teal.shade50),
+                            kAxisMaroon.withOpacity(0.08)),
                         headingTextStyle: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w700,
-                          color: Colors.teal.shade800,
+                          color: kAxisMaroon,
                         ),
                         dataTextStyle: TextStyle(
                           fontSize: 13.sp,
@@ -374,71 +377,71 @@ class _ListSection extends StatelessWidget {
                                       : SizedBox(
                                     width: 270.w,
                                     child: Row(
-                                        children: [
+                                      children: [
                                         // IN / OUT dropdown
                                         SizedBox(
-                                        width: 78.w,
-                                        child:
-                                        DropdownButtonFormField
-                                        <String>(
-                                        value: controller
-                                        .inOutForUser(userId),
-                                    isExpanded: true,
-                                    items: const [
-                                      DropdownMenuItem(
-                                          value: "IN",
-                                          child: Text("IN")),
-                                      DropdownMenuItem(
-                                          value: "OUT",
-                                          child: Text("OUT")),
-                                    ],
-                                    onChanged: (v) {
-                                      if (v == null) return;
-                                      controller
-                                          .setInOutForUser(
-                                          userId, v);
-                                    },
-                                    decoration:
-                                    const InputDecoration(
-                                      border:
-                                      OutlineInputBorder(),
-                                      isDense: true,
-                                      contentPadding:
-                                      EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 10),
+                                          width: 78.w,
+                                          child:
+                                          DropdownButtonFormField
+                                          <String>(
+                                            value: controller
+                                                .inOutForUser(userId),
+                                            isExpanded: true,
+                                            items: const [
+                                              DropdownMenuItem(
+                                                  value: "IN",
+                                                  child: Text("IN")),
+                                              DropdownMenuItem(
+                                                  value: "OUT",
+                                                  child: Text("OUT")),
+                                            ],
+                                            onChanged: (v) {
+                                              if (v == null) return;
+                                              controller
+                                                  .setInOutForUser(
+                                                  userId, v);
+                                            },
+                                            decoration:
+                                            const InputDecoration(
+                                              border:
+                                              OutlineInputBorder(),
+                                              isDense: true,
+                                              contentPadding:
+                                              EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 10),
+                                            ),
+                                          ),
+                                        ),
+
+                                        SizedBox(width: 6.w),
+
+                                        // Check-IN time button
+                                        _TimeButton(
+                                          label: "In",
+                                          time: controller
+                                              .inTimeForUser(userId),
+                                          color: kAxisMaroon,
+                                          onTap: () => controller
+                                              .pickInTimeForUser(userId),
+                                        ),
+
+                                        SizedBox(width: 5.w),
+
+                                        // Check-OUT time button
+                                        _TimeButton(
+                                          label: "Out",
+                                          time: controller
+                                              .outTimeForUser(userId),
+                                          color: Colors.red.shade700,
+                                          onTap: () => controller
+                                              .pickOutTimeForUser(userId),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-
-                                SizedBox(width: 6.w),
-
-                                // Check-IN time button
-                                _TimeButton(
-                                  label: "In",
-                                  time: controller
-                                      .inTimeForUser(userId),
-                                  color: Colors.teal.shade700,
-                                  onTap: () => controller
-                                      .pickInTimeForUser(userId),
-                                ),
-
-                                SizedBox(width: 5.w),
-
-                                // Check-OUT time button
-                                _TimeButton(
-                                  label: "Out",
-                                  time: controller
-                                      .outTimeForUser(userId),
-                                  color: Colors.red.shade700,
-                                  onTap: () => controller
-                                      .pickOutTimeForUser(userId),
-                                ),
                               ],
-                            ),
-                            ),
-                            ),
-                            ],
                             );
                           },
                         ),

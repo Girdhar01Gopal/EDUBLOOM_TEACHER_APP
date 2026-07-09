@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controller/StaffDetailsController.dart';
 
+// Axis Bank brand color (maroon) — replaces teal everywhere in this file
+const Color kAxisMaroon = Color(0xFF97144D);
+
 class StaffDetailsScreen extends StatelessWidget {
   StaffDetailsScreen({super.key});
 
@@ -144,7 +147,7 @@ class StaffDetailsScreen extends StatelessWidget {
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: kAxisMaroon,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Obx(() {

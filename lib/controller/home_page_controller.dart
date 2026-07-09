@@ -76,8 +76,8 @@ class DashboardScreenController extends GetxController {
   var schoollname = "".obs;
   var schoollogo = "".obs;
   var expiryDate = "".obs;
-RxInt userid= 0.obs;
-var list = [].obs;
+  RxInt userid= 0.obs;
+  var list = [].obs;
 
   // Only the modules (and sub-modules) whose "access" flag is true.
   // A parent with access:false is still kept if it has at least one
@@ -109,8 +109,8 @@ var list = [].obs;
     schoolname.value = await PrefManager().readValue(key: PrefConst.Name) ?? "";
     schoollogo.value = await PrefManager().readValue(key: PrefConst.schoollogo) ?? "";
     userid.value = int.tryParse(
-          (await PrefManager().readValue(key: PrefConst.Userid))?.toString() ?? '',
-        ) ??
+      (await PrefManager().readValue(key: PrefConst.Userid))?.toString() ?? '',
+    ) ??
         0;
     print(schoollogo.value);
 
@@ -495,10 +495,12 @@ var list = [].obs;
   }
 
   void dashboardCategory() {
-    vehicleDocumentList.value = accessibleModuleList.map((module) {
+    vehicleDocumentList.value = accessibleModuleList
+        .where((module) => !displayMetaFor((module['activityName'] ?? '').toString()).hidden)
+        .map((module) {
       final key = (module['activityName'] ?? '').toString();
       final meta = displayMetaFor(key);
-      final label = (module['displayName'] ?? module['activityName'] ?? '').toString();
+      final label = displayMetaFor(key).label ?? (module['displayName'] ?? module['activityName'] ?? '').toString();
       return DhashboardItemsModel(
         label,
         key,

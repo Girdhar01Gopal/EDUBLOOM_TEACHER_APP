@@ -28,7 +28,7 @@ class _TileSpec {
 // access tree this was built from — their activityNames are a best guess
 // and should be checked against a real account if either stays hidden.
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("All Daily Collection", Icons.payments_rounded, Color.fromARGB(255, 143, 243, 30),
+  _TileSpec("Fee Daily Collection", Icons.payments_rounded, Color.fromARGB(255, 143, 243, 30),
       RouteName.feedailycollection, ['AllDailyCollection']),
   _TileSpec("Daily Collection Class Wise", Icons.class_rounded, Colors.brown,
       RouteName.DailyCollectionclassWise, ['DailyCollectionUserWise']),
@@ -36,7 +36,7 @@ const List<_TileSpec> _tileSpecs = [
       RouteName.ClassWiseFee, ['FeeStructure']),
   _TileSpec("Daily Collection Fee Head Wise", Icons.summarize_rounded, Color.fromARGB(255, 26, 86, 175),
       RouteName.DailyCollectionHeadWise, ['DailyCollection']),
-  _TileSpec("Student Fees", Icons.school_rounded, Color.fromARGB(255, 156, 194, 17),
+  _TileSpec("Fee Student Reports", Icons.school_rounded, Color.fromARGB(255, 156, 194, 17),
       RouteName.FeeStudentreports, ['StudentFees']),
   _TileSpec("Fee Type Report", Icons.category_rounded, Color.fromARGB(255, 125, 8, 108),
       RouteName.feetypereport, ['FeeTypeReport']),

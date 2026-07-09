@@ -15,7 +15,7 @@ class TeacherDetailScreen extends GetView<TeacherDetailController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: const Color(0xFF97144D),
         foregroundColor: Colors.white,
         title: const Text(
           'Teacher Detail',
@@ -125,9 +125,9 @@ class _TeacherDetailBody extends StatelessWidget {
                             if (teacher.designation != null)
                               Text(
                                 teacher.designation!.trim(),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
-                                  color: Colors.teal.shade700,
+                                  color: Color(0xFFA83262),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -297,17 +297,17 @@ class _AvatarFallback extends StatelessWidget {
     return Container(
       width: 90,
       height: 90,
-      decoration: BoxDecoration(
-        color: Colors.teal.shade100,
-        borderRadius: BorderRadius.circular(60),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF3D2DE),
+        borderRadius: BorderRadius.all(Radius.circular(60)),
       ),
       alignment: Alignment.center,
       child: Text(
         initials,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.w700,
-          color: Colors.teal.shade800,
+          color: Color(0xFF97144D),
         ),
       ),
     );
@@ -399,15 +399,15 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: const Color(0xFFFBE9EF),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.teal.shade200),
+        border: Border.all(color: const Color(0xFFE8AFC4)),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
-          color: Colors.teal.shade800,
+          color: Color(0xFF97144D),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -475,13 +475,13 @@ class _DocumentsRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.attach_file, size: 18, color: Colors.teal.shade700),
+                const Icon(Icons.attach_file, size: 18, color: Color(0xFFA83262)),
                 const SizedBox(width: 6),
-                Text(
+                const Text(
                   'Documents',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Colors.teal.shade800,
+                    color: Color(0xFF97144D),
                     fontSize: 14,
                   ),
                 ),
@@ -600,14 +600,14 @@ class _SectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: Colors.teal.shade700),
+                Icon(icon, size: 18, color: const Color(0xFFA83262)),
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: Colors.teal.shade800,
+                    color: Color(0xFF97144D),
                   ),
                 ),
               ],

@@ -19,7 +19,7 @@ class TeacherDesignationView extends StatelessWidget {
         appBar: AppBar(
           title: const Text("Teacher Designation", style: TextStyle(color: Colors.white)),
           centerTitle: true,
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,

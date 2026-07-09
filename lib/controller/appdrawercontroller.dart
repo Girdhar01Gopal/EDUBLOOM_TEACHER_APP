@@ -28,10 +28,12 @@ class Appdrawercontroller extends GetxController {
   // DashboardScreenController.accessibleModuleList), so the drawer only
   // ever shows modules the user actually has access to.
   List<DhashboardItemsModel> get vehicleDocumentList =>
-      getDashboardController().accessibleModuleList.map((module) {
+      getDashboardController().accessibleModuleList
+          .where((module) => !displayMetaFor((module['activityName'] ?? '').toString()).hidden)
+          .map((module) {
         final key = (module['activityName'] ?? '').toString();
         final meta = displayMetaFor(key);
-        final label = (module['displayName'] ?? module['activityName'] ?? '').toString();
+        final label = meta.label ?? (module['displayName'] ?? module['activityName'] ?? '').toString();
         return DhashboardItemsModel(label, key, meta.icon, meta.color, meta.bgColor);
       }).toList();
 
@@ -93,7 +95,7 @@ class DhashboardItemsModel {
   String name;
   String moduleKey;
   IconData? image;
-  Color color;   // icon color
+  Color color; // icon color
   Color bgColor; // circle background color
 
   DhashboardItemsModel(this.name, this.moduleKey, this.image, this.color, this.bgColor);

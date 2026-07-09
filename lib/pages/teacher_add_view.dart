@@ -17,7 +17,7 @@ class AddTeacherView extends GetView<TeacherAddController> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           foregroundColor: Colors.white,
           title: const Text(
             '📚 Teacher Management',
@@ -213,8 +213,8 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
                   // Dialog header
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [Colors.teal.shade500, Colors.teal.shade800]),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(colors: [Color(0xFFB6547B), Color(0xFF97144D)]),
                     ),
                     child: Row(
                       children: [
@@ -261,7 +261,7 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
                           flex: 2,
                           child: Obx(() => ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade800,
+                              backgroundColor: const Color(0xFF97144D),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
@@ -402,7 +402,7 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
   }
 }
 
-// ── Action Buttons: Edit (orange) + View (teal) ──────────────────────────────
+// ── Action Buttons: Edit (orange) + View (Axis Maroon) ──────────────────────
 class _ActionButtons extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onView;
@@ -446,7 +446,7 @@ class _ActionButtons extends StatelessWidget {
       children: [
         btn(bg: Colors.orange, icon: Icons.edit, onTap: onEdit, tooltip: 'Edit'),
         const SizedBox(width: 6),
-        btn(bg: Colors.teal.shade600, icon: Icons.visibility, onTap: onView, tooltip: 'View Details'),
+        btn(bg: const Color(0xFF97144D), icon: Icons.visibility, onTap: onView, tooltip: 'View Details'),
       ],
     );
   }

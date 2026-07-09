@@ -17,7 +17,7 @@ class TeacherAttendanceView extends StatelessWidget {
       return Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: const Color(0xFF97144D),
           iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
             "✅ Teacher Attendance",
@@ -298,11 +298,11 @@ class _ListSection extends StatelessWidget {
 
                       return DataTable(
                         headingRowColor: WidgetStateProperty.all(
-                            Colors.teal.shade50),
-                        headingTextStyle: TextStyle(
-                          fontSize: 13.sp,
+                            const Color(0xFFFBE9EF)),
+                        headingTextStyle: const TextStyle(
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: Colors.teal.shade800,
+                          color: Color(0xFF97144D),
                         ),
                         dataTextStyle: TextStyle(
                           fontSize: 13.sp,
@@ -431,7 +431,7 @@ class _ListSection extends StatelessWidget {
                                           label: "In",
                                           time: controller
                                               .inTimeForUser(userId),
-                                          color: Colors.teal.shade700,
+                                          color: const Color(0xFFA83262),
                                           onTap: () => controller
                                               .pickInTimeForUser(
                                               userId),
