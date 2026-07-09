@@ -17,26 +17,27 @@ class _ResultChildMeta {
   final IconData icon;
   final Color color;
   final String route;
-  const _ResultChildMeta(this.icon, this.color, this.route);
+  final String label;
+  const _ResultChildMeta(this.icon, this.color, this.route, this.label);
 }
 
-// Icon/color/route for each child of the "Result" module, keyed by the
+// Icon/color/route/label for each child of the "Result" module, keyed by the
 // API's activityName so tiles stay in sync with per-user access.
 const Map<String, _ResultChildMeta> _resultChildMeta = {
-  'Foundational Skills': _ResultChildMeta(
-      Icons.school_rounded, Color.fromARGB(255, 143, 243, 30), RouteName.foundationalskills),
+  'FoundationalSkills': _ResultChildMeta(
+      Icons.school_rounded, Color.fromARGB(255, 143, 243, 30), RouteName.foundationalskills, 'Foundational Skills'),
   'SubjectProgress': _ResultChildMeta(
-      Icons.description_rounded, Colors.brown, RouteName.descriptors),
-  'Map Descriptor': _ResultChildMeta(
-      Icons.map_rounded, Color.fromARGB(255, 34, 215, 173), RouteName.mapdescriptor),
-  'Map Foundational Skills': _ResultChildMeta(
-      Icons.account_tree_rounded, Color.fromARGB(255, 26, 86, 175), RouteName.mapfoundationaldescriptioskills),
-  'Add Terms': _ResultChildMeta(
-      Icons.calendar_month_rounded, Color.fromARGB(255, 156, 194, 17), RouteName.termsresult),
-  'Add Result': _ResultChildMeta(
-      Icons.fact_check_rounded, Color.fromARGB(255, 34, 197, 94), RouteName.Resultadd),
-  'Report Card': _ResultChildMeta(
-      Icons.school_rounded, Color.fromARGB(255, 59, 130, 246), RouteName.ResultReportcard),
+      Icons.description_rounded, Colors.brown, RouteName.descriptors, 'Descriptors'),
+  'MapDescriptors': _ResultChildMeta(
+      Icons.map_rounded, Color.fromARGB(255, 34, 215, 173), RouteName.mapdescriptor, 'Map Descriptors'),
+  'MapFoundationalSkills': _ResultChildMeta(
+      Icons.account_tree_rounded, Color.fromARGB(255, 26, 86, 175), RouteName.mapfoundationaldescriptioskills, 'Map Foundational Skills'),
+  'AddTerm': _ResultChildMeta(
+      Icons.calendar_month_rounded, Color.fromARGB(255, 156, 194, 17), RouteName.termsresult, 'Add Terms'),
+  'AddResult': _ResultChildMeta(
+      Icons.fact_check_rounded, Color.fromARGB(255, 34, 197, 94), RouteName.Resultadd, 'Add Result'),
+  'PrintRePortCard': _ResultChildMeta(
+      Icons.school_rounded, Color.fromARGB(255, 59, 130, 246), RouteName.ResultReportcard, 'Report Card & Print'),
 };
 
 class ResultViewController extends GetxController {
@@ -63,7 +64,7 @@ class ResultViewController extends GetxController {
       final child = Map<String, dynamic>.from(raw as Map);
       final key = (child['activityName'] ?? '').toString();
       final meta = _resultChildMeta[key];
-      final label = (child['displayName'] ?? child['activityName'] ?? '').toString().trim();
+      final label = meta?.label ?? (child['displayName'] ?? child['activityName'] ?? '').toString().trim();
       return DhashboardItemsModel(
         label,
         key,
