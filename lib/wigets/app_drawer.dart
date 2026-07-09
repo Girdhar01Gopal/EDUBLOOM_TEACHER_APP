@@ -167,7 +167,7 @@ class AppDrawer extends GetView<Appdrawercontroller> {
                       .writeValue(key: PrefConst.isLoggedIn, value: "No");
                   await PrefManager().clearPref();
                   Get.offAllNamed(RouteName.login_screen);
-                  Get.snackbar("Logout", "Admin logged out successfully");
+                  Get.snackbar("Logout", "Teacher logged out successfully");
                 },
               ),
             ),
