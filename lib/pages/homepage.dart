@@ -96,7 +96,7 @@ class Dhashoard extends GetView<DashboardScreenController> {
     return Scaffold(
       backgroundColor: _DS.bg,
       drawer: AppDrawer(),
-      floatingActionButton: _AnimatedFab(),
+      // floatingActionButton: _AnimatedFab(),
       appBar: _buildAppBar(context),
       body: Stack(
         children: [
@@ -398,7 +398,7 @@ class _DashboardBodyState extends State<_DashboardBody> with TickerProviderState
           await widget.controller.fetchBirthday();
           await widget.controller.totalamount();
           await widget.controller.totaldue();
-           widget.controller.onInit();
+          widget.controller.onInit();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -1164,33 +1164,34 @@ class _AnimatedFabState extends State<_AnimatedFab> with TickerProviderStateMixi
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOut,
-            builder: (_, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, (1 - v) * 10), child: child)),
-            child: Container(
-              margin: EdgeInsets.only(bottom: 10.h, right: 4.w),
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF5E0E29), Color(0xFF8F1542)]),
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(18.r), topRight: Radius.circular(18.r), bottomLeft: Radius.circular(18.r), bottomRight: Radius.circular(4.r)),
-                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 4))],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("💬 ", style: TextStyle(fontSize: 13.sp)),
-                  Text("Say Hi, EduBloom!", style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
-          ),
+          // TweenAnimationBuilder<double>(
+          //   tween: Tween(begin: 0.0, end: 1.0),
+          //   duration: const Duration(milliseconds: 600),
+          //   curve: Curves.easeOut,
+          //   builder: (_, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, (1 - v) * 10), child: child)),
+          //   child: Container(
+          //     margin: EdgeInsets.only(bottom: 10.h, right: 4.w),
+          //     padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+          //     decoration: BoxDecoration(
+          //       gradient: const LinearGradient(colors: [Color(0xFF5E0E29), Color(0xFF8F1542)]),
+          //       borderRadius: BorderRadius.only(topLeft: Radius.circular(18.r), topRight: Radius.circular(18.r), bottomLeft: Radius.circular(18.r), bottomRight: Radius.circular(4.r)),
+          //       boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 4))],
+          //     ),
+          //     child: Row(
+          //       mainAxisSize: MainAxisSize.min,
+          //       children: [
+          //         Text("💬 ", style: TextStyle(fontSize: 13.sp)),
+          //         Text("Say Hi, EduBloom!", style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w700)),
+          //       ],
+          //     ),
+          //   ),
+          // ),
           GestureDetector(
             //onTap: () => Get.to(() => ChatScreen()),
             child: AnimatedBuilder(
               animation: Listenable.merge([_rotate, _pulse]),
-              builder: (_, child) => Transform.scale(scale: _pulseVal.value, child: CustomPaint(painter: _RingPainter(_rotate.value), child: child)),
+              // builder: (_, child) => Transform.scale(scale: _pulseVal.value, child: CustomPaint(painter: _RingPainter(_rotate.value), child: child)),
+              builder: (_, child) => Transform.scale(scale: _pulseVal.value, child: child),
               child: Container(
                 width: 68.w, height: 68.w,
                 margin: const EdgeInsets.all(3),
@@ -1201,7 +1202,7 @@ class _AnimatedFabState extends State<_AnimatedFab> with TickerProviderStateMixi
                     colors: [Color(0xFF1877F2), Color(0xFF7C3AED), Color(0xFFFF2E63)],
                   ),
                 ),
-                child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 28),
+                // child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 28),
               ),
             ),
           ),
