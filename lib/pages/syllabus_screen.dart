@@ -1,14 +1,12 @@
 import 'dart:io';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import '../controller/syllabus_controller.dart';
 import '../models/classmodel.dart';
@@ -470,7 +468,6 @@ class ViewSyllabusTab extends StatefulWidget {
 
 class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
   final controller = Get.find<SyllabusController>();
-  final Dio dio = Dio();
 
   final Map<int, double> _downloadProgress = {};
   final Map<int, bool> _isDownloading = {};
@@ -481,7 +478,7 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
     controller.fetchSyllabus();
   }
 
-  // ✅ FIXED: device_info_plus se SDK version
+  // ✅ flutter_file_downloader se download — Notification Page jaisa same logic
   Future<void> _downloadAndShare({
     required String url,
     required String fileName,
@@ -492,87 +489,35 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
     required String remarks,
     required String date,
   }) async {
-    try {
-      setState(() {
-        _isDownloading[index] = true;
-        _downloadProgress[index] = 0;
-      });
+    setState(() {
+      _isDownloading[index] = true;
+      _downloadProgress[index] = 0;
+    });
 
-      if (Platform.isAndroid) {
-        final info = await DeviceInfoPlugin().androidInfo;
-        final sdkInt = info.version.sdkInt;
-
-        if (sdkInt >= 33) {
-          // Android 13+ — koi permission nahi chahiye
-        } else if (sdkInt >= 30) {
-          // Android 11 & 12
-          final status = await Permission.manageExternalStorage.status;
-          if (!status.isGranted) {
-            final result = await Permission.manageExternalStorage.request();
-            if (!result.isGranted) {
-              _showSnack("Permission Denied",
-                  "Storage permission is required.", Colors.red);
-              setState(() => _isDownloading[index] = false);
-              return;
-            }
-          }
-        } else {
-          // Android 10 aur neeche
-          final status = await Permission.storage.status;
-          if (!status.isGranted) {
-            final result = await Permission.storage.request();
-            if (!result.isGranted) {
-              _showSnack("Permission Denied",
-                  "Storage permission is required.", Colors.red);
-              setState(() => _isDownloading[index] = false);
-              return;
-            }
-          }
+    FileDownloader.downloadFile(
+      url: url,
+      name: fileName,
+      notificationType: NotificationType.all,
+      onProgress: (name, progress) {
+        if (mounted) {
+          setState(() {
+            _downloadProgress[index] = progress / 100;
+          });
         }
-      }
-
-      Directory saveDir;
-      if (Platform.isAndroid) {
-        final downloads =
-        Directory('/storage/emulated/0/Download/Syllabus');
-        if (!await downloads.exists()) {
-          await downloads.create(recursive: true);
+        if (kDebugMode) {
+          print("Downloading: $name $progress");
         }
-        saveDir = downloads;
-      } else {
-        final appDocs = await getApplicationDocumentsDirectory();
-        saveDir = Directory('${appDocs.path}/Syllabus');
-        if (!await saveDir.exists()) {
-          await saveDir.create(recursive: true);
+      },
+      onDownloadCompleted: (path) async {
+        if (mounted) {
+          setState(() {
+            _isDownloading[index] = false;
+            _downloadProgress[index] = 1.0;
+          });
         }
-      }
-
-      final savePath = '${saveDir.path}/$fileName';
-      await dio.download(
-        url,
-        savePath,
-        onReceiveProgress: (received, total) {
-          if (total > 0 && mounted) {
-            setState(() {
-              _downloadProgress[index] = received / total;
-            });
-          }
-        },
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-          validateStatus: (s) => s != null && s < 500,
-        ),
-      );
-
-      if (mounted) {
-        setState(() {
-          _isDownloading[index] = false;
-          _downloadProgress[index] = 1.0;
-        });
 
         _showSnack("Downloaded ✓",
-            "Saved to Downloads/Syllabus folder", Colors.green);
+            "Saved to Downloads folder", Colors.green);
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -580,14 +525,14 @@ class _ViewSyllabusTabState extends State<ViewSyllabusTab> {
           '📚 Subject: $subjectName\n🏫 Class: $className\n📋 Section: $sectionName\n📝 Remarks: $remarks\n🗓️ Date: $date',
           subject: 'Syllabus – $subjectName',
         );
-      }
-    } catch (e) {
-      debugPrint("Download Error: $e");
-      if (mounted) {
-        setState(() => _isDownloading[index] = false);
-        _showSnack("Error", "Failed to download: $e", Colors.red);
-      }
-    }
+      },
+      onDownloadError: (errorMessage) {
+        if (mounted) {
+          setState(() => _isDownloading[index] = false);
+        }
+        _showSnack("Error", "Failed to download file", Colors.red);
+      },
+    );
   }
 
   void _showSnack(String title, String message, Color color) {

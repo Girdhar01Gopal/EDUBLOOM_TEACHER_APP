@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
+import '../infrastructures/utils/utils.dart';
 import '../models/activitystudentmodel.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
@@ -56,21 +57,6 @@ class SyllabusController extends GetxController {
     fetchClasses();
     fetchSections();
     fetchsubjectdata();
-  }
-
-  // ✅ SAFE snackbar (NO GetX snackbar -> no LateInitializationError)
-  void showSnackSafe(String title, String message, {bool isError = false}) {
-    final ctx = Get.context;
-    if (ctx == null) return;
-
-    ScaffoldMessenger.of(ctx).clearSnackBars();
-    ScaffoldMessenger.of(ctx).showSnackBar(
-      SnackBar(
-        content: Text('$title: $message'),
-        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   String getDisplayDate() => DateFormat('dd-MM-yyyy').format(syllabusDate.value);
@@ -204,31 +190,31 @@ class SyllabusController extends GetxController {
     if (result != null && result.files.single.path != null) {
       pdfFile.value = File(result.files.single.path!);
       file.value = result.files.single.name;
-      showSnackSafe("File Selected", file.value);
+      ShortMessage.toast(title: file.value);
     } else {
-      showSnackSafe("Error", "No file selected", isError: true);
+      ShortMessage.toast(title: "No file selected");
     }
   }
 
   Future<void> registerSyllabus() async {
     if (pdfFile.value == null) {
-      showSnackSafe('Error', "Please select a PDF file.", isError: true);
+      ShortMessage.toast(title: "Please select a PDF file.");
       return;
     }
     if(description.value.isEmpty){
-      showSnackSafe('Error', "Please enter Description.", isError: true);
+      ShortMessage.toast(title: "Please enter Description.");
       return;
     }
     if(subject.value == 0){
-      showSnackSafe('Error', "Please select Subject.", isError: true);
+      ShortMessage.toast(title: "Please select Subject.");
       return;}
     if(selectedClass.value == null){
-      showSnackSafe('Error', "Please select Class.", isError: true);}
+      ShortMessage.toast(title: "Please select Class.");}
     final sectionId = selectedSection.value?.sectionId ?? 0;
     final classId = selectedClass.value?.classId.toString() ?? '';
 
     if (sectionId == 0 || subject.value == 0 || classId.isEmpty) {
-      showSnackSafe('Error', "Please select Class, Section and Subject.", isError: true);
+      ShortMessage.toast(title: "Please select Class, Section and Subject.");
       return;
     }
 
@@ -261,28 +247,24 @@ class SyllabusController extends GetxController {
       );
 
       final streamed = await request.send();
-      final body = await streamed.stream.bytesToString();
 
       if (streamed.statusCode == 200) {
-        // ✅ CLOSE SCREEN FIRST, then show snackbar safely (no GetX bug)
-        Get.back();
-
-        Future.delayed(const Duration(milliseconds: 200), () {
-          showSnackSafe('Success', "Syllabus Added Successfully");
-        });
+        ShortMessage.toast(title: "Syllabus Added Successfully");
 
         pdfFile.value = null;
         file.value = "";
         description.value = "";
 
-        fetchSyllabus();
+        await fetchSyllabus();
+        Get.back();
       } else {
-        showSnackSafe('Error', "Submit failed (${streamed.statusCode})", isError: true);
-        // ignore: avoid_print
-        print("Server Response: $body");
+        final body = await streamed.stream.bytesToString();
+        ShortMessage.toast(title: "Failed: ${streamed.statusCode}");
+        print('Error response: $body');
       }
     } catch (e) {
-      showSnackSafe('Error', "Something went wrong while submitting", isError: true);
+      ShortMessage.toast(title: "Error: $e");
+      print("Error: $e");
     } finally {
       isLoading(false);
     }
