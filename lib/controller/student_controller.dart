@@ -355,6 +355,11 @@ class StudentController extends GetxController {
       request.fields['Action'] =
       actionStatus.value.trim().isEmpty ? '1' : actionStatus.value.trim();
 
+
+      request.fields['AdmissionDate'] = admissionDate.value.trim().isNotEmpty
+          ? admissionDate.value.trim()
+          : DateTime.now().toIso8601String();
+
       final response = await request.send();
       final responseBody = await http.Response.fromStream(response);
 
@@ -363,7 +368,7 @@ class StudentController extends GetxController {
         if (data['isSuccess'] == true) {
           Get.snackbar("Success", "Student updated successfully!");
           await fetchVStudents();
-          Get.offAllNamed(RouteName.dashboard_screen);
+          Get.offAllNamed(RouteName.student_screen);
         } else {
           final errorMessage = data['popupMessage'] ?? "Unknown error";
           Get.snackbar("Error", errorMessage,

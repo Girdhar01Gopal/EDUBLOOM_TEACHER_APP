@@ -430,6 +430,7 @@ class StudentDetailScreen extends StatelessWidget {
       c.dateOfBirth.value = '';
     }
 
+    c.admissionDate.value = student.admissionDate ?? '';
     c.bloodGroup.value = student.bloodGroup ?? '';
     c.religion.value = student.religion ?? '';
     c.rollNo.value = student.rollNo ?? '';
