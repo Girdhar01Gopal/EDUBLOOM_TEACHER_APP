@@ -539,14 +539,17 @@ class _WelcomeBannerState extends State<_WelcomeBanner> with TickerProviderState
               children: [
                 Row(
                   children: [
-                    Text("Welcome, Teacher", style: TextStyle(fontSize: 17.sp, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.2)),
+                    Obx(() => Text(
+                      "Welcome, ${widget.controller.schoolname.value}",
+                      style: TextStyle(fontSize: 17.sp, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                    )),
                     SizedBox(width: 4.w),
                     Text("👋", style: TextStyle(fontSize: 17.sp)),
                   ],
                 ),
                 SizedBox(height: 4.h),
-                Obx(() => Text(widget.controller.schoolname.value, style: TextStyle(fontSize: 12.sp, color: Colors.white60, fontWeight: FontWeight.w500))),
-                SizedBox(height: 6.h),
+                // Obx(() => Text(widget.controller.schoolname.value, style: TextStyle(fontSize: 12.sp, color: Colors.white60, fontWeight: FontWeight.w500))),
+                // SizedBox(height: 6.h),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
