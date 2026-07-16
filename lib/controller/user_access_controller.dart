@@ -40,13 +40,16 @@ class UserAccessController extends GetxController {
   RxBool isLoading = false.obs;
   RxBool isSaving = false.obs;
   var staffTypeName = ''.obs;
-  int userId = 0;
+  var userId = 0.obs; // Made this observable
   String schoolId = '';
 
   @override
   void onInit() {
     super.onInit();
-    userId = Get.arguments ?? 0;
+    // Get fresh userId from arguments every time
+    userId.value = Get.arguments ?? 0;
+    staffTypeName.value = ''; // Reset name to avoid showing previous user's name
+    modules.clear();
     _init();
   }
 
@@ -56,7 +59,7 @@ class UserAccessController extends GetxController {
   }
 
   Future<void> fetchUserAccess() async {
-    if (userId == 0 || schoolId.isEmpty) {
+    if (userId.value == 0 || schoolId.isEmpty) {
       Get.snackbar('Error', 'Missing userId or schoolId',
           backgroundColor: Colors.red, colorText: Colors.white);
       return;
@@ -65,7 +68,7 @@ class UserAccessController extends GetxController {
       isLoading.value = true;
       final uri = Uri.parse(
         'https://playschool.edubloom.in/api/SchoolApp/GetUserAccessApp'
-            '?userId=$userId&schoolId=$schoolId',
+            '?userId=${userId.value}&schoolId=$schoolId',
       );
       final response = await http.get(uri, headers: {
         'Content-Type': 'application/json',
@@ -166,10 +169,8 @@ class UserAccessController extends GetxController {
     isSaving.value = true;
 
     try {
-      // Save each permission one by one using the new API:
-      // POST /api/SchoolApp/School/{schoolId}/User/{userId}/Access
       final uri = Uri.parse(
-        'https://playschool.edubloom.in/api/SchoolApp/School/$schoolId/User/$userId/Access',
+        'https://playschool.edubloom.in/api/SchoolApp/School/$schoolId/User/${userId.value}/Access',
       );
 
       bool allSuccess = true;
@@ -222,7 +223,6 @@ class UserAccessController extends GetxController {
             backgroundColor: const Color(0xFF00897B),
             colorText: Colors.white,
             snackPosition: SnackPosition.BOTTOM);
-        // Refresh screen data immediately after save
         await fetchUserAccess();
       } else {
         Get.snackbar('Error', errorMessage ?? 'Save failed',

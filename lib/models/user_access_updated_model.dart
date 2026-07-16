@@ -31,9 +31,9 @@ class UserAccessModel {
     return UserAccessModel(
       id: json['id'] as int?,
       schoolAccessId: json['schoolAccessId'] as int? ?? 0,
-      activityId: json['activityId'] as int,
-      activityName: json['activityName'] as String,
-      displayName: json['displayName'] as String,
+      activityId: json['activityId'] as int? ?? 0,
+      activityName: json['activityName']?.toString() ?? "",
+      displayName: json['displayName']?.toString() ?? "",
       isActive: json['isActive'] as bool? ?? false,
       parentActivityId: json['parentActivityId'] as int?,
       displayOnMenuFlag: json['displayOnMenuFlag'] as bool? ?? false,

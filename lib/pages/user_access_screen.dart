@@ -95,7 +95,7 @@ class UserAccessScreen extends StatelessWidget {
                     Text(
                       ctrl.staffTypeName.value.isNotEmpty
                           ? ctrl.staffTypeName.value
-                          : 'User ID: ${ctrl.userId}',
+                          : 'User ID: ${ctrl.userId.value}',
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: Colors.white,
