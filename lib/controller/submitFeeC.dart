@@ -398,26 +398,31 @@ void showPaymentDetailsDialog({
   final paymentDateController = TextEditingController(text: selectedDate.value);
   final int selectedDue = getSelectedDueTotal();
 
-  Get.defaultDialog(
-    title: 'Payment Details',
-    contentPadding: EdgeInsets.zero,
-    barrierDismissible: false,
-    content: ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: Get.height * 0.5, // Adjusted max height to allow scrolling
-        maxWidth: Get.width * 0.92,
-      ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(Get.context!).viewInsets.bottom + 16, // Adjusted for keyboard
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+  Get.dialog(
+      Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(Get.context!).size.height * 0.85,
+            maxWidth: Get.width * 0.92,
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(Get.context!).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Payment Details',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
             // Selected Fees Breakdown
             Container(
               padding: const EdgeInsets.all(12),
@@ -672,48 +677,56 @@ void showPaymentDetailsDialog({
               return const SizedBox(height: 10);
             }),
 
-          ],
+                const SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Get.back();
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        final mode = selectedPaymentMode.value;
+
+                        final invalid = selectedDate.value.isEmpty ||
+                            mode.isEmpty ||
+                            totalPayAmount.value <= 0 ||
+                            ((mode == 'NEFT') && bankName.value.isEmpty) ||
+                            ((mode == 'Cheque') &&
+                                (chequeDate.value.isEmpty || chequeNo.value.isEmpty)) ||
+                            ((mode == 'UPI') && upiId.value.isEmpty);
+
+                        if (invalid) {
+                          Get.snackbar(
+                            'Error',
+                            'Please fill in all fields',
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                          );
+                          return;
+                        }
+
+                        submitFeeInstallment(fesmonth: feesmonth, studentn: studentname, feetype: feetype, dueamount: due, paydatee: paymentDateController.text );
+
+                        payAmountController.dispose();
+                        paymentDateController.dispose();
+                        Get.back();
+                      },
+                      child: const Text('Pay Now'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () {
-          Get.back();
-        },
-        child: const Text('Cancel'),
-      ),
-      TextButton(
-        onPressed: () {
-          final mode = selectedPaymentMode.value;
-
-          final invalid = selectedDate.value.isEmpty ||
-              mode.isEmpty ||
-              totalPayAmount.value <= 0 ||
-              ((mode == 'NEFT') && bankName.value.isEmpty) ||
-              ((mode == 'Cheque') &&
-                  (chequeDate.value.isEmpty || chequeNo.value.isEmpty)) ||
-              ((mode == 'UPI') && upiId.value.isEmpty);
-
-          if (invalid) {
-            Get.snackbar(
-              'Error',
-              'Please fill in all fields',
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-            );
-            return;
-          }
-
-          submitFeeInstallment(fesmonth: feesmonth, studentn: studentname, feetype: feetype, dueamount: due, paydatee: paymentDateController.text );
-
-          payAmountController.dispose();
-          paymentDateController.dispose();
-          Get.back();
-        },
-        child: const Text('Pay Now'),
-      ),
-    ],
+    barrierDismissible: false,
   );
 }
 
