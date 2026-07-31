@@ -1,9 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:teacher_app_edubloom/pages/phonenumberscreen.dart';
 
 import '../controller/login_page_controller.dart';
 import '../infrastructures/constant/image_constant.dart';
@@ -12,227 +10,50 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../view_model/login_view_model.dart';
 
+// Brand palette — matches the dashboard app bar's wine/maroon gradient.
+const Color kBrandDeep = Color(0xFF5E0E29);
+const Color kBrandDark = Color(0xFF7A1236);
+const Color kBrandMid = Color(0xFF8F1542);
+const Color kBrandAccent = Color(0xFFA11A4D);
+const Color kBrandLight = Color(0xFFC75080);
+const Color kBrandPale = Color(0xFFE8B8CC);
+const Color kInk = Color(0xFF1A2847);
+
 class LoginScreen extends GetView<LogInPageController> {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => FocusScope.of(context).unfocus(),
         child: Stack(
           children: [
-            const AuroraTextureBackground(),
-
+            const _PlayfulGradientBackground(),
             SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    padding: EdgeInsets.symmetric(horizontal: 22.w),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: IntrinsicHeight(
                         child: Column(
                           children: [
-                            SizedBox(height: 24.h),
-
-                            // Brand (centered)
-                            const _BrandHeader(),
-
                             SizedBox(height: 28.h),
-
-                            // Main card
-                            _FrostCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "TEACHER LOGIN",
-                                    style: theme.textTheme.headlineSmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Text(
-                                    "Manage classes, staff, fees and updates securely.",
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white70,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                  SizedBox(height: 22.h),
-
-                                  const _FieldLabel("Username"),
-                                  SizedBox(height: 8.h),
-                                  _TextFieldX(
-                                    controller: controller.userNamecontroller,
-                                    hint: "Enter username",
-                                    icon: Icons.person_rounded,
-                                    textInputAction: TextInputAction.next,
-                                  ),
-
-                                  SizedBox(height: 16.h),
-
-                                  const _FieldLabel("Password"),
-                                  SizedBox(height: 8.h),
-                                  Obx(
-                                    () => _TextFieldX(
-                                      controller: controller.userPasswordcontroller,
-                                      hint: "Enter password",
-                                      icon: Icons.lock_rounded,
-                                      obscureText: controller.isObscure.value,
-                                      suffix: IconButton(
-                                        onPressed: controller.togglePasswordVisibility,
-                                        icon: Icon(
-                                          controller.isObscure.value
-                                              ? Icons.visibility_rounded
-                                              : Icons.visibility_off_rounded,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                      textInputAction: TextInputAction.done,
-                                    ),
-                                  ),
-
-                                  SizedBox(height: 8.h),
-
-                                  // Align(
-                                  //   alignment: Alignment.centerRight,
-                                  //   child: TextButton(
-                                  //     onPressed: () => Get.to(() => const ForgotPasswordScreen()),
-                                  //     style: TextButton.styleFrom(
-                                  //       foregroundColor: Colors.white,
-                                  //       padding: EdgeInsets.zero,
-                                  //     ),
-                                  //     child: Text(
-                                  //       "Forgot password?",
-                                  //       style: TextStyle(
-                                  //         fontSize: 13.sp,
-                                  //         color: Colors.white70,
-                                  //         fontWeight: FontWeight.w700,
-                                  //       ),
-                                  //     ),
-                                  //   ),
-                                  // ),
-
-                                  SizedBox(height: 10.h),
-
-                                  // Primary CTA
-                                  SizedBox(
-                                    height: 52.h,
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        if (controller.userNamecontroller.text.trim().isEmpty ||
-                                            controller.userPasswordcontroller.text.trim().isEmpty) {
-                                          ShortMessage.toast(title: "Please fill all fields");
-                                          return;
-                                        }
-                                         PrefManager().writeValue(
-                            key: PrefConst.username,
-                            value: controller.userNamecontroller.text.trim());
-                        PrefManager().writeValue(
-                            key: PrefConst.password,
-                            value: controller.userPasswordcontroller.text.trim());
-
-                        Map data = {
-                          "userName": controller.userNamecontroller.text.trim(),
-                          "password": controller.userPasswordcontroller.text.trim(),
-                          "rememberMe": true
-                        };
-
-                        LoginViewModel().loginApi(data);
-
-                        if (kDebugMode) {
-                          print("Login payload => $data");
-                        }
-                      
-                                        // TODO: call your login API here
-                                        
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        elevation: 0,
-                                        backgroundColor: const Color(0xFF2D7CFF),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14.r),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        "Sign In",
-                                        style: TextStyle(
-                                          fontSize: 18.sp,
-                                          fontWeight: FontWeight.w900,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // SizedBox(height: 14.h),
-                                  //
-                                  // Row(
-                                  //   children: [
-                                  //     Expanded(
-                                  //       child: Divider(color: Colors.white.withOpacity(0.25)),
-                                  //     ),
-                                  //     Padding(
-                                  //       padding: EdgeInsets.symmetric(horizontal: 10.w),
-                                  //       child: Text(
-                                  //         "or",
-                                  //         style: TextStyle(
-                                  //           color: Colors.white60,
-                                  //           fontSize: 13.sp,
-                                  //           fontWeight: FontWeight.w700,
-                                  //         ),
-                                  //       ),
-                                  //     ),
-                                  //     Expanded(
-                                  //       child: Divider(color: Colors.white.withOpacity(0.25)),
-                                  //     ),
-                                  //   ],
-                                  // ),
-
-                                  SizedBox(height: 14.h),
-
-                                  // Secondary CTA
-                                  // SizedBox(
-                                  //   height: 52.h,
-                                  //   width: double.infinity,
-                                  //   child: OutlinedButton.icon(
-                                  //     onPressed: () => Get.to(() => PhoneNumberInputScreen()),
-                                  //     style: OutlinedButton.styleFrom(
-                                  //       side: BorderSide(color: Colors.white.withOpacity(0.35)),
-                                  //       shape: RoundedRectangleBorder(
-                                  //         borderRadius: BorderRadius.circular(14.r),
-                                  //       ),
-                                  //       foregroundColor: Colors.white,
-                                  //     ),
-                                  //     icon: const Icon(Icons.sms_rounded),
-                                  //     label: Text(
-                                  //       "Register Your School With OTP",
-                                  //       style: TextStyle(
-                                  //         fontSize: 16.sp,
-                                  //         fontWeight: FontWeight.w900,
-                                  //       ),
-                                  //     ),
-                                  //   ),
-                                  // ),
-                                ],
-                              ),
-                            ),
-
+                            const _BrandHeader(),
+                            SizedBox(height: 34.h),
+                            _LoginCard(controller: controller),
                             const Spacer(),
-
                             Padding(
-                              padding: EdgeInsets.only(bottom: 18.h, top: 16.h),
+                              padding: EdgeInsets.only(bottom: 18.h, top: 20.h),
                               child: Text(
-                                "© ${DateTime.now().year} Your Play school • Teacher Panel",
+                                "© ${DateTime.now().year} EduBloom • Teacher Panel",
                                 style: TextStyle(
-                                  color: Colors.white54,
+                                  color: Colors.white.withValues(alpha: 0.75),
                                   fontSize: 12.sp,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -253,9 +74,9 @@ class LoginScreen extends GetView<LogInPageController> {
   }
 }
 
-/// ✅ Texture / Gradient background (NO IMAGE)
-class AuroraTextureBackground extends StatelessWidget {
-  const AuroraTextureBackground({super.key});
+/// Vibrant diagonal gradient with soft playful blobs (no images).
+class _PlayfulGradientBackground extends StatelessWidget {
+  const _PlayfulGradientBackground();
 
   @override
   Widget build(BuildContext context) {
@@ -267,35 +88,30 @@ class AuroraTextureBackground extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color.fromARGB(255, 255, 255, 255),
-                  Color.fromARGB(255, 127, 219, 119),
-                  Color(0xFF1A0F2E),
-                ],
+                colors: [kBrandDeep, kBrandAccent, kBrandMid],
               ),
             ),
           ),
         ),
-
-        // glow blobs
-        Positioned(top: -60, left: -40, child: _GlowBlob(size: 240, color: Color(0xFF2D7CFF))),
-        Positioned(bottom: -90, right: -70, child: _GlowBlob(size: 290, color: Color(0xFFFFB15A))),
-        Positioned(top: 220, right: -60, child: _GlowBlob(size: 190, color: Color(0xFF46E6A3))),
-
-        // vignette overlay
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.25),
-                  Colors.black.withOpacity(0.70),
-                ],
-              ),
-            ),
-          ),
+        Positioned(
+          top: -50,
+          left: -50,
+          child: _GlowBlob(size: 220, color: kBrandPale),
+        ),
+        Positioned(
+          top: 140,
+          right: -70,
+          child: _GlowBlob(size: 200, color: kBrandLight),
+        ),
+        Positioned(
+          bottom: -80,
+          left: -60,
+          child: _GlowBlob(size: 260, color: kBrandMid),
+        ),
+        Positioned(
+          bottom: 60,
+          right: -40,
+          child: _GlowBlob(size: 150, color: Colors.white),
         ),
       ],
     );
@@ -309,14 +125,13 @@ class _GlowBlob extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
-      child: Container(
-        height: size,
-        width: size,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.45),
-          shape: BoxShape.circle,
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.0)],
         ),
       ),
     );
@@ -330,32 +145,23 @@ class _BrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Image.asset(
-            ImageConstants.logo,
-            height: 96,
-            width: 96,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(height: 12),
         Text(
           "EduBloom",
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20.sp,
+            fontSize: 26.sp,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.2,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2.h),
         Text(
-          "Play school teacher",
+          "Teacher App",
           style: TextStyle(
-            color: Colors.white70,
+            color: Colors.white.withValues(alpha: 0.85),
             fontSize: 13.sp,
             fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
           ),
         ),
       ],
@@ -363,25 +169,236 @@ class _BrandHeader extends StatelessWidget {
   }
 }
 
-class _FrostCard extends StatelessWidget {
-  final Widget child;
-  const _FrostCard({required this.child});
+/// Hero-style card: gradient header band inside the card, with a
+/// floating circular logo badge straddling the header/body seam.
+class _LoginCard extends StatelessWidget {
+  final LogInPageController controller;
+  const _LoginCard({required this.controller});
+
+  static const double _avatarSize = 76;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22.r),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 18.h),
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: _avatarSize / 2),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.10),
-            borderRadius: BorderRadius.circular(22.r),
-            border: Border.all(color: Colors.white.withOpacity(0.18)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30.r),
+            boxShadow: [
+              BoxShadow(
+                color: kInk.withValues(alpha: 0.25),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
           ),
-          child: child,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30.r),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Gradient hero header band
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.fromLTRB(
+                    22.w,
+                    _avatarSize / 2 + 14.h,
+                    22.w,
+                    20.h,
+                  ),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [kBrandDeep, kBrandAccent, kBrandMid],
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        "Welcome back 👋",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 21.sp,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Text(
+                        "Sign in to manage your classroom, fees and updates.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Form body
+                Padding(
+                  padding: EdgeInsets.fromLTRB(22.w, 24.h, 22.w, 22.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _FieldLabel("Username"),
+                      SizedBox(height: 8.h),
+                      _TextFieldX(
+                        controller: controller.userNamecontroller,
+                        hint: "Enter username",
+                        icon: Icons.person_rounded,
+                        textInputAction: TextInputAction.next,
+                      ),
+
+                      SizedBox(height: 16.h),
+
+                      const _FieldLabel("Password"),
+                      SizedBox(height: 8.h),
+                      Obx(
+                        () => _TextFieldX(
+                          controller: controller.userPasswordcontroller,
+                          hint: "Enter password",
+                          icon: Icons.lock_rounded,
+                          obscureText: controller.isObscure.value,
+                          suffix: IconButton(
+                            onPressed: controller.togglePasswordVisibility,
+                            icon: Icon(
+                              controller.isObscure.value
+                                  ? Icons.visibility_rounded
+                                  : Icons.visibility_off_rounded,
+                              color: kInk.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          textInputAction: TextInputAction.done,
+                        ),
+                      ),
+
+                      SizedBox(height: 26.h),
+
+                      _GradientButton(
+                        label: "Sign In",
+                        onPressed: () => _onSignIn(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Floating avatar badge straddling the header/body seam
+        Container(
+          height: _avatarSize,
+          width: _avatarSize,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: kInk.withValues(alpha: 0.25),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: Image.asset(ImageConstants.logo, fit: BoxFit.cover),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _onSignIn() {
+    if (controller.userNamecontroller.text.trim().isEmpty ||
+        controller.userPasswordcontroller.text.trim().isEmpty) {
+      ShortMessage.toast(title: "Please fill all fields");
+      return;
+    }
+
+    PrefManager().writeValue(
+      key: PrefConst.username,
+      value: controller.userNamecontroller.text.trim(),
+    );
+    PrefManager().writeValue(
+      key: PrefConst.password,
+      value: controller.userPasswordcontroller.text.trim(),
+    );
+
+    Map data = {
+      "userName": controller.userNamecontroller.text.trim(),
+      "password": controller.userPasswordcontroller.text.trim(),
+      "rememberMe": true,
+    };
+
+    LoginViewModel().loginApi(data);
+
+    if (kDebugMode) {
+      print("Login payload => $data");
+    }
+  }
+}
+
+class _GradientButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  const _GradientButton({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54.h,
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16.r),
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [kBrandDeep, kBrandAccent, kBrandMid],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: kBrandAccent.withValues(alpha: 0.45),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16.r),
+            onTap: onPressed,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -397,9 +414,9 @@ class _FieldLabel extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        color: Colors.white,
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w900,
+        color: kInk,
+        fontSize: 13.5.sp,
+        fontWeight: FontWeight.w800,
         letterSpacing: 0.2,
       ),
     );
@@ -429,22 +446,25 @@ class _TextFieldX extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       textInputAction: textInputAction,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      style: TextStyle(color: kInk, fontWeight: FontWeight.w700),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.white70),
+        prefixIcon: Icon(icon, color: kBrandAccent),
         suffixIcon: suffix,
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w600),
+        hintStyle: TextStyle(
+          color: kInk.withValues(alpha: 0.35),
+          fontWeight: FontWeight.w600,
+        ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.14),
+        fillColor: kBrandPale.withValues(alpha: 0.28),
         contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.r),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.14)),
+          borderRadius: BorderRadius.circular(16.r),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14.r),
-          borderSide: const BorderSide(color: Color(0xFF2D7CFF), width: 1.6),
+          borderRadius: BorderRadius.circular(16.r),
+          borderSide: const BorderSide(color: kBrandAccent, width: 1.8),
         ),
       ),
     );
