@@ -57,6 +57,8 @@ const List<_TileSpec> _tileSpecs = [
       RouteName.transportFee, ['TransportFee']),
   _TileSpec("Add Grade", Icons.menu_book_rounded, Color(0xFFFFB300), Color(0xFFE8EAF6),
       RouteName.grademaster, ['GradeMaster', 'Grade', 'AddGrade']),
+  _TileSpec("Day Care Duration", Icons.menu_book_rounded, Color(0xFFFFB300), Color(0xFFE8EAF6),
+      RouteName.daycaredurationmaster, ['GradeMaster', 'Grade', 'AddGrade']),
 ];
 
 class Mastercontroller extends GetxController {

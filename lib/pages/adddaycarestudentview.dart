@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:teacher_app_edubloom/pages/studentdaycardetails.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
 import '../controller/student_controller daycare.dart' as daycare_controller;
+import '../infrastructures/utils/local_storage/local_storage.dart';
+import '../infrastructures/utils/local_storage/pref_const.dart';
 import 'nextdaycare.dart';
 
 // ─── Palette ───────────────────────────────────────────────
@@ -16,6 +20,60 @@ const _cardBg = Color(0xFFF8FFFE);
 const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
 const _divider = Color(0xFFE0F2F1);
+
+//ye day care add dropdown m data ke liye
+class DaycareDurationDropdownController extends GetxController {
+  var durations = <String>[].obs;   // dropdown labels
+  var isLoading = false.obs;
+  String schoolId = "";
+
+  static const String _url =
+      "https://playschool.edubloom.in/api/FeeMasterApp/ViewDaycareDuration";
+
+  @override
+  void onInit() {
+    super.onInit();
+    _init();
+  }
+
+  Future<void> _init() async {
+    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
+    await fetchDurations();
+  }
+
+  Future<void> fetchDurations() async {
+    try {
+      isLoading(true);
+
+      final uri = Uri.parse("$_url/$schoolId");
+      final res = await http.get(uri, headers: {'Content-Type': 'application/json'});
+
+      debugPrint("DURATION GET => $uri");
+      debugPrint("DURATION STATUS => ${res.statusCode}");
+      debugPrint("DURATION BODY => ${res.body}");
+
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+
+        // Response ka wrapper alag ho sakta hai (listData / data), dono handle kiya
+        final List<dynamic> list = decoded['listData'] ?? decoded['data'] ?? [];
+
+        durations.assignAll(
+          list
+              .map((e) => (e['daycareDurations'] ?? e['DaycareDurations'] ?? '').toString())
+              .where((v) => v.trim().isNotEmpty)
+              .toList(),
+        );
+      } else {
+        Get.snackbar("Error", "Failed to fetch daycare durations");
+      }
+    } catch (e) {
+      debugPrint("⚠️ fetchDurations error => $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 // MAIN SCREEN
@@ -101,6 +159,11 @@ class AddDaycareStudentTab
 
   @override
   Widget build(BuildContext context) {
+
+
+    final DaycareDurationDropdownController durationController =
+    Get.put(DaycareDurationDropdownController());
+
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
       child: Form(
@@ -115,6 +178,7 @@ class AddDaycareStudentTab
               _genderDropdown(controller),
               _dobPicker(context),
               _bloodgroupDropdown(controller),
+              _daycareDurationDropdown(durationController),
               _inputField('Religion', controller.religion,
                   icon: Icons.temple_hindu_outlined),
               _emailField(),
@@ -125,6 +189,35 @@ class AddDaycareStudentTab
           ],
         ),
       ),
+    );
+  }
+
+  Widget _daycareDurationDropdown(
+      DaycareDurationDropdownController durationController) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6.h),
+      child: Obx(() {
+        final items = durationController.durations;
+        final selected = controller.daycareDurations.value.isEmpty
+            ? null
+            : controller.daycareDurations.value;
+
+        return DropdownButtonFormField<String>(
+          value: items.contains(selected) ? selected : null,
+          items: items
+              .map((d) => DropdownMenuItem<String>(
+            value: d,
+            child: Text(d),
+          ))
+              .toList(),
+          onChanged: (v) => controller.daycareDurations.value = v ?? '',
+          decoration: _inputDeco('Daycare Duration',
+              icon: Icons.access_time_outlined),
+          hint: durationController.isLoading.value
+              ? const Text('Loading...')
+              : const Text('Select Duration'),
+        );
+      }),
     );
   }
 

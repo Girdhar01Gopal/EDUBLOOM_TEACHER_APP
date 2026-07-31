@@ -5,13 +5,13 @@ import 'package:get/get.dart';
 import '../controller/day_care_fee_master.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/fee_type_model.dart';
+import '../models/daycare_durationmaster_model.dart';
 
 class AddDayCareFeeMasterScreen extends StatelessWidget {
   const AddDayCareFeeMasterScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // keep controller alive for tabs
     final controller = Get.put(DayCareFeeMasterController(), permanent: true);
 
     return DefaultTabController(
@@ -64,6 +64,52 @@ class _AddTab extends StatelessWidget {
     softWrap: false,
   );
 
+  // ✅ Multi-select month picker dialog
+  Future<void> _openMonthPicker(BuildContext context) async {
+    final temp = <String>[...controller.selectedMonths].obs;
+    await Get.dialog(
+      AlertDialog(
+        title: const Text("Select Month(s)"),
+        content: SizedBox(
+          width: 300,
+          child: SingleChildScrollView(
+            child: Obx(() {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: controller.monthList.map((m) {
+                  final checked = temp.contains(m);
+                  return CheckboxListTile(
+                    dense: true,
+                    value: checked,
+                    title: Text(m),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    onChanged: (v) {
+                      if (v == true) {
+                        temp.add(m);
+                      } else {
+                        temp.remove(m);
+                      }
+                    },
+                  );
+                }).toList(),
+              );
+            }),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              controller.selectedMonths.assignAll(temp);
+              Get.back();
+            },
+            child: const Text("Done"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -104,7 +150,6 @@ class _AddTab extends StatelessWidget {
                                 .toList(),
                             onChanged: (v) async {
                               controller.selectedSession.value = v;
-                              // change session => refresh view list
                               await controller.fetchDaycareFees();
                             },
                             decoration: _dec("Session *"),
@@ -112,22 +157,53 @@ class _AddTab extends StatelessWidget {
                         }),
                       ),
                       SizedBox(width: 10.w),
+
+                      Expanded(
+                        child: TextField(
+                          readOnly: true,
+                          controller: TextEditingController(text: "Daycare"),
+                          decoration: _dec("Fee Type *"),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 14.h),
+
+                  // ✅ Daycare Duration (API dropdown) + Daycare Month (multi-select)
+                  Row(
+                    children: [
                       Expanded(
                         child: Obx(() {
-                          final items = controller.feeTypeList;
-                          return DropdownButtonFormField<fData>(
-                            value: controller.selectedFeeType.value,
+                          final items = controller.daycareDurationList;
+                          return DropdownButtonFormField<DayCareDurationModel>(
+                            value: controller.selectedDaycareDuration.value,
                             isExpanded: true,
                             menuMaxHeight: 320,
-                            hint: _ellipsis("Select Fee Type"),
+                            hint: _ellipsis("Select Daycare Duration"),
                             items: items
-                                .map((f) => DropdownMenuItem(
-                              value: f,
-                              child: _ellipsis(f.feeType ?? ""),
+                                .map((d) => DropdownMenuItem(
+                              value: d,
+                              child: _ellipsis(d.dayCareDuration),
                             ))
                                 .toList(),
-                            onChanged: (v) => controller.selectedFeeType.value = v,
-                            decoration: _dec("Fee Type *"),
+                            onChanged: (v) => controller.selectedDaycareDuration.value = v,
+                            decoration: _dec("Daycare Duration *"),
+                          );
+                        }),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Obx(() {
+                          final selected = controller.selectedMonths;
+                          return InkWell(
+                            onTap: () => _openMonthPicker(context),
+                            child: InputDecorator(
+                              decoration: _dec("Daycare Month *"),
+                              child: _ellipsis(
+                                selected.isEmpty ? "Select Month" : selected.join(", "),
+                              ),
+                            ),
                           );
                         }),
                       ),
@@ -190,7 +266,7 @@ class _AddTab extends StatelessWidget {
   }
 }
 
-// ================= VIEW TAB (UPDATED: H + V scroll) =================
+// ================= VIEW TAB =================
 class _ViewTab extends StatelessWidget {
   final DayCareFeeMasterController controller;
   const _ViewTab({required this.controller});
@@ -245,13 +321,14 @@ class _ViewTab extends StatelessWidget {
                     : Scrollbar(
                   thumbVisibility: true,
                   child: SingleChildScrollView(
-                    scrollDirection: Axis.vertical, // ✅ vertical
+                    scrollDirection: Axis.vertical,
                     child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal, // ✅ horizontal
+                      scrollDirection: Axis.horizontal,
                       child: DataTable(
                         columns: const [
                           DataColumn(label: Text("S.no")),
-                          DataColumn(label: Text("Fee Type")),
+                          DataColumn(label: Text("Daycare Durations")),
+                          DataColumn(label: Text("Fee Duration")),
                           DataColumn(label: Text("Amount")),
                           DataColumn(label: Text("Create Date")),
                           DataColumn(label: Text("Update Date")),
@@ -260,11 +337,15 @@ class _ViewTab extends StatelessWidget {
                         rows: List.generate(list.length, (i) {
                           final x = list[i];
                           final isActive = (x.action ?? "") == "1";
+                          final feeDurationText = (x.feeDuration == null || x.feeDuration!.isEmpty)
+                              ? "-"
+                              : x.feeDuration!.join(", ");
 
                           return DataRow(
                             cells: [
                               DataCell(Text("${i + 1}")),
-                              DataCell(Text(x.feeTypeName ?? "-")),
+                              DataCell(Text(x.daycareDurations ?? "-")),
+                              DataCell(Text(feeDurationText)),
                               DataCell(Text(x.amount ?? "0")),
                               DataCell(Text(controller.formatDate(x.createDate))),
                               DataCell(Text(controller.formatDate(x.updateDate))),

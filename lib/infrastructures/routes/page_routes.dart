@@ -35,6 +35,7 @@ import '../../binding/createandmapcategory.dart';
 import '../../binding/dashboard_screen_binding.dart';
 import '../../binding/day_care_binding.dart';
 import '../../binding/day_care_fee_master.dart';
+import '../../binding/daycare_durationmaster_binding.dart';
 import '../../binding/daycare_feepayment_view_binding.dart';
 import '../../binding/descriptors_binding.dart';
 import '../../binding/discount_list_master_binding.dart';
@@ -143,6 +144,7 @@ import '../../pages/createandmapcategory.dart';
 import '../../pages/daily_colletion_class_wise_screen.dart';
 import '../../pages/day_care.dart';
 import '../../pages/day_care_fee_master.dart';
+import '../../pages/daycare_durationmaster_screen.dart';
 import '../../pages/daycare_feepayment_view_screen.dart';
 import '../../pages/descriptors_master_screen.dart';
 import '../../pages/discount_list_master_screen.dart';
@@ -767,6 +769,13 @@ GetPage(
       page: () => FeeDurationMasterScreen(),
       transition: Transition.rightToLeft,
       binding: FeeDurationBinding(),
+    ),
+
+    GetPage(
+      name: RouteName.daycaredurationmaster,
+      page: () => DayCareDurationScreen(),
+      transition: Transition.rightToLeft,
+      binding: DaycareDurationmasterBinding(),
     ),
 
      GetPage(

@@ -53,6 +53,8 @@ class StudentControllerdaycare extends GetxController {
   var emergencyNo = ''.obs;
   var actionStatus = '1'.obs;
 
+  var daycareDurations = ''.obs;
+
   final formKey = GlobalKey<FormState>();
 
   var fileImage = Rx<File?>(null);
@@ -193,6 +195,8 @@ class StudentControllerdaycare extends GetxController {
       request.fields['From Time'] = fromTime.value.trim();
       request.fields['To Time'] = toTime.value.trim();
 
+      request.fields['DaycareDurations'] = daycareDurations.value.trim();
+
       if (fileImage.value != null) {
         request.files.add(await http.MultipartFile.fromPath('File', fileImage.value!.path));
       }
@@ -271,6 +275,8 @@ class StudentControllerdaycare extends GetxController {
 
       request.fields['From Time'] = fromTime.value.trim();
       request.fields['To Time'] = toTime.value.trim();
+
+      request.fields['DaycareDurations'] = daycareDurations.value.trim();
 
       if (fileImage.value != null) {
         request.files.add(await http.MultipartFile.fromPath('File', fileImage.value!.path));

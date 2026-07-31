@@ -6,14 +6,12 @@ import 'package:http/http.dart' as http;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
+import '../models/day_care_fee_master_model.dart';
 import '../res/app_url.dart';
 
 import '../models/session_model.dart' as session_model;
 import '../models/fee_type_model.dart';
-
-// ✅ Use YOUR model file name here (the one we created)
-// If your class name is MasterDaycareFeeModel, import that file and use it below.
-// import '../models/master_daycare_fee_model.dart';
+import '../models/daycare_durationmaster_model.dart';
 
 class DayCareFeeMasterController extends GetxController {
   // ========= Session Dropdown =========
@@ -24,14 +22,25 @@ class DayCareFeeMasterController extends GetxController {
   final feeTypeList = <fData>[].obs;
   final selectedFeeType = Rx<fData?>(null);
 
+  // ========= Daycare Duration Dropdown (from API) =========
+  final daycareDurationList = <DayCareDurationModel>[].obs;
+  final selectedDaycareDuration = Rx<DayCareDurationModel?>(null);
+
+  // ========= Daycare Month (STATIC, MULTI-SELECT) =========
+  final monthList = <String>[
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  final selectedMonths = <String>[].obs;
+
   // ========= Amount =========
   final amountController = TextEditingController();
 
   // ========= Loaders =========
-  final isPageLoading = false.obs; // for add tab top progress
+  final isPageLoading = false.obs;
   final isSaving = false.obs;
 
-  final isListLoading = false.obs; // for view tab list fetch
+  final isListLoading = false.obs;
 
   // ========= View List =========
   final daycareFeeList = <DaycareFeeRow>[].obs;
@@ -51,9 +60,9 @@ class DayCareFeeMasterController extends GetxController {
     await Future.wait([
       fetchSessions(),
       fetchFeeTypes(),
+      fetchDaycareDurationDropdown(),
     ]);
 
-    // load list initially (after current session loaded)
     await fetchDaycareFees();
   }
 
@@ -86,7 +95,7 @@ class DayCareFeeMasterController extends GetxController {
           );
 
           sessionList.add(cs);
-          selectedSession.value = cs; // auto select
+          selectedSession.value = cs;
         } else {
           selectedSession.value = null;
         }
@@ -124,7 +133,35 @@ class DayCareFeeMasterController extends GetxController {
     }
   }
 
-  // ✅ GET ALL DAYCARE FEES (actually POST with body)
+  // ✅ DAYCARE DURATION DROPDOWN API
+  Future<void> fetchDaycareDurationDropdown() async {
+    if (schoolId.trim().isEmpty) return;
+
+    try {
+      isPageLoading(true);
+
+      final res = await http.get(
+        Uri.parse(
+          'https://playschool.edubloom.in/api/FeeMasterApp/DaycareDurationDropdwon/$schoolId',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (res.statusCode == 200) {
+        final jsonData = jsonDecode(res.body);
+        final list = DayCareDurationModel.fromJsonList(jsonData);
+        daycareDurationList.assignAll(list);
+      } else {
+        Get.snackbar("Error", "Daycare Duration API failed: ${res.statusCode}");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Daycare Duration error: $e");
+    } finally {
+      isPageLoading(false);
+    }
+  }
+
+  // ✅ GET ALL DAYCARE FEES (POST with body)
   Future<void> fetchDaycareFees() async {
     final session = selectedSession.value?.session;
     if (session == null || session.isEmpty) return;
@@ -156,7 +193,9 @@ class DayCareFeeMasterController extends GetxController {
         }
 
         final data = (jsonData["data"] is List) ? (jsonData["data"] as List) : [];
-        daycareFeeList.assignAll(data.map((e) => DaycareFeeRow.fromJson(e)).toList());
+        daycareFeeList.assignAll(
+          data.map((e) => DaycareFeeRow.fromJson(e as Map<String, dynamic>)).toList(),
+        );
       } else {
         Get.snackbar("Error", "List API failed: ${res.statusCode}\n${res.body}");
       }
@@ -167,21 +206,23 @@ class DayCareFeeMasterController extends GetxController {
     }
   }
 
-  // ✅ POST: Add/Update Daycare Fee (same API)
+  // ✅ POST: Add Daycare Fee
   Future<void> saveDayCareFee() async {
     final session = selectedSession.value?.session;
-    final feeTypeId = selectedFeeType.value?.feeTypeId;
     final amountText = amountController.text.trim();
-
-    // ⚠️ you hardcoded before; keep same until you add head dropdown
-    const int daycareHeadId = 6;
+    final duration = selectedDaycareDuration.value?.dayCareDuration;
+    final months = selectedMonths;
 
     if (session == null || session.isEmpty) {
       Get.snackbar("Validation", "Select Session");
       return;
     }
-    if (feeTypeId == null) {
-      Get.snackbar("Validation", "Select Fee Type");
+    if (duration == null || duration.isEmpty) {
+      Get.snackbar("Validation", "Select Daycare Duration");
+      return;
+    }
+    if (months.isEmpty) {
+      Get.snackbar("Validation", "Select at least one Daycare Month");
       return;
     }
     if (amountText.isEmpty) {
@@ -199,19 +240,22 @@ class DayCareFeeMasterController extends GetxController {
       isSaving(true);
 
       final url = Uri.parse('${AppUrl.base_url}api/FeeMasterApp/PostDaycareAddFeeApp');
-      final nowIso = DateTime.now().toUtc().toIso8601String();
+      final now = _nowIso();
 
       final payload = {
-        "daycareHeadId": daycareHeadId,
-        "feeTypeId": feeTypeId,
+        "daycareHeadId": 0,
+        "feeTypeId": 0,
+        "feeType": "Daycare",
         "amount": amountInt.toString(),
         "session": session,
         "schoolId": schoolId,
         "createBy": "Admin",
-        "createDate": nowIso,
+        "createDate": now,
         "action": "1",
         "updateBy": "Admin",
-        "updateDate": nowIso,
+        "updateDate": now,
+        "daycareDurations": duration,
+        "feeDuration": months.toList(),
       };
 
       final res = await http.post(
@@ -235,9 +279,9 @@ class DayCareFeeMasterController extends GetxController {
           Get.snackbar("Success", msg.isEmpty ? "Daycare fee saved" : msg);
 
           amountController.clear();
-          selectedFeeType.value = null;
+          selectedDaycareDuration.value = null;
+          selectedMonths.clear();
 
-          // refresh view list
           await fetchDaycareFees();
         } else {
           Get.snackbar("Failed", msg.isEmpty ? "Save failed" : msg);
@@ -252,18 +296,70 @@ class DayCareFeeMasterController extends GetxController {
     }
   }
 
-  // ✅ EDIT DIALOG (uses same POST API)
+  // ✅ EDIT DIALOG — Amount + Daycare Duration + multi-select Month prefilled
   void openEditDialog(BuildContext context, DaycareFeeRow row) {
     final txt = TextEditingController(text: row.amount ?? "");
+    final editDuration = Rx<DayCareDurationModel?>(
+      daycareDurationList.firstWhereOrNull(
+            (d) => d.dayCareDuration == row.daycareDurations,
+      ),
+    );
+    final editMonths = <String>[...(row.feeDuration ?? [])].obs;
+
     Get.dialog(
       AlertDialog(
-        title: Text("Edit Amount", style: TextStyle(fontWeight: FontWeight.w800)),
-        content: TextField(
-          controller: txt,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: "Amount",
-            border: OutlineInputBorder(),
+        title: Text("Edit Daycare Fee", style: TextStyle(fontWeight: FontWeight.w800)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: txt,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Amount",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Obx(() {
+                return DropdownButtonFormField<DayCareDurationModel>(
+                  value: editDuration.value,
+                  isExpanded: true,
+                  hint: const Text("Select Daycare Duration"),
+                  items: daycareDurationList
+                      .map((d) => DropdownMenuItem(
+                    value: d,
+                    child: Text(d.dayCareDuration, overflow: TextOverflow.ellipsis),
+                  ))
+                      .toList(),
+                  onChanged: (v) => editDuration.value = v,
+                  decoration: const InputDecoration(
+                    labelText: "Daycare Duration",
+                    border: OutlineInputBorder(),
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+              Obx(() {
+                return InkWell(
+                  onTap: () async {
+                    await _openMonthPickerDialog(editMonths);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: "Daycare Month",
+                      border: OutlineInputBorder(),
+                    ),
+                    child: Text(
+                      editMonths.isEmpty ? "Select Month" : editMonths.join(", "),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
         ),
         actions: [
@@ -282,11 +378,21 @@ class DayCareFeeMasterController extends GetxController {
                   Get.snackbar("Validation", "Enter valid amount");
                   return;
                 }
+                if (editDuration.value == null) {
+                  Get.snackbar("Validation", "Select Daycare Duration");
+                  return;
+                }
+                if (editMonths.isEmpty) {
+                  Get.snackbar("Validation", "Select at least one Month");
+                  return;
+                }
 
-                // IMPORTANT: your POST payload doesn't include id.
-                // If backend needs id for update, then API is broken.
-                // We'll send same payload + keep feeTypeId/session from row.
-                await saveDayCareFeeByRow(row: row, newAmount: val.toString());
+                await saveDayCareFeeByRow(
+                  row: row,
+                  newAmount: val.toString(),
+                  newDuration: editDuration.value!.dayCareDuration,
+                  newMonths: editMonths.toList(),
+                );
                 Get.back();
               },
               child: isSaving.value
@@ -300,14 +406,64 @@ class DayCareFeeMasterController extends GetxController {
     );
   }
 
+  // small reusable month-picker dialog (checkbox list) used inside edit dialog
+  Future<void> _openMonthPickerDialog(RxList<String> target) async {
+    final temp = <String>[...target].obs;
+    await Get.dialog(
+      AlertDialog(
+        title: const Text("Select Month(s)"),
+        content: SizedBox(
+          width: 300,
+          child: SingleChildScrollView(
+            child: Obx(() {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: monthList.map((m) {
+                  final checked = temp.contains(m);
+                  return CheckboxListTile(
+                    dense: true,
+                    value: checked,
+                    title: Text(m),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    onChanged: (v) {
+                      if (v == true) {
+                        temp.add(m);
+                      } else {
+                        temp.remove(m);
+                      }
+                    },
+                  );
+                }).toList(),
+              );
+            }),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              target.assignAll(temp);
+              Get.back();
+            },
+            child: const Text("Done"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ POST: Update Daycare Fee
   Future<void> saveDayCareFeeByRow({
     required DaycareFeeRow row,
     required String newAmount,
+    required String newDuration,
+    required List<String> newMonths,
   }) async {
-    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final now = _nowIso();
 
-    // ⚠️ still hardcoded due to missing head id in row response
-    const int daycareHeadId = 6;
+    // 🔵 DEBUG PRINTS — added to trace which row is being edited
+    print("🔵 EDITING ROW → id=${row.id}, duration=${row.daycareDurations}, oldMonths=${row.feeDuration}");
+    print("🔵 NEW VALUES → newDuration=$newDuration, newMonths=$newMonths");
 
     try {
       isSaving(true);
@@ -315,26 +471,33 @@ class DayCareFeeMasterController extends GetxController {
       final url = Uri.parse('${AppUrl.base_url}api/FeeMasterApp/PostDaycareAddFeeApp');
 
       final payload = {
-        "daycareHeadId": daycareHeadId,
+        "id": row.id,
+        "daycareHeadId": row.id ?? 0, // ✅ FIX: real row id bheja, pehle 0 tha isliye backend wrong record match/update kar raha tha
         "feeTypeId": row.feeTypeId ?? 0,
+        "feeType": "Daycare", // ✅ FIX: added, was missing earlier so backend saved it as null
         "amount": newAmount,
         "session": row.session ?? (selectedSession.value?.session ?? ""),
         "schoolId": schoolId,
-        "createBy": "Admin",
-        "createDate": nowIso,
+        "createBy": row.createBy ?? "Admin",
+        "createDate": row.createDate ?? now,
         "action": row.action ?? "1",
         "updateBy": "Admin",
-        "updateDate": nowIso,
-
-        // If backend supports id-based update, add it here.
-        // "id": row.id,
+        "updateDate": now,
+        "daycareDurations": newDuration,
+        "feeDuration": newMonths,
       };
+
+      // 🟡 DEBUG PRINT — exact payload jo backend ko jaa raha hai
+      print("🟡 PAYLOAD SENDING → ${jsonEncode(payload)}");
 
       final res = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
+
+      // 🟢 DEBUG PRINT — backend se raw response
+      print("🟢 UPDATE RESPONSE → ${res.body}");
 
       Map<String, dynamic>? jsonData;
       try {
@@ -364,6 +527,12 @@ class DayCareFeeMasterController extends GetxController {
   }
 
   // ========= helpers =========
+
+  // ✅ full ISO UTC timestamp, e.g. "2026-07-29T10:52:31.135Z" — matches API contract
+  String _nowIso() {
+    return DateTime.now().toUtc().toIso8601String();
+  }
+
   String formatDate(String? iso) {
     if (iso == null || iso.isEmpty) return "-";
     try {
@@ -378,47 +547,5 @@ class DayCareFeeMasterController extends GetxController {
     const mm = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     if (m < 1 || m > 12) return "NA";
     return mm[m - 1];
-  }
-}
-
-// ✅ Minimal row model for View list (keeps your response fields)
-class DaycareFeeRow {
-  final int? id;
-  final int? feeTypeId;
-  final String? feeTypeName;
-  final String? amount;
-  final String? session;
-  final String? createDate;
-  final String? updateDate;
-  final String? action;
-
-  DaycareFeeRow({
-    this.id,
-    this.feeTypeId,
-    this.feeTypeName,
-    this.amount,
-    this.session,
-    this.createDate,
-    this.updateDate,
-    this.action,
-  });
-
-  factory DaycareFeeRow.fromJson(Map<String, dynamic> json) {
-    int? _asInt(dynamic v) {
-      if (v == null) return null;
-      if (v is int) return v;
-      return int.tryParse(v.toString());
-    }
-
-    return DaycareFeeRow(
-      id: _asInt(json['id']),
-      feeTypeId: _asInt(json['feeTypeId']),
-      feeTypeName: json['feeTypeName']?.toString(),
-      amount: json['amount']?.toString(),
-      session: json['session']?.toString(),
-      createDate: json['createDate']?.toString(),
-      updateDate: json['updateDate']?.toString(),
-      action: json['action']?.toString(),
-    );
   }
 }

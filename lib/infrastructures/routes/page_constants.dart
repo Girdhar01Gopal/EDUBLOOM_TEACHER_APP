@@ -109,6 +109,7 @@ class RouteName {
   static const String classteacher  = "/classteacher";
     static const String staffView  = "/staffView";
 
+  static const String daycaredurationmaster = '/daycaredurationmaster';
   static const String section = '/section';
         static const String registerview = '/registerview';
                 static const String otp = '/otp';
