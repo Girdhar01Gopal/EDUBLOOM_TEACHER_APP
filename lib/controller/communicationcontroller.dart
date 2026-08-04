@@ -37,7 +37,7 @@ const List<_TileSpec> _tileSpecs = [
       Color(0xFFE8EAF6), RouteName.homework, ['HomeWork']),
   _TileSpec("Syllabus", Icons.menu_book_rounded, Color(0xFF00897B),
       Color(0xFFE0F2F1), RouteName.syllabus, ['Syllabus']),
-  _TileSpec("View Curriculum", Icons.collections_bookmark_rounded, Color(0xFF1E88E5),
+  _TileSpec("Circular", Icons.collections_bookmark_rounded, Color(0xFF1E88E5),
       Color(0xFFE3F2FD), RouteName.viewcurriculumview, ['ViewCurriculum']),
 ];
 

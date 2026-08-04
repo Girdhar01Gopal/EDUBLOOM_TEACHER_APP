@@ -16,6 +16,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../infrastructures/constant/image_constant.dart';
+import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/birthdaymodel.dart';
@@ -188,7 +189,16 @@ class DashboardScreenController extends GetxController {
           DateTime expiryDateOnly = DateTime(ed.expirydate.year, ed.expirydate.month, ed.expirydate.day);
 
           if (currentDateOnly == expiryDateOnly || currentDateOnly.isAfter(expiryDateOnly)) {
-            _showExpiryAlertDialog(ed);
+
+            if (Get.isDialogOpen != true) {
+              _showExpiryAlertDialog(ed);
+            }
+          } else {
+
+            if (Get.isDialogOpen == true) {
+              Get.back();
+              Get.snackbar("Renewed", "Subscription renewed successfully ✅");
+            }
           }
         } else {
           print("Expiry date not found.");
@@ -293,6 +303,43 @@ class DashboardScreenController extends GetxController {
                                     decoration: TextDecoration.none)),
                           ),
                         ],
+                      ),
+                      SizedBox(height: 10.h),
+                      GestureDetector(
+                        onTap: () {
+                          Get.offAllNamed(RouteName.login_screen);
+                          Get.snackbar("Logout", "Admin logged out successfully");
+                        },
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout, color: Colors.red, size: 18.sp),
+                            SizedBox(width: 10.w),
+                            Text('Logout',
+                                style: TextStyle(fontSize: 13.sp, color: Colors.red,
+                                    fontWeight: FontWeight.w700,
+                                    decoration: TextDecoration.none)),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            Get.back();
+                            expiry();
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.refresh_rounded, color: const Color(0xFF00695C), size: 18.sp),
+                              SizedBox(width: 10.w),
+                              Text('Refresh',
+                                  style: TextStyle(fontSize: 13.sp, color: const Color(0xFF00695C),
+                                      fontWeight: FontWeight.w700,
+                                      decoration: TextDecoration.none)),
+                            ],
+                          ),
+                        ),
                       ),
 
                       SizedBox(height: 20.h),

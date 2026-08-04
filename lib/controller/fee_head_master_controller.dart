@@ -26,7 +26,8 @@ class AddFeeHeadController extends GetxController {
   final selectedFeeType = Rx<fData?>(null);
 
   final feeDurationList = <FeeDurationItem>[].obs;
-  final selectedFeeDuration = Rx<FeeDurationItem?>(null);
+  // ✅ CHANGED: single -> multi select list
+  final selectedFeeDurations = <FeeDurationItem>[].obs;
 
   final sectionList = <ListDatta>[].obs;
   final selectedSection = Rx<ListDatta?>(null);
@@ -52,7 +53,7 @@ class AddFeeHeadController extends GetxController {
   String get _feeDurationUrl => '${AppUrl.base_url}api/FeeMasterApp/ViewFeesDurationApp/$schoolId';
 
   final String postAddFeesHeadUrl =
-        'https://playschool.edubloom.in/api/MasterApp/PostAddFeesHeadApp';
+      'https://playschool.edubloom.in/api/MasterApp/PostAddFeesHeadApp';
 
   String getAllFeeHeadUrl({required String session}) =>
       'https://playschool.edubloom.in/api/MasterApp/GetAllFeeHeadAppAsync?schoolId=${Uri.encodeComponent(schoolId)}&session=${Uri.encodeComponent(session)}';
@@ -163,7 +164,8 @@ class AddFeeHeadController extends GetxController {
 
     final parsed = FeeDurationMaster.fromJson(jsonDecode(res.body));
     feeDurationList.assignAll(parsed.listData);
-    selectedFeeDuration.value = null;
+    // ✅ CHANGED: clear multi-select list instead of single value
+    selectedFeeDurations.clear();
   }
 
   Future<void> fetchSections() async {
@@ -208,12 +210,29 @@ class AddFeeHeadController extends GetxController {
     }
   }
 
+  // ================= TOGGLE HELPER FOR MULTI-SELECT =================
+  // ✅ NEW: used by the picker UI to add/remove an item from selection
+  void toggleFeeDuration(FeeDurationItem item, bool selected) {
+    if (selected) {
+      if (!selectedFeeDurations.any((e) => e.feesDurationId == item.feesDurationId)) {
+        selectedFeeDurations.add(item);
+      }
+    } else {
+      selectedFeeDurations.removeWhere((e) => e.feesDurationId == item.feesDurationId);
+    }
+  }
+
+  bool isFeeDurationSelected(FeeDurationItem item) {
+    return selectedFeeDurations.any((e) => e.feesDurationId == item.feesDurationId);
+  }
+
   // ================= SAVE (POST) =================
+  // ✅ CHANGED: loops over every selected duration and posts one fee head per duration
   Future<void> saveFeeHead() async {
     if (selectedSession.value == null ||
         selectedClass.value == null ||
         selectedFeeType.value == null ||
-        selectedFeeDuration.value == null ||
+        selectedFeeDurations.isEmpty ||
         selectedSection.value == null) {
       Get.snackbar("Validation", "All fields are required");
       return;
@@ -228,44 +247,75 @@ class AddFeeHeadController extends GetxController {
     final int? classId = selectedClass.value!.classId;
     final int? sectionId = selectedSection.value!.sectionId;
     final int? feeTypeId = selectedFeeType.value!.feeTypeId;
-    final int? durationId = selectedFeeDuration.value!.feesDurationId;
 
-    if (classId == null || sectionId == null || feeTypeId == null || durationId == null) {
+    if (classId == null || sectionId == null || feeTypeId == null) {
       Get.snackbar("Validation", "Invalid selection (IDs missing)");
       return;
     }
 
-    final body = {
-      "feeHeadId": 0,
-      "session": selectedSession.value!.session,
-      "classId": classId,
-      "sectionId": sectionId,
-      "feesDurationId": durationId,
-      "feeTypeID": feeTypeId,
-      "amount": amount, // ✅ STRING
-      "action": "1",
-      "schoolID": schoolId,
-      "createBy": "String",
-    };
+    // Validate every selected duration has a valid id
+    final durationIds = selectedFeeDurations
+        .map((d) => d.feesDurationId)
+        .whereType<int>()
+        .toList();
 
-    await _postFeeHead(body: body, onSuccess: () async {
-      amountController.clear();
-      selectedClass.value = null;
-      selectedFeeType.value = null;
-      selectedFeeDuration.value = null;
-      selectedSection.value = null;
-      await fetchFeeHeadList();
-    });
-  }
+    if (durationIds.isEmpty) {
+      Get.snackbar("Validation", "Invalid fee duration selection");
+      return;
+    }
 
-  // ================= COMMON POST HANDLER =================
-  Future<void> _postFeeHead({
-    required Map<String, dynamic> body,
-    required Future<void> Function() onSuccess,
-  }) async {
     try {
       isSaving(true);
 
+      int successCount = 0;
+      int failCount = 0;
+
+      for (final durationId in durationIds) {
+        final body = {
+          "feeHeadId": 0,
+          "session": selectedSession.value!.session,
+          "classId": classId,
+          "sectionId": sectionId,
+          "feesDurationId": durationId,
+          "feeTypeID": feeTypeId,
+          "amount": amount, // ✅ STRING
+          "action": "1",
+          "schoolID": schoolId,
+          "createBy": "String",
+        };
+
+        final ok = await _postFeeHeadOnce(body: body);
+        if (ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        Get.snackbar(
+          "Success",
+          failCount == 0
+              ? "Fee Head saved for $successCount duration(s)"
+              : "Saved for $successCount duration(s), failed for $failCount",
+        );
+        amountController.clear();
+        selectedClass.value = null;
+        selectedFeeType.value = null;
+        selectedFeeDurations.clear();
+        selectedSection.value = null;
+        await fetchFeeHeadList();
+      } else {
+        Get.snackbar("Failed", "Could not save fee head");
+      }
+    } finally {
+      isSaving(false);
+    }
+  }
+
+  // ================= COMMON POST HANDLER (single call, used in a loop) =================
+  Future<bool> _postFeeHeadOnce({required Map<String, dynamic> body}) async {
+    try {
       final jsonBody = jsonEncode(body);
       debugPrint("POST BODY => $jsonBody"); // ✅ proof: amount is string
 
@@ -278,8 +328,7 @@ class AddFeeHeadController extends GetxController {
       print('Response body: ${res.body}');
 
       if (res.statusCode != 200) {
-        Get.snackbar("Failed", "Server error: ${res.statusCode}");
-        return;
+        return false;
       }
 
       final jsonRes = jsonDecode(res.body);
@@ -287,18 +336,10 @@ class AddFeeHeadController extends GetxController {
       final data = (jsonRes['data'] ?? '').toString();
       final isSuccess = jsonRes['isSuccess'] == true;
 
-      final ok = isSuccess || data.toUpperCase() == "SUCCESS" || msg.toLowerCase().contains("success");
-
-      if (ok) {
-        Get.snackbar("Success", msg.isEmpty ? "Success" : msg);
-        await onSuccess();
-      } else {
-        Get.snackbar("Failed", msg.isEmpty ? "Not saved" : msg);
-      }
+      return isSuccess || data.toUpperCase() == "SUCCESS" || msg.toLowerCase().contains("success");
     } catch (e) {
-      Get.snackbar("Error", e.toString());
-    } finally {
-      isSaving(false);
+      debugPrint("Post error: $e");
+      return false;
     }
   }
 

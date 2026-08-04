@@ -14,8 +14,7 @@ class AddFeeHeadScreen extends GetView<AddFeeHeadController> {
 
   @override
   Widget build(BuildContext context) {
-    final teal = const Color(0xFF97144D); // Axis Bank maroon
-
+    final teal = const Color(0xFF97144D);
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -49,7 +48,7 @@ class AddFeeHeadScreen extends GetView<AddFeeHeadController> {
 }
 
 /// =======================
-/// TAB 1 (ADD) - SAME AS YOUR CODE (UNCHANGED)
+/// TAB 1 (ADD) - Fee Duration is now multi-select
 /// =======================
 class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
   const _AddFeeHeadTab();
@@ -94,7 +93,7 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
                     children: [
                       Expanded(child: _feeType()),
                       SizedBox(width: 8.w),
-                      Expanded(child: _feeDuration()),
+                      Expanded(child: _feeDuration(context)), // ✅ CHANGED: needs context now
                     ],
                   ),
                   SizedBox(height: 14.h),
@@ -262,32 +261,97 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
     });
   }
 
-  Widget _feeDuration() {
+  /// ✅ CHANGED: Fee Duration is now a multi-select field.
+  /// Tapping it opens a checkbox picker dialog; selected items show as
+  /// a comma separated ellipsis text, same visual style as before.
+  Widget _feeDuration(BuildContext context) {
     return Obx(() {
       final items = controller.feeDurationList;
-      return DropdownButtonFormField<FeeDurationItem>(
-        value: controller.selectedFeeDuration.value,
-        isExpanded: true,
-        menuMaxHeight: 300,
-        hint: _ellipsis("Select Fee Duration"),
-        items: items
-            .map((d) => DropdownMenuItem(
-          value: d,
-          child: _ellipsis(d.feesDuration),
-        ))
-            .toList(),
-        selectedItemBuilder: (_) {
-          return items
-              .map((d) => Align(
-            alignment: Alignment.centerLeft,
-            child: _ellipsis(d.feesDuration),
-          ))
-              .toList();
-        },
-        onChanged: (v) => controller.selectedFeeDuration.value = v,
-        decoration: _decoration("Fee Duration"),
+      final selected = controller.selectedFeeDurations;
+
+      final displayText = selected.isEmpty
+          ? "Select Fee Duration"
+          : selected.map((e) => e.feesDuration).join(", ");
+
+      return InkWell(
+        onTap: () => _openFeeDurationPicker(context, items),
+        child: InputDecorator(
+          decoration: _decoration("Fee Duration"),
+          child: Row(
+            children: [
+              Expanded(child: _ellipsis(displayText)),
+              const Icon(Icons.arrow_drop_down),
+            ],
+          ),
+        ),
       );
     });
+  }
+
+  /// ✅ NEW: multi-select checkbox dialog for Fee Duration.
+  /// Works whether the user wants to pick just one or several durations.
+  void _openFeeDurationPicker(BuildContext context, List<FeeDurationItem> items) {
+    // work on a local copy so Cancel doesn't affect existing selection
+    final tempSelected = <FeeDurationItem>[...controller.selectedFeeDurations];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              title: const Text("Select Fee Duration"),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: items.isEmpty
+                    ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text("No fee duration found"),
+                )
+                    : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (_, i) {
+                    final item = items[i];
+                    final isChecked = tempSelected
+                        .any((e) => e.feesDurationId == item.feesDurationId);
+
+                    return CheckboxListTile(
+                      value: isChecked,
+                      title: Text(item.feesDuration),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            tempSelected.add(item);
+                          } else {
+                            tempSelected.removeWhere(
+                                    (e) => e.feesDurationId == item.feesDurationId);
+                          }
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    controller.selectedFeeDurations.assignAll(tempSelected);
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text("Done"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _section() {
@@ -328,7 +392,7 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
 }
 
 /// =======================
-/// TAB 2 (VIEW) - UPDATED: Horizontal + Vertical Scrollable
+/// TAB 2 (VIEW) - UNCHANGED
 /// =======================
 class _ViewFeeHeadTab extends GetView<AddFeeHeadController> {
   const _ViewFeeHeadTab();
