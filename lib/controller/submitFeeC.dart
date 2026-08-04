@@ -393,6 +393,10 @@ void showPaymentDetailsDialog({
   // Prefill amount
   totalPayAmount.value = maxPaymentAmount;
 
+  if (selectedDate.value.isEmpty) {
+    selectedDate.value = DateTime.now().toIso8601String().split('T')[0];
+  }
+
   final payAmountController =
       TextEditingController(text: totalPayAmount.value.toString());
   final paymentDateController = TextEditingController(text: selectedDate.value);
