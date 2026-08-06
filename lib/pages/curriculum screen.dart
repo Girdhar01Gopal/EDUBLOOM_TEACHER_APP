@@ -16,6 +16,23 @@ import '../res/app_url.dart';
 
 const String kCurriculumFileBasePath = 'Upload/CurriculumPdf/';
 
+// Axis Bank maroon theme swatch — used everywhere the original UI used teal.
+const MaterialColor axisMaroon = MaterialColor(
+  0xFF97144D,
+  <int, Color>{
+    50: Color(0xFFF6E4EC),
+    100: Color(0xFFE6B8CE),
+    200: Color(0xFFD489AC),
+    300: Color(0xFFC25A8B),
+    400: Color(0xFFB3346F),
+    500: Color(0xFF97144D),
+    600: Color(0xFF861144),
+    700: Color(0xFF700D39),
+    800: Color(0xFF5A0A2E),
+    900: Color(0xFF3D061E),
+  },
+);
+
 class CurriculumScreen extends GetView<CurriculumController> {
   const CurriculumScreen({super.key});
 
@@ -26,7 +43,7 @@ class CurriculumScreen extends GetView<CurriculumController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: Colors.teal.shade800,
+          backgroundColor: axisMaroon.shade800,
           title: const Text(
             "📚 Curriculum",
             style: TextStyle(color: Colors.white),
@@ -362,9 +379,9 @@ class _AddCurriculumTabState extends State<AddCurriculumTab> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   border:
-                  Border.all(color: Colors.teal.shade300, width: 1.5),
+                  Border.all(color: axisMaroon.shade300, width: 1.5),
                   borderRadius: BorderRadius.circular(12.r),
-                  color: Colors.teal.shade50,
+                  color: axisMaroon.shade50,
                 ),
                 child: file != null
                     ? _buildFilePreview(file)
@@ -372,12 +389,12 @@ class _AddCurriculumTabState extends State<AddCurriculumTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.add_circle_outline,
-                        size: 40.sp, color: Colors.teal.shade400),
+                        size: 40.sp, color: axisMaroon.shade400),
                     SizedBox(height: 8.h),
                     Text("Tap to select file",
                         style: TextStyle(
                             fontSize: 14.sp,
-                            color: Colors.teal.shade600)),
+                            color: axisMaroon.shade600)),
                     SizedBox(height: 4.h),
                     Text("Camera • Gallery • PDF",
                         style: TextStyle(
@@ -631,12 +648,12 @@ class _ViewCurriculumTabState extends State<ViewCurriculumTab> {
                           height: 34.r,
                           width: 34.r,
                           decoration: BoxDecoration(
-                            color: Colors.teal.shade50,
+                            color: axisMaroon.shade50,
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Icon(
                             Icons.menu_book,
-                            color: Colors.teal[700],
+                            color: axisMaroon[700],
                             size: 18.sp,
                           ),
                         ),
@@ -705,7 +722,7 @@ class _ViewCurriculumTabState extends State<ViewCurriculumTab> {
                             LinearProgressIndicator(
                               value: progress,
                               backgroundColor: Colors.grey.shade200,
-                              color: Colors.teal,
+                              color: axisMaroon,
                               minHeight: 6,
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -714,7 +731,7 @@ class _ViewCurriculumTabState extends State<ViewCurriculumTab> {
                               "Downloading ${(progress * 100).toStringAsFixed(0)}%",
                               style: TextStyle(
                                   fontSize: 12.sp,
-                                  color: Colors.teal.shade700),
+                                  color: axisMaroon.shade700),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -785,7 +802,7 @@ class _ViewCurriculumTabState extends State<ViewCurriculumTab> {
                                   size: 18),
                               label: const Text("Download & Share"),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal.shade700,
+                                backgroundColor: axisMaroon.shade700,
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(
                                     horizontal: 14.w, vertical: 10.h),
