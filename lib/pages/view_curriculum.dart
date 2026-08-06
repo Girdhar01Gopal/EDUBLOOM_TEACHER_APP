@@ -16,7 +16,7 @@ class ViewCurriculumView extends GetView<ViewCurriculumController> {
         backgroundColor: const Color(0xFF97144D),
         centerTitle: true,
         title: const Text(
-          'View Curriculum',
+          'View Circular',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -51,7 +51,7 @@ class ViewCurriculumView extends GetView<ViewCurriculumController> {
 
                 if (controller.curriculumList.isEmpty) {
                   return const Center(
-                    child: Text("No curriculum found"),
+                    child: Text("No circular found"),
                   );
                 }
 

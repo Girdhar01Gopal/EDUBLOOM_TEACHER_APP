@@ -135,4 +135,5 @@ class RouteName {
 
   static const String transportFee = '/transportFee';
 
+  static const String addviewcurriculum = '/addviewcurriculum';
 }

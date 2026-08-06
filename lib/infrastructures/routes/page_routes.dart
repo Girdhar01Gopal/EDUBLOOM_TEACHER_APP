@@ -32,6 +32,7 @@ import '../../binding/class_binding.dart';
 import '../../binding/class_teacher_binding.dart';
 import '../../binding/communicationbinding.dart';
 import '../../binding/createandmapcategory.dart';
+import '../../binding/curriculum binding.dart';
 import '../../binding/dashboard_screen_binding.dart';
 import '../../binding/day_care_binding.dart';
 import '../../binding/day_care_fee_master.dart';
@@ -141,6 +142,7 @@ import '../../pages/class_screen.dart';
 import '../../pages/class_teacher_screen.dart';
 import '../../pages/communicationview.dart';
 import '../../pages/createandmapcategory.dart';
+import '../../pages/curriculum screen.dart';
 import '../../pages/daily_colletion_class_wise_screen.dart';
 import '../../pages/day_care.dart';
 import '../../pages/day_care_fee_master.dart';
@@ -992,6 +994,12 @@ GetPage(
       name: RouteName.syllabus,
       page: () => SyllabusScreen(),
       binding: SyllabusBinding(),
+    ),
+
+    GetPage(
+      name: RouteName.addviewcurriculum,
+      page: () => CurriculumScreen(),
+      binding: curriculumBinding(),
     ),
   ];
 }
