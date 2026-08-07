@@ -26,6 +26,7 @@ dependencies:
   provider:
   badges:
   win32:
+  shared_preferences:
   permission_handler:
   pdf_widget_wrapper:
   path_provider:

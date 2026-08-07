@@ -216,26 +216,37 @@ class GuardianImagePickerdaycare extends GetView<StudentControllerdaycare> {
                         offset: const Offset(0, 4))
                   ],
                 ),
-                child: ElevatedButton.icon(
+                child: Obx(() => ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r)),
                   ),
-                  icon: const Icon(Icons.check_circle_outline,
+                  icon: controller.isSubmitting.value
+                      ? SizedBox(
+                    width: 18.w,
+                    height: 18.w,
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                      : const Icon(Icons.check_circle_outline,
                       color: Colors.white),
                   label: Text(
-                    'Submit & Register Student',
+                    controller.isSubmitting.value
+                        ? 'Submitting...'
+                        : 'Submit & Register Student',
                     style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w700,
                         color: Colors.white),
                   ),
-                  onPressed: () {
+                  onPressed: controller.isSubmitting.value
+                      ? null
+                      : () {
                     controller.registerStudent();
                   },
-                ),
+                )),
               ),
             ),
 

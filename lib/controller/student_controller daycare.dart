@@ -66,6 +66,7 @@ class StudentControllerdaycare extends GetxController {
   var filteredData = <DaycareStudentData>[].obs;
 
   var isLoading = false.obs;
+  var isSubmitting = false.obs;
   var token = "";
   var schoolId = "";
 
@@ -158,8 +159,104 @@ class StudentControllerdaycare extends GetxController {
     );
   }
 
+  // Future<void> registerStudent() async {
+  //   try {
+  //     final uri = Uri.parse("${AppUrl.base_url}api/StudentApp/PostDaycareStudentApp");
+  //     final request = http.MultipartRequest('POST', uri);
+  //
+  //     request.fields['StudentName'] = studentName.value.trim();
+  //     request.fields['FatherName'] = fatherName.value.trim();
+  //     request.fields['MotherName'] = motherName.value.trim();
+  //     request.fields['Gender'] = gender.value.trim();
+  //     request.fields['DateOfBirth'] = dob.text.trim();
+  //     request.fields['BloodGroup'] = bloodGroup.value.trim();
+  //     request.fields['Religion'] = religion.value.trim();
+  //     request.fields['Phone'] = phone.value.trim();
+  //     request.fields['WhatsAppNo'] = whatsappNo.value.trim();
+  //     request.fields['EmergencyNo'] = emergencyNo.value.trim();
+  //     request.fields['FatherOccupation'] = fatherOccupation.value.trim();
+  //     request.fields['CreateDate'] = DateTime.now().toIso8601String();
+  //
+  //     request.fields['AdmissionDate'] = admissionDateController.text.trim().isEmpty
+  //         ? DateTime.now().toIso8601String()
+  //         : admissionDateController.text.trim();
+  //
+  //     final emailTxt = emailController.text.trim();
+  //     request.fields['Email'] = emailTxt;
+  //     request.fields['email'] = emailTxt;
+  //     request.fields['EmailId'] = emailTxt;
+  //     request.fields['emailId'] = emailTxt;
+  //
+  //     request.fields['SchoolId'] = schoolId;
+  //     request.fields['Session'] = session.value;
+  //     request.fields['IsDaycare'] = 'true';
+  //     request.fields['Action'] =
+  //     actionStatus.value.trim().isEmpty ? '1' : actionStatus.value.trim();
+  //
+  //     request.fields['FromTime'] = fromTime.value.trim();
+  //     request.fields['ToTime'] = toTime.value.trim();
+  //
+  //     request.fields['DaycareDurations'] = daycareDurations.value.trim();
+  //
+  //     if (fileImage.value != null) {
+  //       request.files.add(await http.MultipartFile.fromPath('File', fileImage.value!.path));
+  //     }
+  //     if (fatherPic.value != null) {
+  //       request.files.add(await http.MultipartFile.fromPath('FatherPic', fatherPic.value!.path));
+  //     }
+  //     if (motherPic.value != null) {
+  //       request.files.add(await http.MultipartFile.fromPath('MotherPic', motherPic.value!.path));
+  //     }
+  //     if (guardianImage.value != null) {
+  //       request.files.add(await http.MultipartFile.fromPath('GuardianImage', guardianImage.value!.path));
+  //     }
+  //
+  //     final response = await request.send();
+  //     final responseBody = await http.Response.fromStream(response);
+  //
+  //     debugPrint("REGISTER STATUS => ${responseBody.statusCode}");
+  //     debugPrint("REGISTER BODY => ${responseBody.body}");
+  //
+  //     if (responseBody.statusCode == 200) {
+  //       final data = jsonDecode(responseBody.body);
+  //
+  //       if (data['isSuccess'] == true) {
+  //         ShortMessage.toast(title: "Student Added Successfully");
+  //         await fetchVStudents();
+  //         Get.offAllNamed(RouteName.dashboard_screen);
+  //       } else {
+  //         final popup = data['popupMessage'] ?? data['messages'] ?? "Unknown error";
+  //         Get.snackbar(
+  //           "Error",
+  //           popup.toString(),
+  //           backgroundColor: Colors.red.shade600,
+  //           colorText: Colors.white,
+  //         );
+  //       }
+  //     } else {
+  //       ShortMessage.toast(title: "Failed to Add Student");
+  //     }
+  //   } catch (e) {
+  //     debugPrint("registerStudent error => $e");
+  //     ShortMessage.toast(title: "An error occurred while adding student.");
+  //   }
+  // }
+
   Future<void> registerStudent() async {
+    if (isSubmitting.value) {
+
+      Get.snackbar(
+        "Please Wait",
+        "Student is already being registered.",
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     try {
+      isSubmitting.value = true;
+
       final uri = Uri.parse("${AppUrl.base_url}api/StudentApp/PostDaycareStudentApp");
       final request = http.MultipartRequest('POST', uri);
 
@@ -192,8 +289,8 @@ class StudentControllerdaycare extends GetxController {
       request.fields['Action'] =
       actionStatus.value.trim().isEmpty ? '1' : actionStatus.value.trim();
 
-      request.fields['From Time'] = fromTime.value.trim();
-      request.fields['To Time'] = toTime.value.trim();
+      request.fields['FromTime'] = fromTime.value.trim();
+      request.fields['ToTime'] = toTime.value.trim();
 
       request.fields['DaycareDurations'] = daycareDurations.value.trim();
 
@@ -238,8 +335,12 @@ class StudentControllerdaycare extends GetxController {
     } catch (e) {
       debugPrint("registerStudent error => $e");
       ShortMessage.toast(title: "An error occurred while adding student.");
+    } finally {
+      isSubmitting.value = false;
     }
   }
+
+
 
   Future<void> updateStudentByPostApi({required int studentId}) async {
     try {
@@ -273,8 +374,8 @@ class StudentControllerdaycare extends GetxController {
       request.fields['Session'] = session.value;
       request.fields['IsDaycare'] = 'true';
 
-      request.fields['From Time'] = fromTime.value.trim();
-      request.fields['To Time'] = toTime.value.trim();
+      request.fields['FromTime'] = fromTime.value.trim();
+      request.fields['ToTime'] = toTime.value.trim();
 
       request.fields['DaycareDurations'] = daycareDurations.value.trim();
 

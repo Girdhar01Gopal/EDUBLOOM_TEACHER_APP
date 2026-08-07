@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/Daycareattendencemodel.dart';
@@ -28,9 +29,12 @@ class Daycareattendencecontroller extends GetxController {
 
   final Set<String> _submittedKeys = {};
 
-  String get _currentKey =>
-      "${selectedSession.value?.session ?? session.value}-"
-          "${selectedRawDate.value.trim()}";
+  // ── FIX: prefs key prefix to store submitted dates persistently ──────────
+  static const String _submittedDatesPrefKey = "daycare_submitted_dates";
+
+  // ── FIX: key is now based on date only (per your requirement) ────────────
+  String get _currentKey => selectedRawDate.value.trim();
+
 
   // ── Valid statuses ─────────────────────────────────────────────────────────
   static const List<String> _validStatuses = ["Present", "Absent"];
@@ -46,11 +50,41 @@ class Daycareattendencecontroller extends GetxController {
       isLoading.value = true;
       schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
       token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+      await _loadSubmittedDates();
       await fetchSessions();
     } catch (e) {
       _showError("Initialization failed: $e");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // ── FIX: load previously submitted dates from SharedPreferences ──────────
+  Future<void> _loadSubmittedDates() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedDates =
+          prefs.getStringList("$_submittedDatesPrefKey-$schoolId") ?? [];
+      _submittedKeys
+        ..clear()
+        ..addAll(storedDates);
+    } catch (e) {
+      debugPrint("⚠️ Failed to load submitted dates => $e");
+    }
+  }
+
+  // ── FIX: persist a newly submitted date to SharedPreferences ─────────────
+  Future<void> _saveSubmittedDate(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final prefsKey = "$_submittedDatesPrefKey-$schoolId";
+      final storedDates = prefs.getStringList(prefsKey) ?? [];
+      if (!storedDates.contains(key)) {
+        storedDates.add(key);
+        await prefs.setStringList(prefsKey, storedDates);
+      }
+    } catch (e) {
+      debugPrint("⚠️ Failed to save submitted date => $e");
     }
   }
 
@@ -363,6 +397,7 @@ class Daycareattendencecontroller extends GetxController {
 
       if (successCount > 0 && failCount == 0) {
         _submittedKeys.add(_currentKey);
+        await _saveSubmittedDate(_currentKey);
         _showSuccess("Attendance saved successfully");
         await viewStudent();
       } else if (successCount > 0 && failCount > 0) {

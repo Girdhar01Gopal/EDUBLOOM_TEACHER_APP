@@ -94,7 +94,7 @@ class GuardianImagePicker extends GetView<StudentController> {
             SizedBox(height: 14.h),
 
             // Submit button (red gradient)
-            SizedBox(
+        Obx(() => SizedBox(
               width: double.infinity,
               height: 54.h,
               child: DecoratedBox(
@@ -117,19 +117,30 @@ class GuardianImagePicker extends GetView<StudentController> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r)),
                   ),
-                  icon: const Icon(Icons.check_circle_outline,
-                      color: Colors.white),
-                  label: Text('Submit & Register Student',
+                  icon: controller.isSubmitting.value
+                      ? SizedBox(
+                    width: 18.w,
+                    height: 18.w,
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                      : const Icon(Icons.check_circle_outline, color: Colors.white),
+                  label: Text(
+                      controller.isSubmitting.value
+                          ? 'Submitting...'
+                          : 'Submit & Register Student',
                       style: TextStyle(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),
-                  onPressed: () {
+                  onPressed: controller.isSubmitting.value
+                      ? null
+                      : () {
                     controller.registerStudent();
                   },
                 ),
               ),
-            ),
+        )),
 
             SizedBox(height: 20.h),
           ],

@@ -81,6 +81,8 @@ class StudentController extends GetxController {
   var listData = <StudentData>[].obs;
   var filteredData = <StudentData>[].obs;
   var isLoading = false.obs;
+  var isSubmitting = false.obs;
+
 
   @override
   void onInit() async {
@@ -103,6 +105,7 @@ class StudentController extends GetxController {
     isSectionEnabled(value);
     if (!value) selectedSection.value = null;
   }
+
 
   Future<void> fetchVStudents() async {
     try {
@@ -222,6 +225,8 @@ class StudentController extends GetxController {
   }
 
   Future<void> registerStudent() async {
+    if (isSubmitting.value) return; // ✅ already submitting, ignore extra taps
+    isSubmitting.value = true;
     try {
       final uri = Uri.parse("${AppUrl.base_url}api/StudentApp/PostStudentApp");
       final request = http.MultipartRequest('POST', uri);
@@ -310,6 +315,8 @@ class StudentController extends GetxController {
       }
     } catch (e) {
       ShortMessage.toast(title: "An error occurred while adding student.");
+    } finally {
+      isSubmitting.value = false;
     }
   }
 
