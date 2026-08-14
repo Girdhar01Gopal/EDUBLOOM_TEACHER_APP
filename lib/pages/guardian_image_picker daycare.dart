@@ -1,7 +1,3 @@
-// ============================================================
-// FILE PATH: lib/pages/guardian_image_picker daycare.dart
-// ============================================================
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -20,10 +16,10 @@ const _textSecondary = Color(0xFF607D8B);
 class GuardianImagePickerdaycare extends GetView<StudentControllerdaycare> {
   GuardianImagePickerdaycare({super.key});
 
-  // Override controller with Get.put to ensure it's found
+  // Get.find use karo, Get.put nahi — warna controller dobara create hota hai
   @override
   StudentControllerdaycare get controller =>
-      Get.put(StudentControllerdaycare());
+      Get.find<StudentControllerdaycare>();
 
   // ── Bottom sheet image picker ─────────────────────────────
   Future<void> _pickImage(BuildContext context) async {
@@ -68,7 +64,7 @@ class GuardianImagePickerdaycare extends GetView<StudentControllerdaycare> {
       prefixIcon: Icon(icon, size: 20, color: _tealLight),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: Color(0xFFF3D6E1))),
+          borderSide: const BorderSide(color: Color(0xFFE0F2F1))),
       enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
           borderSide: BorderSide(color: Colors.grey.shade200)),
@@ -109,9 +105,9 @@ class GuardianImagePickerdaycare extends GetView<StudentControllerdaycare> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               decoration: BoxDecoration(
-                color: _teal.withOpacity(0.08),
+                color: Colors.teal.shade50,
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: _teal.withOpacity(0.15)),
+                border: Border.all(color: Colors.teal.shade100),
               ),
               child: Row(
                 children: [
@@ -344,10 +340,10 @@ class _ImagePreviewCard extends StatelessWidget {
                 height: 200.h,
                 width: 200.h,
                 decoration: BoxDecoration(
-                  color: _teal.withOpacity(0.08),
+                  color: Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(16.r),
                   border: Border.all(
-                      color: _teal.withOpacity(0.15), width: 2),
+                      color: Colors.teal.shade100, width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

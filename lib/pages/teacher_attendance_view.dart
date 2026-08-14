@@ -358,7 +358,7 @@ class _ListSection extends StatelessWidget {
                                             value: "ABSENT",
                                             child: Text("Absent")),
                                         DropdownMenuItem(
-                                            value: "HOLD",
+                                            value: "HOLIDAY",
                                             child: Text("Holiday")),
                                       ],
                                       onChanged: (v) {

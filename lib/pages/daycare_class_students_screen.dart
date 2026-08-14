@@ -390,7 +390,7 @@ class _DaycareClassStudentsScreenState
                       ),
                       GestureDetector(
                         onTap: () => Get.to(() =>
-                            StudentDetailScreenday(student: s)),
+                            StudentDetailScreenday(student: s, showEdit: false)), // false pass karein
                         child: Container(
                           padding: EdgeInsets.symmetric(
                               horizontal: 14.w, vertical: 6.h),

@@ -13,7 +13,6 @@ import '../models/sectionmodel.dart';
 
 // ─── Axis Bank maroon accent ───────────────────────────────────────────────
 const Color kAxisMaroon = Color(0xFF97144D);
-
 class FeesScreen extends GetView<FeesController> {
   @override
   Widget build(BuildContext context) {
@@ -25,16 +24,44 @@ class FeesScreen extends GetView<FeesController> {
             Get.back();
           },
         ),
-        title: Text(
-          "Fees Management",
-          style: TextStyle(
-              fontSize: 22.sp,
-              color: Colors.white,
-              fontWeight: FontWeight.bold),
-        ),
+        title: Obx(() {
+          if (controller.isSearching.value) {
+            return TextField(
+              controller: controller.searchController,
+              autofocus: true,
+              style: TextStyle(color: Colors.white, fontSize: 18.sp),
+              decoration: InputDecoration(
+                hintText: "Search by name, father, reg no, phone...",
+                hintStyle: TextStyle(color: Colors.white70),
+                border: InputBorder.none,
+              ),
+              onChanged: (value) {
+                controller.updateSearchQuery(value);
+              },
+            );
+          }
+          return Text(
+            "Fees Management",
+            style: TextStyle(
+                fontSize: 22.sp,
+                color: Colors.white,
+                fontWeight: FontWeight.bold),
+          );
+        }),
         centerTitle: true,
-        backgroundColor: kAxisMaroon, // Darker teal for the app bar
+        backgroundColor: Color(0xFF97144D),
         elevation: 4,
+        actions: [
+          Obx(() => IconButton(
+            icon: Icon(
+              controller.isSearching.value ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              controller.toggleSearch();
+            },
+          )),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -58,25 +85,49 @@ class FeesScreen extends GetView<FeesController> {
                 _buildSubmitButton(),
               ],
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 12.h),
+
+            // 🆕 Total students count badge
+            Obx(() => Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  'Total Students: ${controller.filteredStudents.length}',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF97144D),
+                  ),
+                ),
+              ),
+            )),
+            SizedBox(height: 8.h),
 
             // Student List Section
             Expanded(
               child: Obx(() {
-                if (controller.isloading.value) {
+                if (controller.isloading.value || controller.isLoadingAll.value) {
                   return Center(child: CircularProgressIndicator());
                 }
 
-                if (controller.students.isEmpty) {
+                final filteredList = controller.filteredStudents;
+
+                if (filteredList.isEmpty) {
                   return Center(
                       child: Text('No students found',
                           style: TextStyle(fontSize: 18.sp)));
                 }
 
                 return ListView.builder(
-                  itemCount: controller.students.length,
+                  itemCount: filteredList.length,
                   itemBuilder: (context, index) {
-                    final student = controller.students[index];
+                    final student = filteredList[index];
                     return _buildStudentCard(student);
                   },
                 );
@@ -110,7 +161,7 @@ class FeesScreen extends GetView<FeesController> {
         }).toList(),
         decoration: InputDecoration(
           labelText: 'Session',
-          labelStyle: TextStyle(color: kAxisMaroon),
+          labelStyle: TextStyle(color: Color(0xFF97144D)),
           border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
@@ -141,7 +192,7 @@ class FeesScreen extends GetView<FeesController> {
         }).toList(),
         decoration: InputDecoration(
           labelText: 'Class',
-          labelStyle: TextStyle(color: kAxisMaroon),
+          labelStyle: TextStyle(color: Color(0xFF97144D)),
           border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
@@ -173,7 +224,7 @@ class FeesScreen extends GetView<FeesController> {
         }).toList(),
         decoration: InputDecoration(
           labelText: "Section",
-          labelStyle: TextStyle(color: kAxisMaroon),
+          labelStyle: TextStyle(color: Color(0xFF97144D)),
           border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
@@ -264,6 +315,8 @@ class FeesScreen extends GetView<FeesController> {
               studentId: studentId,
               pickupPoint: pickupPoint,
               registrationNo: registrationNo,
+              classId: student.classId, // 🆕 student's own class (fixes auto-list FeePay)
+              sectionId: student.sectionId, // 🆕 student's own section (fixes auto-list FeePay)
             );
             controller.filterAndNavigate(
               controller.studentfee.value,
@@ -273,7 +326,7 @@ class FeesScreen extends GetView<FeesController> {
           },
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            backgroundColor: kAxisMaroon,
+            backgroundColor: Color(0xFF97144D),
           ),
           child: Text(
             'FeePay',

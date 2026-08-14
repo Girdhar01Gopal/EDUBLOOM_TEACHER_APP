@@ -1,21 +1,22 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import '../models/session_model.dart' as session_model; // ✅ fixed: relative import, only one import of this file
+import 'package:flutter/material.dart';
+
+import '../models/session_model.dart' as session_model;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/FeeDetailsModel.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
-// ❌ removed: import '../models/session_model.dart';  -> this caused the type-mismatch errors
 import '../res/app_url.dart';
 
 class DiscountListMasterController extends GetxController {
   RxList<FeeDetailsDiscount> discountList = <FeeDetailsDiscount>[].obs;
 
-  RxList<session_model.sListDdata> sessionList = <session_model.sListDdata>[].obs; // ✅ fixed type
-  Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(null); // ✅ fixed type
+  RxList<session_model.sListDdata> sessionList = <session_model.sListDdata>[].obs;
+  Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(null);
   var session = ''.obs;
 
   var listDataa = <ListDataa>[].obs;
@@ -29,6 +30,11 @@ class DiscountListMasterController extends GetxController {
   String token = "";
   String schoolId = "";
 
+  // 🔍 Search ke liye naye variables
+  var isSearching = false.obs;
+  var searchQuery = ''.obs;
+  var searchController = TextEditingController();
+
   @override
   void onInit() async {
     super.onInit();
@@ -37,6 +43,38 @@ class DiscountListMasterController extends GetxController {
     await fetchSessions();
     await fetchClasses();
     await fetchSections();
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
+
+  // Filtered list — name, father name, registration no etc se search karne ke liye
+  List<FeeDetailsDiscount> get filteredDiscountList {
+    if (searchQuery.value.trim().isEmpty) return discountList;
+    final query = searchQuery.value.trim().toLowerCase();
+    return discountList.where((s) {
+      return (s.studentName ?? '').toLowerCase().contains(query) ||
+          (s.fatherName ?? '').toLowerCase().contains(query) ||
+          (s.registrationNo ?? '').toLowerCase().contains(query) ||
+          (s.className ?? '').toLowerCase().contains(query) ||
+          (s.sectionName ?? '').toLowerCase().contains(query) ||
+          (s.feeTypeName ?? '').toLowerCase().contains(query);
+    }).toList();
+  }
+
+  void toggleSearch() {
+    isSearching.value = !isSearching.value;
+    if (!isSearching.value) {
+      searchController.clear();
+      searchQuery.value = '';
+    }
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
   }
 
   Future<void> fetchDiscountData() async {
@@ -147,7 +185,6 @@ class DiscountListMasterController extends GetxController {
     }
   }
 
-  // ✅ old session api logic same as before
   Future<void> fetchSessions() async {
     final String apiUrl = '${AppUrl.base_url}api/MasterApp/ViewSessionApp/$schoolId';
 
@@ -162,7 +199,6 @@ class DiscountListMasterController extends GetxController {
       if (response.statusCode == 200) {
         var jsonData = json.decode(response.body);
 
-        // Purana sessionList ko clear karte hain
         sessionList.clear();
 
         if (jsonData['currentSession'] != null) {
@@ -174,10 +210,8 @@ class DiscountListMasterController extends GetxController {
           );
 
           sessionList.add(cs);
-
-          // Default session ko select kar rahe hain
           selectedSession.value = cs;
-          session.value = cs.session ?? ''; // Ye line ensure karegi ki session default select ho
+          session.value = cs.session ?? '';
         }
       }
     } catch (e) {
@@ -195,7 +229,7 @@ class DiscountListMasterController extends GetxController {
     selectedSection.value = value;
   }
 
-  void setSelectedSession(session_model.sListDdata? value) { // ✅ fixed type
+  void setSelectedSession(session_model.sListDdata? value) {
     selectedSession.value = value;
     session.value = value?.session ?? '';
   }

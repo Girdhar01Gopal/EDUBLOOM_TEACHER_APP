@@ -167,7 +167,7 @@ class FeeTypeReportScreen extends GetView<FeeTypeReportController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "${x.studentName} (${x.registrationNo})",
+                            "${x.studentName}",
                             style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800),
                           ),
                           SizedBox(height: 6.h),

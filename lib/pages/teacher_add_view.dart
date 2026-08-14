@@ -382,11 +382,14 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
                             DataCell(Text(controller.formatDate(t.dateofJoining))),
                             DataCell(Text(controller.formatDate(t.createDate))),
                             DataCell(Text(controller.formatDate(t.updateDate))),
-                            DataCell(_ActionButtons(
+                          DataCell(Obx(() => _ActionButtons(
                               onEdit: () => _openEditDialog(context, controller, t),
                               onView: () => controller.onTeacherView(t),   // ← eye icon navigates
                               onApprove: () => controller.onTeacherApprove(t),
-                            )),
+                            isActive: t.isActive,
+                            isStatusLoading: controller.statusLoadingId.value == t.id,
+                            onToggleStatus: () => controller.toggleTeacherStatus(t),
+                          ))),
                           ]);
                         }),
                       ),
@@ -407,11 +410,17 @@ class _ActionButtons extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onView;
   final VoidCallback onApprove;
+  final bool isActive;
+  final bool isStatusLoading;
+  final VoidCallback onToggleStatus;
 
   const _ActionButtons({
     required this.onEdit,
     required this.onView,
     required this.onApprove,
+    required this.isActive,
+    required this.isStatusLoading,
+    required this.onToggleStatus,
   });
 
   @override
@@ -447,6 +456,32 @@ class _ActionButtons extends StatelessWidget {
         btn(bg: Colors.orange, icon: Icons.edit, onTap: onEdit, tooltip: 'Edit'),
         const SizedBox(width: 6),
         btn(bg: const Color(0xFF97144D), icon: Icons.visibility, onTap: onView, tooltip: 'View Details'),
+        const SizedBox(width: 6),
+        Tooltip(
+          message: isActive ? 'Tap to mark Inactive' : 'Tap to mark Active',
+          child: SizedBox(
+            height: 34,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                backgroundColor: isActive ? Colors.green : Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              onPressed: isStatusLoading ? null : onToggleStatus,
+              child: isStatusLoading
+                  ? const SizedBox(
+                height: 14,
+                width: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+                  : Text(
+                isActive ? 'Active' : 'Inactive',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }

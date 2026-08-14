@@ -129,6 +129,9 @@ class RouteName {
   static const String DailyActivity = '/DailyActivity';
   static const String teacherdetailview = '/teacherdetailview';
 
+  static const String parentenquirypage = '/parentenquirypage';
+
+
   static const String staffdetailview = '/staffdetailview';
 
   static const String stationaryfeePrint = '/stationaryfeePrint';

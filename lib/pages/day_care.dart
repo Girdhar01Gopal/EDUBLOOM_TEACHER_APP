@@ -11,13 +11,33 @@ import '../controller/day_care_controller.dart';
 class DayCare extends GetView<DayCareController> {
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.refreshData();
+    });
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text("👶 Day Care Management",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+        title: Obx(() {
+          if (controller.isSearching.value) {
+            return TextField(
+              controller: controller.searchController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white, fontSize: 18),
+              decoration: const InputDecoration(
+                hintText: "Search by name, father, phone...",
+                hintStyle: TextStyle(color: Colors.white70),
+                border: InputBorder.none,
+              ),
+              onChanged: (value) {
+                controller.updateSearchQuery(value);
+              },
+            );
+          }
+          return const Text("👶 Day Care Management",
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20));
+        }),
         centerTitle: true,
-        backgroundColor: const Color(0xFF97144D),
+        backgroundColor: Color(0xFF97144D),
         elevation: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -25,6 +45,17 @@ class DayCare extends GetView<DayCareController> {
             Get.back();
           },
         ),
+        actions: [
+          Obx(() => IconButton(
+            icon: Icon(
+              controller.isSearching.value ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              controller.toggleSearch();
+            },
+          )),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.r),
@@ -118,7 +149,7 @@ class DayCare extends GetView<DayCareController> {
         ],
       ),
       child: ElevatedButton.icon(
-        icon: const Icon(Icons.search, color: Colors.white),
+        // icon: const Icon(Icons.search, color: Colors.white),
         label: Text(
           "Submit",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp),
@@ -159,7 +190,9 @@ class DayCare extends GetView<DayCareController> {
         );
       }
 
-      if (controller.studentList.isEmpty) {
+      final filteredList = controller.filteredStudentList;
+
+      if (filteredList.isEmpty) {
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -176,9 +209,9 @@ class DayCare extends GetView<DayCareController> {
       }
 
       return ListView.builder(
-        itemCount: controller.studentList.length,
+        itemCount: filteredList.length,
         itemBuilder: (context, index) {
-          final student = controller.studentList[index];
+          final student = filteredList[index];
           return _buildStudentCard(student);
         },
       );
@@ -215,7 +248,7 @@ class DayCare extends GetView<DayCareController> {
               style: TextStyle(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF97144D),
+                color: Color(0xFF97144D),
               ),
             ),
             subtitle: Column(
@@ -294,7 +327,7 @@ class DayCare extends GetView<DayCareController> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF97144D),
+          backgroundColor: Color(0xFF97144D),
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(vertical: 12.h),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),

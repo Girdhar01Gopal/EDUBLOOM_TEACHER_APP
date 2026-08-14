@@ -80,11 +80,14 @@ class DaycareDurationDropdownController extends GetxController {
 // ═══════════════════════════════════════════════════════════
 class StudentScreen2
     extends GetView<daycare_controller.StudentControllerdaycare> {
-  daycare_controller.StudentControllerdaycare controller =
-  Get.put(daycare_controller.StudentControllerdaycare());
+  StudentScreen2({super.key});
+
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<daycare_controller.StudentControllerdaycare>()) {
+      Get.put(daycare_controller.StudentControllerdaycare());
+    }
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -161,8 +164,15 @@ class AddDaycareStudentTab
   Widget build(BuildContext context) {
 
 
+    if (!Get.isRegistered<DaycareDurationDropdownController>()) {
+      Get.put(DaycareDurationDropdownController());
+    }
+    if (!Get.isRegistered<DaycareDurationDropdownController>()) {
+      Get.put(DaycareDurationDropdownController());
+    }
     final DaycareDurationDropdownController durationController =
-    Get.put(DaycareDurationDropdownController());
+    Get.find<DaycareDurationDropdownController>();
+
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),

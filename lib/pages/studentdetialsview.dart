@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 
 import '../controller/student_controller.dart';
 import '../models/student_model.dart';
@@ -17,8 +18,8 @@ const _textSecondary = Color(0xFF607D8B);
 
 class StudentDetailScreen extends StatelessWidget {
   final StudentData student;
-  const StudentDetailScreen({super.key, required this.student});
-
+  final bool showEdit; // Ye line add karein
+  const StudentDetailScreen({super.key, required this.student, this.showEdit = true}); // showEdit add karein
   // ── helpers ──────────────────────────────────────────────
   static String _fmt(String dateString) {
     try {
@@ -65,8 +66,7 @@ class StudentDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   padding: const EdgeInsets.all(6),
-                  child:
-                  const Icon(Icons.close, color: Colors.white, size: 22),
+                  child: const Icon(Icons.close, color: Colors.white, size: 22),
                 ),
               ),
             ),
@@ -78,8 +78,8 @@ class StudentDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final studentUrl =
-    (student.studentPic != null && student.studentPic!.isNotEmpty)
+    final studentUrl = (student.studentPic != null &&
+        student.studentPic!.isNotEmpty)
         ? "https://playschool.edubloom.in/Upload/student/images/${student.studentPic}"
         : null;
 
@@ -92,14 +92,17 @@ class StudentDetailScreen extends StatelessWidget {
         title: Text(
           student.studentName ?? 'Student Details',
           style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 17),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.white),
-            tooltip: "Edit Student",
-            onPressed: () => _openEditDialog(context),
-          ),
+          if (showEdit) // Ye condition add karein
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.white),
+              tooltip: "Edit Student",
+              onPressed: () => _openEditDialog(context),
+            ),
         ],
       ),
       body: SingleChildScrollView(
@@ -107,8 +110,11 @@ class StudentDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Profile header
             _profileHeader(context, studentUrl),
             SizedBox(height: 16.h),
+
+            // Info cards
             _infoCard('Personal Information', [
               _detailRow('Father', student.fatherName),
               _detailRow('Mother', student.motherName),
@@ -130,6 +136,7 @@ class StudentDetailScreen extends StatelessWidget {
               _detailRow('Section', student.sectionName),
               _detailRow('Roll No', student.rollNo),
               _detailRow('Registration No', student.registrationNo),
+              //   _detailRow('Session', student.session),
             ]),
             SizedBox(height: 12.h),
             _infoCard('Contact Information', [
@@ -152,7 +159,7 @@ class StudentDetailScreen extends StatelessWidget {
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFC17294), Color(0xFF99144E)],
+          colors: [Color(0xFFAB1A5E), Color(0xFF97144D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -160,6 +167,7 @@ class StudentDetailScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // ── Student image with zoom on tap ──
           GestureDetector(
             onTap: studentUrl != null
                 ? () => _showZoom(
@@ -167,10 +175,8 @@ class StudentDetailScreen extends StatelessWidget {
               Image.network(
                 studentUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(
-                    Icons.broken_image,
-                    color: Colors.white70,
-                    size: 60),
+                errorBuilder: (_, __, ___) =>
+                const Icon(Icons.broken_image, color: Colors.white70, size: 60),
               ),
             )
                 : null,
@@ -205,6 +211,7 @@ class StudentDetailScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 6.h),
+                // ── Session badge (replaces active/inactive) ──
                 Row(
                   children: [
                     Container(
@@ -330,7 +337,8 @@ class StudentDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _detailRow(String title, dynamic value, {bool isHighlight = false}) {
+  Widget _detailRow(String title, dynamic value,
+      {bool isHighlight = false}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -405,7 +413,7 @@ class StudentDetailScreen extends StatelessWidget {
       height: 70,
       width: 70,
       decoration: BoxDecoration(
-        color: const Color(0xFFF7EEF2),
+        color: Colors.teal.shade50,
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(Icons.person_outline, color: _tealLight),
@@ -422,7 +430,8 @@ class StudentDetailScreen extends StatelessWidget {
     c.fatherOccupation.value = student.fatherOccupation ?? '';
     c.gender.value = _normalizeGender(student.gender);
 
-    if (student.dateOfBirth != null && student.dateOfBirth!.trim().isNotEmpty) {
+    if (student.dateOfBirth != null &&
+        student.dateOfBirth!.trim().isNotEmpty) {
       c.dob.text = _fmt(student.dateOfBirth!);
       c.dateOfBirth.value = c.dob.text;
     } else {
@@ -453,7 +462,8 @@ class StudentDetailScreen extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding:
         const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
         child: SafeArea(
@@ -466,7 +476,7 @@ class StudentDetailScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  // Header
+                  // ── Header (fixed) ─────────────────────
                   Container(
                     padding: EdgeInsets.all(16.r),
                     decoration: const BoxDecoration(
@@ -495,7 +505,7 @@ class StudentDetailScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Scrollable body
+                  // ── Scrollable body ─────────────────────
                   Expanded(
                     child: SingleChildScrollView(
                       padding: EdgeInsets.all(16.r),
@@ -503,14 +513,15 @@ class StudentDetailScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Footer
+                  // ── Footer (fixed) ─────────────────────
                   Container(
                     padding: EdgeInsets.symmetric(
                         horizontal: 16.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
-                      border:
-                      Border(top: BorderSide(color: Colors.grey.shade200)),
+                      border: Border(
+                          top:
+                          BorderSide(color: Colors.grey.shade200)),
                     ),
                     child: Row(
                       children: [
@@ -520,9 +531,10 @@ class StudentDetailScreen extends StatelessWidget {
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: _teal),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              padding:
-                              EdgeInsets.symmetric(vertical: 12.h),
+                                  borderRadius:
+                                  BorderRadius.circular(12)),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 12.h),
                             ),
                             child: const Text("Cancel",
                                 style: TextStyle(color: _teal)),
@@ -536,15 +548,18 @@ class StudentDetailScreen extends StatelessWidget {
                               backgroundColor: _teal,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              padding:
-                              EdgeInsets.symmetric(vertical: 12.h),
+                                  borderRadius:
+                                  BorderRadius.circular(12)),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 12.h),
                             ),
-                            icon: const Icon(Icons.save_outlined, size: 18),
+                            icon: const Icon(Icons.save_outlined,
+                                size: 18),
                             label: const Text("Update Student"),
                             onPressed: () {
                               if (student.studentID == null) {
-                                Get.snackbar("Error", "StudentID missing",
+                                Get.snackbar(
+                                    "Error", "StudentID missing",
                                     backgroundColor: Colors.red,
                                     colorText: Colors.white);
                                 return;
@@ -557,7 +572,8 @@ class StudentDetailScreen extends StatelessWidget {
                                 return;
                               }
                               if (c.phone.value.trim().isEmpty) {
-                                Get.snackbar("Error", "Phone required",
+                                Get.snackbar(
+                                    "Error", "Phone required",
                                     backgroundColor: Colors.red,
                                     colorText: Colors.white);
                                 return;
@@ -584,26 +600,12 @@ class StudentDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 10.h),
-        Obx(() {
-          final v = c.actionStatus.value.trim().isEmpty
-              ? '1'
-              : c.actionStatus.value.trim();
-          final safeV = (v == "0" || v == "1") ? v : "1";
-          return DropdownButtonFormField<String>(
-            value: safeV,
-            items: const [
-              DropdownMenuItem(value: "1", child: Text("Active")),
-              DropdownMenuItem(value: "0", child: Text("Inactive")),
-            ],
-            onChanged: (val) => c.actionStatus.value = val ?? '1',
-            decoration: _editDeco("Status", icon: Icons.toggle_on_outlined),
-          );
-        }),
-        SizedBox(height: 10.h),
         _tf("Student Name *", c.studentName.value,
                 (v) => c.studentName.value = v),
-        _tf("Father Name", c.fatherName.value, (v) => c.fatherName.value = v),
-        _tf("Mother Name", c.motherName.value, (v) => c.motherName.value = v),
+        _tf("Father Name", c.fatherName.value,
+                (v) => c.fatherName.value = v),
+        _tf("Mother Name", c.motherName.value,
+                (v) => c.motherName.value = v),
         _tf("Father Occupation", c.fatherOccupation.value,
                 (v) => c.fatherOccupation.value = v),
         _dropdown("Gender", c.gender, const ["Boy", "Girl", "Other"]),
@@ -611,23 +613,52 @@ class StudentDetailScreen extends StatelessWidget {
         _dropdown("Blood Group", c.bloodGroup,
             const ["A-", "A+", "B-", "B+", "O-", "O+"]),
         _tf("Religion", c.religion.value, (v) => c.religion.value = v),
-        _tf("Roll No", c.rollNo.value, (v) => c.rollNo.value = v),
+        _tf("Roll No", c.rollNo.value, (v) => c.rollNo.value = v,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
         _tf("Phone *", c.phone.value, (v) => c.phone.value = v,
-            keyboardType: TextInputType.phone),
-        _tf("WhatsApp No", c.whatsappNo.value, (v) => c.whatsappNo.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        _tf("WhatsApp No", c.whatsappNo.value,
+                (v) => c.whatsappNo.value = v,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
         _tf("Emergency No", c.emergencyNo.value,
                 (v) => c.emergencyNo.value = v,
-            keyboardType: TextInputType.phone),
-        _tf("Email", c.emailController.text, (v) => c.emailController.text = v,
-            keyboardType: TextInputType.emailAddress),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        _tf("Email", c.emailController.text,
+                (v) => c.emailController.text = v,
+            keyboardType: TextInputType.emailAddress,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-Z0-9@._\-]')),
+            ]),
         _tf("Address", c.address.value, (v) => c.address.value = v,
             maxLines: 2),
-        _tf("Aadhar No.", c.aAdharNo.value, (v) => c.aAdharNo.value = v),
+        _tf("Aadhar No.", c.aAdharNo.value,
+                (v) => c.aAdharNo.value = v,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(12),
+            ]),
+
         SizedBox(height: 14.h),
         Text("Update Photos",
             style: TextStyle(
-                fontWeight: FontWeight.w700, fontSize: 14.sp, color: _teal)),
+                fontWeight: FontWeight.w700,
+                fontSize: 14.sp,
+                color: _teal)),
         SizedBox(height: 10.h),
         _imageRow(
           "Student Photo",
@@ -671,6 +702,7 @@ class StudentDetailScreen extends StatelessWidget {
       Function(String) onChanged, {
         TextInputType keyboardType = TextInputType.text,
         int maxLines = 1,
+        List<TextInputFormatter>? inputFormatters,
       }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -679,6 +711,7 @@ class StudentDetailScreen extends StatelessWidget {
         onChanged: onChanged,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        inputFormatters: inputFormatters,
         decoration: _editDeco(label),
       ),
     );
@@ -709,8 +742,8 @@ class StudentDetailScreen extends StatelessWidget {
       child: TextFormField(
         controller: c.dob,
         readOnly: true,
-        decoration:
-        _editDeco("Date of Birth", icon: Icons.calendar_month_outlined),
+        decoration: _editDeco("Date of Birth",
+            icon: Icons.calendar_month_outlined),
         onTap: () async {
           DateTime initial = DateTime.now();
           final txt = c.dob.text.trim();
@@ -732,7 +765,8 @@ class StudentDetailScreen extends StatelessWidget {
             lastDate: DateTime.now(),
             builder: (ctx, child) => Theme(
               data: ThemeData.light().copyWith(
-                  colorScheme: const ColorScheme.light(primary: _teal)),
+                  colorScheme:
+                  const ColorScheme.light(primary: _teal)),
               child: child!,
             ),
           );
@@ -748,8 +782,8 @@ class StudentDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _imageRow(
-      String title, Rx<File?> pickedRx, String? oldUrl, VoidCallback onPick) {
+  Widget _imageRow(String title, Rx<File?> pickedRx, String? oldUrl,
+      VoidCallback onPick) {
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Row(
@@ -789,8 +823,8 @@ class StudentDetailScreen extends StatelessWidget {
                   side: const BorderSide(color: _teal),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
-                  padding:
-                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 12.w, vertical: 8.h),
                 ),
                 child: Text("Pick",
                     style: TextStyle(color: _teal, fontSize: 12.sp)),
@@ -807,7 +841,7 @@ class StudentDetailScreen extends StatelessWidget {
       height: 56,
       width: 56,
       decoration: BoxDecoration(
-          color: const Color(0xFFF7EEF2),
+          color: Colors.teal.shade50,
           borderRadius: BorderRadius.circular(10)),
       child: const Icon(Icons.image_outlined, color: _tealLight),
     );
@@ -818,7 +852,8 @@ class StudentDetailScreen extends StatelessWidget {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius:
+          BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         child: Wrap(children: [
           Padding(
@@ -831,13 +866,14 @@ class StudentDetailScreen extends StatelessWidget {
           ),
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.camera_alt_outlined, color: _teal),
+            leading:
+            const Icon(Icons.camera_alt_outlined, color: _teal),
             title: const Text("Camera"),
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
           ListTile(
-            leading:
-            const Icon(Icons.photo_library_outlined, color: _teal),
+            leading: const Icon(Icons.photo_library_outlined,
+                color: _teal),
             title: const Text("Gallery"),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
           ),
@@ -856,8 +892,9 @@ class StudentDetailScreen extends StatelessWidget {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: _textSecondary, fontSize: 13.sp),
-      prefixIcon:
-      icon != null ? Icon(icon, size: 18, color: _tealLight) : null,
+      prefixIcon: icon != null
+          ? Icon(icon, size: 18, color: _tealLight)
+          : null,
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
           borderSide: BorderSide(color: Colors.grey.shade200)),

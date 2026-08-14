@@ -283,6 +283,42 @@ class TeacherAddController extends GetxController {
     Get.snackbar("Status", "Approved/Active: ${row.teacherReg ?? ""}");
   }
 
+  /// ── Active / Inactive toggle ──────────────────────────────────────────────
+  final RxnInt statusLoadingId = RxnInt();
+
+  Future<void> toggleTeacherStatus(TeacherModel row) async {
+    final id = row.id;
+    if (id == 0) {
+      Get.snackbar("Error", "Invalid Teacher ID");
+      return;
+    }
+
+    statusLoadingId.value = id;
+    try {
+      final uri = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/TeachearActiveandInactive'
+            '?SchoolId=$schoolId&id=$id',
+      );
+
+      final res = await http.post(uri, headers: {'Content-Type': 'application/json'});
+
+      if (res.statusCode == 200) {
+        Get.snackbar(
+          "Success",
+          row.isActive ? "Teacher marked Inactive" : "Teacher marked Active",
+        );
+        await fetchTeachers();
+      } else {
+        Get.snackbar("Error", "Status update failed: ${res.statusCode}\n${res.body}");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Status update error: $e");
+    } finally {
+      statusLoadingId.value = null;
+    }
+  }
+
+
   String formatDate(String? iso) {
     if (iso == null || iso.isEmpty) return "-";
     try {

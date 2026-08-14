@@ -91,9 +91,7 @@ class StudentControllerdaycare extends GetxController {
 
   @override
   void onClose() {
-    dob.dispose();
-    admissionDateController.dispose();
-    emailController.dispose();
+
     super.onClose();
   }
 
@@ -320,6 +318,10 @@ class StudentControllerdaycare extends GetxController {
           ShortMessage.toast(title: "Student Added Successfully");
           await fetchVStudents();
           Get.offAllNamed(RouteName.dashboard_screen);
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Get.delete<StudentControllerdaycare>(force: true);
+          });
         } else {
           final popup = data['popupMessage'] ?? data['messages'] ?? "Unknown error";
           Get.snackbar(
@@ -362,7 +364,9 @@ class StudentControllerdaycare extends GetxController {
       request.fields['WhatsAppNo'] = whatsappNo.value.trim();
       request.fields['EmergencyNo'] = emergencyNo.value.trim();
       request.fields['FatherOccupation'] = fatherOccupation.value.trim();
-      request.fields['AdmissionDate'] = admissionDateController.text.trim();
+      request.fields['AdmissionDate'] = admissionDate.value.trim().isEmpty
+          ? DateTime.now().toIso8601String()
+          : admissionDate.value.trim();
 
       final emailTxt = emailController.text.trim();
       request.fields['Email'] = emailTxt;
@@ -503,6 +507,9 @@ class StudentControllerdaycare extends GetxController {
             }
           }
           selectedSession.value = matched;
+          if (matched != null) {
+            session.value = matched.session ?? session.value;
+          }
         }
       }
     } catch (e) {

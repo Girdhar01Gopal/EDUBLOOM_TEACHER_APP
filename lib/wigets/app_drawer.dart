@@ -146,29 +146,61 @@ class AppDrawer extends GetView<Appdrawercontroller> {
               ),
             ),
 
-            // ---------- LOGOUT BUTTON ----------
+            // ---------- LOGOUT + CHANGE PASSWORD BUTTONS ----------
             Container(
               padding: const EdgeInsets.all(15),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 45),
-                  backgroundColor: Colors.redAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+              child: Row(
+                children: [
+                  // ---- CHANGE PASSWORD BUTTON ----
+                  // Expanded(
+                  //   child: ElevatedButton.icon(
+                  //     style: ElevatedButton.styleFrom(
+                  //       minimumSize: const Size(double.infinity, 45),
+                  //       backgroundColor: const Color(0xFF00695C), // teal 800
+                  //       shape: RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.circular(10),
+                  //       ),
+                  //     ),
+                  //     icon: const Icon(Icons.lock_outline_rounded,
+                  //         color: Colors.white, size: 18),
+                  //     label: const Text(
+                  //       "Change Password",
+                  //       style: TextStyle(color: Colors.white, fontSize: 13),
+                  //       overflow: TextOverflow.ellipsis,
+                  //     ),
+                  //     onPressed: () {
+                  //       Get.toNamed(RouteName.changepassword);
+                  //     },
+                  //   ),
+                  // ),
+
+                  SizedBox(width: 10.w),
+
+                  // ---- LOGOUT BUTTON ----
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 45),
+                        backgroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.logout, color: Colors.white, size: 18),
+                      label: const Text(
+                        "Logout",
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      onPressed: () async {
+                        await PrefManager()
+                            .writeValue(key: PrefConst.isLoggedIn, value: "No");
+                        await PrefManager().clearPref();
+                        Get.offAllNamed(RouteName.login_screen);
+                        Get.snackbar("Logout", "Teacher logged out successfully");
+                      },
+                    ),
                   ),
-                ),
-                icon: const Icon(Icons.logout, color: Colors.white),
-                label: const Text(
-                  "Logout",
-                  style: TextStyle(color: Colors.white),
-                ),
-                onPressed: () async {
-                  await PrefManager()
-                      .writeValue(key: PrefConst.isLoggedIn, value: "No");
-                  await PrefManager().clearPref();
-                  Get.offAllNamed(RouteName.login_screen);
-                  Get.snackbar("Logout", "Teacher logged out successfully");
-                },
+                ],
               ),
             ),
           ],

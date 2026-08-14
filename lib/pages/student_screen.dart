@@ -128,6 +128,8 @@ class AddStudentTab extends GetView<StudentController> {
               _inputField('Religion', controller.religion,
                   icon: Icons.temple_hindu_outlined),
               _emailField(),
+              _inputField('Address', controller.address,
+                  icon: Icons.location_on_outlined),
             ]),
             SizedBox(height: 16.h),
             _sectionHeader('Academic Details', Icons.school_outlined),
@@ -137,8 +139,7 @@ class AddStudentTab extends GetView<StudentController> {
               SizedBox(height: 4.h),
               // ── Select Section dropdown (always visible) ─
               _sectionDropdown(),
-              _inputField('Address', controller.address,
-                  icon: Icons.location_on_outlined),
+
               // ── Add Daycare Student: default "No" ──────
               _addDaycareStudentDropdown(),
             ]),

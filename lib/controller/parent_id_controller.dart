@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+
 
 import '../models/session_model.dart' as session_model;
 
@@ -75,6 +77,11 @@ class ParentIdController extends GetxController {
   String schoolId = "";
   String token = "";
 
+  // 🔍 Search variables
+  var isSearching = false.obs;
+  var searchQuery = ''.obs;
+  var searchController = TextEditingController();
+
   final String postApi =
       "https://playschool.edubloom.in/api/StudentApp/GetViewStudentParentIdApp";
 
@@ -84,6 +91,38 @@ class ParentIdController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     token = await PrefManager().readValue(key: PrefConst.token);
     await _loadMasters();
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
+
+  // Filtered rows based on search query (name, father, class, phone, etc.)
+  List<ParentIdRow> get filteredRows {
+    if (searchQuery.value.trim().isEmpty) return rows;
+    final query = searchQuery.value.trim().toLowerCase();
+    return rows.where((r) {
+      return r.studentName.toLowerCase().contains(query) ||
+          r.fatherName.toLowerCase().contains(query) ||
+          r.className.toLowerCase().contains(query) ||
+          r.phone.toLowerCase().contains(query) ||
+          r.registrationNo.toLowerCase().contains(query) ||
+          r.parentId.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  void toggleSearch() {
+    isSearching.value = !isSearching.value;
+    if (!isSearching.value) {
+      searchController.clear();
+      searchQuery.value = '';
+    }
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
   }
 
   Future<void> _loadMasters() async {

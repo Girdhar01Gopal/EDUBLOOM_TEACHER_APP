@@ -12,7 +12,7 @@ import '../models/teacher_attendance.dart';
 class TeacherAttendanceController extends GetxController {
   static const String statusPresent = "PRESENT";
   static const String statusAbsent = "ABSENT";
-  static const String statusHold = "HOLD";
+  static const String statusHold = "HOLIDAY";
 
   // ========= UI FLAGS =========
   final isPageLoading = false.obs;

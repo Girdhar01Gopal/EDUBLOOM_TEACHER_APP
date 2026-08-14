@@ -20,21 +20,49 @@ class DiscountListMasterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: kAxisMaroon,
+        backgroundColor: Color(0xFF97144D),
         elevation: 4,
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.back(),
         ),
-        title: Text(
-          "Fee Discount List",
-          style: TextStyle(
-            fontSize: 22.sp,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Obx(() {
+          if (controller.isSearching.value) {
+            return TextField(
+              controller: controller.searchController,
+              autofocus: true,
+              style: TextStyle(color: Colors.white, fontSize: 18.sp),
+              decoration: const InputDecoration(
+                hintText: "Search by name, father, reg no...",
+                hintStyle: TextStyle(color: Colors.white70),
+                border: InputBorder.none,
+              ),
+              onChanged: (value) {
+                controller.updateSearchQuery(value);
+              },
+            );
+          }
+          return Text(
+            "Fee Discount List",
+            style: TextStyle(
+              fontSize: 22.sp,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          );
+        }),
+        actions: [
+          Obx(() => IconButton(
+            icon: Icon(
+              controller.isSearching.value ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              controller.toggleSearch();
+            },
+          )),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.w),
@@ -81,7 +109,7 @@ class DiscountListMasterScreen extends StatelessWidget {
                       }).toList(),
                       decoration: const InputDecoration(
                         labelText: 'Session',
-                        labelStyle: TextStyle(color: kAxisMaroon),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -111,7 +139,7 @@ class DiscountListMasterScreen extends StatelessWidget {
                       },
                       decoration: const InputDecoration(
                         labelText: 'Class',
-                        labelStyle: TextStyle(color: kAxisMaroon),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -146,7 +174,7 @@ class DiscountListMasterScreen extends StatelessWidget {
                       },
                       decoration: const InputDecoration(
                         labelText: "Section",
-                        labelStyle: TextStyle(color: kAxisMaroon),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
@@ -207,7 +235,10 @@ class DiscountListMasterScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (controller.discountList.isEmpty) {
+                // 🔍 Yahan filtered list ka use kiya hai
+                final filteredList = controller.filteredDiscountList;
+
+                if (filteredList.isEmpty) {
                   return const Center(
                     child: Text(
                       "No discount data found",
@@ -229,7 +260,6 @@ class DiscountListMasterScreen extends StatelessWidget {
                       ),
                       columns: const [
                         DataColumn(label: Text("S.No")),
-                        //DataColumn(label: Text("Registration No")),
                         DataColumn(label: Text("Student Name")),
                         DataColumn(label: Text("Father Name")),
                         DataColumn(label: Text("Class Name")),
@@ -239,13 +269,12 @@ class DiscountListMasterScreen extends StatelessWidget {
                         DataColumn(label: Text("Discount")),
                       ],
                       rows: List.generate(
-                        controller.discountList.length,
+                        filteredList.length,
                             (index) {
-                          final item = controller.discountList[index];
+                          final item = filteredList[index];
                           return DataRow(
                             cells: [
                               DataCell(Text('${index + 1}')),
-                              // DataCell(Text(item.registrationNo ?? '-')),
                               DataCell(Text(item.studentName ?? '-')),
                               DataCell(Text(item.fatherName ?? '-')),
                               DataCell(Text(item.className ?? '-')),

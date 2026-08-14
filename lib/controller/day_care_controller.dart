@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/Daycaremodel.dart';
 import '../models/detaildaycaremodel.dart';
 import '../res/app_url.dart';
+import 'package:flutter/material.dart';
 
 class DayCareController extends GetxController {
   var sessionList = <session_model.sListDdata>[].obs;
@@ -24,12 +25,41 @@ class DayCareController extends GetxController {
   var schoolId = "";
   var studentList = <ListdData>[].obs;
 
+  // 🔍 Search ke liye naye variables
+  var isSearching = false.obs;
+  var searchQuery = ''.obs;
+  var searchController = TextEditingController();
+
   @override
   onInit() async {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     await fetchSessions();
     super.onInit();
   }
+
+  // Filtered list — name, father name, registration no, phone no etc se search
+  List<ListdData> get filteredStudentList {
+    if (searchQuery.value.trim().isEmpty) return studentList;
+    final query = searchQuery.value.trim().toLowerCase();
+    return studentList.where((s) {
+      return (s.studentName ?? '').toLowerCase().contains(query) ||
+          (s.fatherName ?? '').toLowerCase().contains(query) ||
+          (s.fatherPhone ?? '').toLowerCase().contains(query);
+    }).toList();
+  }
+
+  void toggleSearch() {
+    isSearching.value = !isSearching.value;
+    if (!isSearching.value) {
+      searchController.clear();
+      searchQuery.value = '';
+    }
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
+  }
+
   Future<void> refreshData() async {
     if (feeDataList.isEmpty) return; // If there's no data, don't proceed
 
@@ -356,7 +386,7 @@ class DayCareController extends GetxController {
   @override
   void onClose() {
     clearFeeData();
+    searchController.dispose();
     super.onClose();
   }
 }
-

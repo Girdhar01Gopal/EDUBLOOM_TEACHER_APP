@@ -381,7 +381,7 @@ class PayDayCController extends GetxController {
     return months[month - 1];
   }
 
-  String now() => DateTime.now().toUtc().toIso8601String();
+  String now() => DateTime.now().toIso8601String();
 
   int? _parseInt(dynamic value) {
     if (value == null) return null;

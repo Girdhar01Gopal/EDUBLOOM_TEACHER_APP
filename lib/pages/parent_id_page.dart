@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -45,15 +46,39 @@ class _ParentIdPageState extends State<ParentIdPage>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: axisMaroon,
-        title: const Text(
-          "View Parents Id",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Obx(() {
+          if (controller.isSearching.value) {
+            return TextField(
+              controller: controller.searchController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white, fontSize: 18),
+              decoration: const InputDecoration(
+                hintText: "Search by name, father, phone...",
+                hintStyle: TextStyle(color: Colors.white70),
+                border: InputBorder.none,
+              ),
+              onChanged: (value) => controller.updateSearchQuery(value),
+            );
+          }
+          return const Text(
+            "View Parents Id",
+            style: TextStyle(color: Colors.white),
+          );
+        }),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          Obx(() => IconButton(
+            icon: Icon(
+              controller.isSearching.value ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
+            onPressed: () => controller.toggleSearch(),
+          )),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -79,7 +104,7 @@ class _ParentIdPageState extends State<ParentIdPage>
   }
 
   // =========================
-  // ADD TAB: only filters + Search
+  // ADD TAB: filters
   // =========================
   Widget _addTab() {
     return Column(
@@ -91,7 +116,7 @@ class _ParentIdPageState extends State<ParentIdPage>
   }
 
   // =========================
-  // VIEW TAB: table only
+  // VIEW TAB: table
   // =========================
   Widget _viewTab() {
     return Column(
@@ -112,7 +137,7 @@ class _ParentIdPageState extends State<ParentIdPage>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: Colors.grey.withOpacity(0.2),
               spreadRadius: 2,
               blurRadius: 5),
         ],
@@ -127,7 +152,6 @@ class _ParentIdPageState extends State<ParentIdPage>
           ),
           SizedBox(height: 12.h),
 
-          // Row 1: Session + Class
           Row(
             children: [
               Expanded(child: _sessionDropdown()),
@@ -138,7 +162,6 @@ class _ParentIdPageState extends State<ParentIdPage>
 
           SizedBox(height: 14.h),
 
-          // Row 2: Section
           Row(
             children: [
               Expanded(child: _sectionDropdown()),
@@ -153,8 +176,8 @@ class _ParentIdPageState extends State<ParentIdPage>
             alignment: Alignment.centerRight,
             child: Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.pink.shade300, Colors.pink.shade500],
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFAB1A5E), Color(0xFF97144D)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -178,9 +201,6 @@ class _ParentIdPageState extends State<ParentIdPage>
     );
   }
 
-  // =========================
-  // SESSION DROPDOWN
-  // =========================
   Widget _sessionDropdown() {
     return Obx(() {
       if (controller.isLoading.value) {
@@ -189,16 +209,10 @@ class _ParentIdPageState extends State<ParentIdPage>
           child: const Center(child: CircularProgressIndicator()),
         );
       }
-
       return DropdownButtonFormField<session_model.sListDdata>(
         value: controller.selectedSession.value,
         isExpanded: true,
-        hint: Text(
-          "Select Session",
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 14.sp),
-        ),
+        hint: const Text("Select Session"),
         onChanged: (newVal) {
           controller.selectedSession.value = newVal;
           controller.session.value = newVal?.session ?? '';
@@ -206,46 +220,24 @@ class _ParentIdPageState extends State<ParentIdPage>
         items: controller.sessionList.map((s) {
           return DropdownMenuItem<session_model.sListDdata>(
             value: s,
-            child: Text(
-              s.session ?? "No session",
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 14.sp),
-            ),
+            child: Text(s.session ?? "No session"),
           );
         }).toList(),
         decoration: InputDecoration(
           labelText: 'Session',
-          labelStyle: TextStyle(fontSize: 20.sp),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10.r)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: const BorderSide(color: Colors.grey),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide:
-            BorderSide(color: axisMaroon, width: 1.2),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
           filled: true,
           fillColor: Colors.white,
-          contentPadding:
-          EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         ),
       );
     });
   }
 
-  // =========================
-  // CLASS DROPDOWN
-  // =========================
   Widget _classDropdown() {
     return Obx(() {
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
-
       return DropdownButtonFormField<ListDataa>(
         value: controller.selectedClass.value,
         hint: const Text("Select Class"),
@@ -257,10 +249,9 @@ class _ParentIdPageState extends State<ParentIdPage>
           );
         }).toList(),
         onChanged: (val) => controller.setSelectedClass(val),
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Class',
-          labelStyle: TextStyle(color: axisMaroon),
-          border: const OutlineInputBorder(),
+          border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
         ),
@@ -268,49 +259,32 @@ class _ParentIdPageState extends State<ParentIdPage>
     });
   }
 
-  // =========================
-  // SECTION DROPDOWN
-  // =========================
   Widget _sectionDropdown() {
     return Obx(() {
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
-
       return DropdownButtonFormField<ListDatta>(
         value: controller.selectedSection.value,
-        hint: const Text(
-          "Select Section",
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        hint: const Text("Select Section"),
         isExpanded: true,
         items: controller.sectionList.map((item) {
           return DropdownMenuItem(
             value: item,
-            child: Text(
-              item.section ?? "",
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(item.section ?? ""),
           );
         }).toList(),
         onChanged: controller.setSelectedSection,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Section',
-          labelStyle: TextStyle(color: axisMaroon),
-          border: const OutlineInputBorder(),
+          border: OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         ),
       );
     });
   }
 
-  // =========================
-  // TABLE CARD (View tab)
-  // =========================
   Widget _tableCard() {
     return Container(
       padding: EdgeInsets.all(14.w),
@@ -319,7 +293,7 @@ class _ParentIdPageState extends State<ParentIdPage>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: Colors.grey.withOpacity(0.2),
               spreadRadius: 2,
               blurRadius: 5),
         ],
@@ -360,7 +334,11 @@ class _ParentIdPageState extends State<ParentIdPage>
               if (controller.isLoading.value) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (controller.rows.isEmpty) {
+
+              // 🔍 Filtered rows ka use kiya hai
+              final filteredList = controller.filteredRows;
+
+              if (filteredList.isEmpty) {
                 return const Center(child: Text("No Data Found"));
               }
 
@@ -382,8 +360,8 @@ class _ParentIdPageState extends State<ParentIdPage>
                         DataColumn(label: Text("Parent Id")),
                         DataColumn(label: Text("Password")),
                       ],
-                      rows: List.generate(controller.rows.length, (i) {
-                        final r = controller.rows[i];
+                      rows: List.generate(filteredList.length, (i) {
+                        final r = filteredList[i];
                         return DataRow(
                           cells: [
                             DataCell(Text("${i + 1}")),
@@ -393,8 +371,40 @@ class _ParentIdPageState extends State<ParentIdPage>
                             DataCell(Text(r.className)),
                             DataCell(Text(r.sectionName)),
                             DataCell(Text(r.phone)),
-                            DataCell(Text(r.parentId)),
-                            DataCell(Text(r.password)),
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(r.parentId),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: r.parentId));
+                                      Get.snackbar("Copied", "Parent ID Copied", snackPosition: SnackPosition.BOTTOM);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(r.password),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: r.password));
+                                      Get.snackbar("Copied", "Password Copied", snackPosition: SnackPosition.BOTTOM);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         );
                       }),

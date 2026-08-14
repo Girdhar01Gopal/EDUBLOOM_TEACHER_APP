@@ -379,7 +379,7 @@ class _ClassStudentsScreenState extends State<ClassStudentsScreen> {
                       ),
                       GestureDetector(
                         onTap: () => Get.to(
-                                () => StudentDetailScreen(student: s)),
+                                () => StudentDetailScreen(student: s, showEdit: false)), // false pass karein
                         child: Container(
                           padding: EdgeInsets.symmetric(
                               horizontal: 14.w, vertical: 6.h),

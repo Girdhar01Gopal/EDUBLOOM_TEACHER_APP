@@ -1,30 +1,32 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-
 import '../controller/student_controller daycare.dart' as daycare_controller;
 import '../controller/student_controller.dart';
 
+import 'adddaycarestudentview.dart';
+
 // ─── Palette ───────────────────────────────────────────────
 const _teal = Color(0xFF97144D);
-const _tealLight = Color(0xFFB0295F);
+const _tealLight = Color(0xFFAB1A5E);
 const _surface = Color(0xFFFFFFFF);
-const _cardBg = Color(0xFFFFF5F8);
+const _cardBg = Color(0xFFFDF3F7);
 const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
-const _divider = Color(0xFFF3E0E7);
+const _divider = Color(0xFFF7E3EC);
 
 // ═══════════════════════════════════════════════════════════
 // StudentDetailScreenday
 // ═══════════════════════════════════════════════════════════
 class StudentDetailScreenday extends StatelessWidget {
   final dynamic student;
-  const StudentDetailScreenday({super.key, required this.student});
-
+  final bool showEdit; // Ye line add karein
+  const StudentDetailScreenday({super.key, required this.student, this.showEdit = true}); // showEdit add karein
   static const String _studentBase =
       "https://playschool.edubloom.in/Upload/student/images/";
   static const String _fatherBase =
@@ -369,6 +371,13 @@ class StudentDetailScreenday extends StatelessWidget {
                                     colorText: Colors.white);
                                 return;
                               }
+                              if (c.phone.value.trim().length != 10) {
+                                Get.snackbar(
+                                    "Error", "Phone must be 10 digits",
+                                    backgroundColor: Colors.red,
+                                    colorText: Colors.white);
+                                return;
+                              }
                               if (c.selectedClass.value == null) {
                                 Get.snackbar("Error",
                                     "Please select a Class",
@@ -471,19 +480,43 @@ class StudentDetailScreenday extends StatelessWidget {
         _dobPickerTransfer(context, c),
         _dropdownBlue("Blood Group", c.bloodGroup,
             const ["A-", "A+", "B-", "B+", "O-", "O+"]),
+        // ── Religion: sirf words (letters + space) allowed ──
         _tfBlue("Religion", c.religion.value,
-                (v) => c.religion.value = v),
+                (v) => c.religion.value = v,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')),
+            ]),
+        // ── Phone: sirf digits, max 10 ──────────────────
         _tfBlue("Phone *", c.phone.value, (v) => c.phone.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        // ── WhatsApp No: sirf digits, max 10 ─────────────
         _tfBlue("WhatsApp No", c.whatsappNo.value,
                 (v) => c.whatsappNo.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        // ── Emergency No: sirf digits, max 10 ────────────
         _tfBlue("Emergency No", c.emergencyNo.value,
                 (v) => c.emergencyNo.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        // ── Email: sirf valid email characters allowed ───
         _tfBlue("Email", c.emailController.text,
                 (v) => c.emailController.text = v,
-            keyboardType: TextInputType.emailAddress),
+            keyboardType: TextInputType.emailAddress,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-Z0-9@._\-]')),
+            ]),
 
         SizedBox(height: 6.h),
         _sectionLabel("Fill These Fields"),
@@ -638,6 +671,7 @@ class StudentDetailScreenday extends StatelessWidget {
       Function(String) onChanged, {
         TextInputType keyboardType = TextInputType.text,
         int maxLines = 1,
+        List<TextInputFormatter>? inputFormatters,
       }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -646,6 +680,7 @@ class StudentDetailScreenday extends StatelessWidget {
         onChanged: onChanged,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        inputFormatters: inputFormatters,
         decoration: _transferInputDeco(label),
       ),
     );
@@ -887,15 +922,17 @@ class StudentDetailScreenday extends StatelessWidget {
               fontSize: 17),
         ),
         actions: [
-          Tooltip(
-            message: "Edit Student",
-            child: IconButton(
-              onPressed: () => _openEditDialog(context),
-              icon: const Icon(Icons.edit_outlined,
-                  color: Colors.white),
+          if (showEdit) // Ye condition add karein
+            Tooltip(
+              message: "Edit Student",
+              child: IconButton(
+                onPressed: () => _openEditDialog(context),
+                icon: const Icon(Icons.edit_outlined,
+                    color: Colors.white),
+              ),
             ),
-          ),
         ],
+
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.r),
@@ -985,7 +1022,7 @@ class StudentDetailScreenday extends StatelessWidget {
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFAE1B5C), Color(0xFF97144D)],
+          colors: [Color(0xFFAB1A5E), Color(0xFF97144D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1224,7 +1261,7 @@ class StudentDetailScreenday extends StatelessWidget {
       height: 70,
       width: 70,
       decoration: BoxDecoration(
-        color: const Color(0xFFF6E6ED),
+        color: Colors.teal.shade50,
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Icon(Icons.person_outline, color: _tealLight),
@@ -1236,7 +1273,7 @@ class StudentDetailScreenday extends StatelessWidget {
       height: 56,
       width: 56,
       decoration: BoxDecoration(
-        color: const Color(0xFFF6E6ED),
+        color: Colors.teal.shade50,
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Icon(Icons.image_outlined, color: _tealLight),
@@ -1244,7 +1281,7 @@ class StudentDetailScreenday extends StatelessWidget {
   }
 
   // ══════════════════════════════════════════════════════════
-  // EDIT DIALOG — ORIGINAL WORD TO WORD
+  // EDIT DIALOG — ORIGINAL WORD TO WORD (+ ADMISSION DATE / DURATION FIX)
   // ══════════════════════════════════════════════════════════
   void _openEditDialog(BuildContext context) {
     final c = Get.find<daycare_controller.StudentControllerdaycare>();
@@ -1264,15 +1301,18 @@ class StudentDetailScreenday extends StatelessWidget {
       c.dateOfBirth.value = '';
     }
 
-    // ── Admission Date: parse and set properly ─────────────
+
     final ad = (student.admissionDate ?? '').toString().trim();
     if (ad.isNotEmpty) {
-      c.admissionDate.value           = _fmt(ad);
-      c.admissionDateController.text  = c.admissionDate.value;
+      c.admissionDate.value           = ad;
+      c.admissionDateController.text  = _fmt(ad);
     } else {
       c.admissionDate.value           = '';
       c.admissionDateController.text  = '';
     }
+
+
+    c.daycareDurations.value = (student.feesDuration ?? '').toString().trim();
 
     c.bloodGroup.value     = student.bloodGroup ?? '';
     c.religion.value       = student.religion ?? '';
@@ -1414,6 +1454,13 @@ class StudentDetailScreenday extends StatelessWidget {
                                     colorText: Colors.white);
                                 return;
                               }
+                              if (c.phone.value.trim().length != 10) {
+                                Get.snackbar(
+                                    "Error", "Phone must be 10 digits",
+                                    backgroundColor: Colors.red,
+                                    colorText: Colors.white);
+                                return;
+                              }
                               c.updateStudentByPostApi(
                                   studentId: student.studentID!);
                             },
@@ -1431,7 +1478,7 @@ class StudentDetailScreenday extends StatelessWidget {
     );
   }
 
-  // ── Edit form — original + admission date picker FIXED ────
+  // ── Edit form — original + admission date picker FIXED + duration dropdown ──
   Widget _editForm(
       daycare_controller.StudentControllerdaycare c,
       BuildContext context,
@@ -1481,24 +1528,51 @@ class StudentDetailScreenday extends StatelessWidget {
         // ── Admission Date picker — FIXED (same as DOB) ──
         _admissionDatePickerEdit(context, c),
 
+        // ✅ NAYA — Daycare Duration dropdown edit form me add kiya
+        _daycareDurationDropdownEdit(c),
+
         _dropdownEdit(
             label: "Blood Group",
             valueRx: c.bloodGroup,
             items: const ["A-", "A+", "B-", "B+", "O-", "O+"]),
+        // ── Religion: sirf words (letters + space) allowed ──
         _tfEdit("Religion", c.religion.value,
-                (v) => c.religion.value = v),
+                (v) => c.religion.value = v,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')),
+            ]),
+        // ── Phone: sirf digits, max 10 ──────────────────
         _tfEdit("Phone *", c.phone.value,
                 (v) => c.phone.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        // ── WhatsApp No: sirf digits, max 10 ─────────────
         _tfEdit("WhatsApp No", c.whatsappNo.value,
                 (v) => c.whatsappNo.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        // ── Emergency No: sirf digits, max 10 ────────────
         _tfEdit("Emergency No", c.emergencyNo.value,
                 (v) => c.emergencyNo.value = v,
-            keyboardType: TextInputType.phone),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]),
+        // ── Email: sirf valid email characters allowed ───
         _tfEdit("Email", c.emailController.text,
                 (v) => c.emailController.text = v,
-            keyboardType: TextInputType.emailAddress),
+            keyboardType: TextInputType.emailAddress,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-Z0-9@._\-]')),
+            ]),
         _tfEdit("From Time", c.fromTime.value,
                 (v) => c.fromTime.value = v),
         _tfEdit("To Time", c.toTime.value,
@@ -1637,11 +1711,51 @@ class StudentDetailScreenday extends StatelessWidget {
             final dd   = picked.day.toString().padLeft(2, '0');
             final mm   = picked.month.toString().padLeft(2, '0');
             final yyyy = picked.year.toString();
+            // UI me dikhane ke liye dd-mm-yyyy format
             c.admissionDateController.text = "$dd-$mm-$yyyy";
-            c.admissionDate.value          = "$dd-$mm-$yyyy";
+            // ✅ FIX: API ko bhejne wali value ab RAW ISO string hai,
+            // taaki backend isko sahi se parse kar sake (jaisa insert
+            // ke waqt DateTime.now().toIso8601String() jaata hai).
+            c.admissionDate.value = picked.toIso8601String();
           }
         },
       ),
+    );
+  }
+
+
+  Widget _daycareDurationDropdownEdit(
+      daycare_controller.StudentControllerdaycare c) {
+    final durationController =
+    Get.isRegistered<DaycareDurationDropdownController>()
+        ? Get.find<DaycareDurationDropdownController>()
+        : Get.put(DaycareDurationDropdownController());
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Obx(() {
+        final items = durationController.durations;
+        final current = c.daycareDurations.value.trim();
+        if (items.isNotEmpty && !items.contains(current)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            c.daycareDurations.value = items.first;
+          });
+        }
+        final safeValue = items.contains(current) ? current : null;
+
+        return DropdownButtonFormField<String>(
+          value: safeValue,
+          items: items
+              .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+              .toList(),
+          onChanged: (v) => c.daycareDurations.value = v ?? '',
+          decoration: _editInputDeco('Daycare Duration',
+              icon: Icons.access_time_outlined),
+          hint: durationController.isLoading.value
+              ? const Text('Loading...')
+              : const Text('Select Duration'),
+        );
+      }),
     );
   }
 
@@ -1652,6 +1766,7 @@ class StudentDetailScreenday extends StatelessWidget {
       Function(String) onChanged, {
         TextInputType keyboardType = TextInputType.text,
         int maxLines = 1,
+        List<TextInputFormatter>? inputFormatters,
       }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -1660,6 +1775,7 @@ class StudentDetailScreenday extends StatelessWidget {
         onChanged: onChanged,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        inputFormatters: inputFormatters,
         decoration: _editInputDeco(label),
       ),
     );

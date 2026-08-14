@@ -66,6 +66,7 @@ import '../../binding/masterbinding.dart';
 import '../../binding/mealbinding.dart';
 import '../../binding/note_binding.dart';
 import '../../binding/notification_binding.dart';
+import '../../binding/parent enquiry binding.dart';
 import '../../binding/parent_id_binding.dart';
 import '../../binding/pay_daycare_binding.dart';
 import '../../binding/payment_master_binding.dart';
@@ -178,6 +179,7 @@ import '../../pages/mealactivityview.dart';
 import '../../pages/note_screen.dart';
 import '../../pages/notification_screen.dart';
 import '../../pages/otpscreen.dart';
+import '../../pages/parent enquiry screen.dart';
 import '../../pages/parent_id_page.dart';
 import '../../pages/pay_daycare_screen.dart';
 import '../../pages/payment_master_screen.dart';
@@ -989,6 +991,12 @@ GetPage(
    page: () =>  TransportFeeScreen(),
    binding: TransportFeeBinding(),
  ),
+    GetPage(
+      name: RouteName.parentenquirypage,
+      page: () => EnquiryScreen(),
+      binding: ParentEnquiryBinding(),
+      transition: Transition.leftToRight,
+    ),
 
     GetPage(
       name: RouteName.syllabus,

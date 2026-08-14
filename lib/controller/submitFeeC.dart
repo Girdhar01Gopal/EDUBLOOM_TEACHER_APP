@@ -15,7 +15,7 @@ class SubmitFeeController extends GetxController {
   final feeItems = <ListData>[].obs;
   final checkboxStates = <bool>[].obs;
   final selectedRows = <ListData>[].obs;
-  
+
 
   /// ✅ maps "AUG-Tuition Fee" -> dueAmount
   final dueAmounts = <String, int>{}.obs;
@@ -50,32 +50,32 @@ class SubmitFeeController extends GetxController {
   // ✅ normalize so key mismatch never happens
   String _norm(String s) => s.trim().toUpperCase();
 
-double get totalAmount {
-  double sum = 0;
-  for (final row in selectedRows) {
-    // Use dueAmount if it exists, otherwise use the base amount
-    final due = dueAmounts['${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}'] ?? 0;
-    final amount = int.tryParse(row.amount) ?? 0;
+  double get totalAmount {
+    double sum = 0;
+    for (final row in selectedRows) {
+      // Use dueAmount if it exists, otherwise use the base amount
+      final due = dueAmounts['${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}'] ?? 0;
+      final amount = int.tryParse(row.amount) ?? 0;
 
-    // Prioritize dueAmount over baseAmount (row.amount)
-    sum += (due > 0) ? due : amount;
-  }
-  return sum;
-}
-
-int getSelectedDueTotal() {
-  int sum = 0;
-
-  for (final row in selectedRows) {
-    final key =
-        '${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}';
-
-    final due = dueAmounts[key] ?? (row.dueAmount ?? 0);
-    sum += due;
+      // Prioritize dueAmount over baseAmount (row.amount)
+      sum += (due > 0) ? due : amount;
+    }
+    return sum;
   }
 
-  return sum;
-}
+  int getSelectedDueTotal() {
+    int sum = 0;
+
+    for (final row in selectedRows) {
+      final key =
+          '${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}';
+
+      final due = dueAmounts[key] ?? (row.dueAmount ?? 0);
+      sum += due;
+    }
+
+    return sum;
+  }
 
 
   double get totalDueAmount {
@@ -92,7 +92,7 @@ int getSelectedDueTotal() {
   Future<void> onInit() async {
     super.onInit();
 
-   // token.value = await PrefManager().readValue(key: PrefConst.token);
+    // token.value = await PrefManager().readValue(key: PrefConst.token);
     session.value = await PrefManager().readValue(key: PrefConst.session);
     schoolId.value = (await PrefManager().readValue(key: PrefConst.schollId))?.toString() ?? '';
 
@@ -128,11 +128,11 @@ int getSelectedDueTotal() {
   /// Public method to refresh data when returning to this screen
   Future<void> refreshData() async {
     if (feeItems.isEmpty) return;
-    
+
     // Priority: explicitly passed studentId -> fee item studentId -> parsed registrationNo
     final int studentIdOrRegNo = (selectedStudentId.value != 0)
-      ? selectedStudentId.value
-      : (feeItems.first.studentId != 0)
+        ? selectedStudentId.value
+        : (feeItems.first.studentId != 0)
         ? feeItems.first.studentId
         : (int.tryParse(feeItems.first.registrationNo ?? '') ?? 0);
 
@@ -145,7 +145,7 @@ int getSelectedDueTotal() {
       ),
       fetchDiscount(studentIdOrRegNo),
     ]);
-    
+
     // Reset checkbox states after refresh
     checkboxStates.assignAll(List<bool>.filled(feeItems.length, false));
     selectedRows.clear();
@@ -183,19 +183,19 @@ int getSelectedDueTotal() {
 
         if (list != null) {
           for (final row in list) {
-          final feeType = _norm(row.feeTypeDisplay ?? row.feeType ?? '');
-          final feeMonth = _norm(row.feeMonth ?? ''); // should match feesDuration
-           status.value = row.paidaction ?? '';
+            final feeType = _norm(row.feeTypeDisplay ?? row.feeType ?? '');
+            final feeMonth = _norm(row.feeMonth ?? ''); // should match feesDuration
+            status.value = row.paidaction ?? '';
 
-          // ✅ KEY EXACTLY like UI expects
-          final key = '$feeMonth-$feeType';
+            // ✅ KEY EXACTLY like UI expects
+            final key = '$feeMonth-$feeType';
 
-          final due = row.dueAmount ?? 0;
-          final paid = row.totalPay ?? 0;
+            final due = row.dueAmount ?? 0;
+            final paid = row.totalPay ?? 0;
 
-          dueAmounts[key] = due;
-          paidAmounts[key] = paid;
-          print('Fetched for key=$key: due=$due, paid=$paid');
+            dueAmounts[key] = due;
+            paidAmounts[key] = paid;
+            print('Fetched for key=$key: due=$due, paid=$paid');
           }
         }
       } else {
@@ -245,7 +245,7 @@ int getSelectedDueTotal() {
       if (response.statusCode == 200) {
         // keep your existing logic
       } else {
-       // Get.snackbar("Error", "Failed to load discount details.");
+        // Get.snackbar("Error", "Failed to load discount details.");
       }
     } catch (e) {
       Get.snackbar("Error", "Error occurred while fetching discount details.");
@@ -289,11 +289,11 @@ int getSelectedDueTotal() {
         }
       }
     }
-    
+
     if (selectedRows.isNotEmpty && selectedFeeMonth.value.isEmpty) {
       selectedFeeMonth.value = selectedRows.first.feesDuration ?? '';
     }
-    
+
     checkboxStates.refresh();
     selectedRows.refresh();
   }
@@ -309,7 +309,7 @@ int getSelectedDueTotal() {
     selectedRows.refresh();
   }
 
-    /// Called when discount screen returns a discount amount
+  /// Called when discount screen returns a discount amount
   void applyDiscountToSelectedFees(int discountAmount) {
     if (discountAmount <= 0) return;
 
@@ -350,7 +350,7 @@ int getSelectedDueTotal() {
     feeItems.refresh();
     checkboxStates.refresh();
     dueAmounts.refresh();
-    
+
     if (remainingDiscount > 0) {
       Get.snackbar(
         'Info',
@@ -368,41 +368,45 @@ int getSelectedDueTotal() {
       Get.offAll(RouteName.dashboard_screen);
     }
   }
-  
-void showPaymentDetailsDialog({
-  required String studentname,
-  required String feesmonth,
-  required String feetype,
-  required var due,
-}) {
-  // Check if all selected fees are already paid
-  if (totalDueAmount == 0 && totalAmount == 0) {
-    Get.snackbar(
-      'Info',
-      'All selected fees are already paid',
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-    );
-    return;
-  }
 
-  final bool hasDueAmount = totalDueAmount > 0;
-  final int maxPaymentAmount =
-      hasDueAmount ? totalDueAmount.toInt() : totalAmount.toInt();
+  void showPaymentDetailsDialog({
+    required String studentname,
+    required String feesmonth,
+    required String feetype,
+    required var due,
+  }) {
+    // Check if all selected fees are already paid
 
-  // Prefill amount
-  totalPayAmount.value = maxPaymentAmount;
 
-  if (selectedDate.value.isEmpty) {
-    selectedDate.value = DateTime.now().toIso8601String().split('T')[0];
-  }
+    if (totalDueAmount == 0 && totalAmount == 0) {
+      Get.snackbar(
+        'Info',
+        'All selected fees are already paid',
+        backgroundColor: Colors.blue,
+        colorText: Colors.white,
+      );
+      return;
+    }
 
-  final payAmountController =
-      TextEditingController(text: totalPayAmount.value.toString());
-  final paymentDateController = TextEditingController(text: selectedDate.value);
-  final int selectedDue = getSelectedDueTotal();
+    final bool hasDueAmount = totalDueAmount > 0;
+    final int maxPaymentAmount =
+    hasDueAmount ? totalDueAmount.toInt() : totalAmount.toInt();
 
-  Get.dialog(
+
+    // Prefill amount
+    totalPayAmount.value = maxPaymentAmount;
+
+    if (selectedDate.value.isEmpty) {
+      selectedDate.value = DateTime.now().toIso8601String().split('T')[0];
+    }
+
+
+    final payAmountController =
+    TextEditingController(text: totalPayAmount.value.toString());
+    final paymentDateController = TextEditingController(text: selectedDate.value);
+    final int selectedDue = getSelectedDueTotal();
+
+    Get.dialog(
       Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -427,74 +431,74 @@ void showPaymentDetailsDialog({
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-            // Selected Fees Breakdown
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.receipt_long, color: Colors.blue.shade700, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Selected Fees (${selectedRows.length})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
-                        ),
-                      ),
-                    ],
+                // Selected Fees Breakdown
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
-                  const Divider(height: 14),
-                  ...selectedRows.map((row) {
-                    final key = '${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}';
-                    final dueForFee = dueAmounts[key] ?? 0;
-                    final baseAmount = int.tryParse(row.amount) ?? 0;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Expanded(
-                            child: Text(
-                              '${row.feeType}/${row.feesDuration}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
+                          Icon(Icons.receipt_long, color: Colors.blue.shade700, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            dueForFee > 0 ? '₹$dueForFee (Due)' : '₹$baseAmount',
+                            'Selected Fees (${selectedRows.length})',
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: dueForFee > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade900,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Total Amount
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total Amount:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      const Divider(height: 14),
+                      ...selectedRows.map((row) {
+                        final key = '${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}';
+                        final dueForFee = dueAmounts[key] ?? 0;
+                        final baseAmount = int.tryParse(row.amount) ?? 0;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${row.feeType}/${row.feesDuration}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                              Text(
+                                dueForFee > 0 ? '₹$dueForFee (Due)' : '₹$baseAmount',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: dueForFee > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
                 ),
-                Obx(() => Text(
+
+                const SizedBox(height: 14),
+
+                // Total Amount
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Amount:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    Obx(() => Text(
                       '₹${totalAmount.toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontSize: 12,
@@ -502,20 +506,20 @@ void showPaymentDetailsDialog({
                         color: Colors.green,
                       ),
                     )),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Total Due
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total Due Amount:',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ],
                 ),
-                Obx(() => Text(
+
+                const SizedBox(height: 8),
+
+                // Total Due
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Due Amount:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    Obx(() => Text(
                       '₹${totalDueAmount.toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontSize: 12,
@@ -523,98 +527,103 @@ void showPaymentDetailsDialog({
                         color: Colors.red,
                       ),
                     )),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            TextField(
-              controller: selectedRows.length > 1
-                  ? TextEditingController(text: selectedDue > totalAmount ? selectedDue.toString() : totalAmount.toStringAsFixed(0))
-                  : payAmountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Payment Amount',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  ],
                 ),
-                helperText: selectedRows.length > 1
-                    ? "Pay ₹${selectedDue > totalAmount ? selectedDue : totalAmount.toStringAsFixed(0)}"
-                    : "Pay ₹${selectedDue > 0 ? selectedDue : totalAmount.toStringAsFixed(0)}",
-                helperStyle: const TextStyle(color: Colors.orange),
-              ),
-              onChanged: (value) {
-                final enteredAmount = int.tryParse(value) ?? 0;
 
-                if (enteredAmount > maxPaymentAmount) {
-                  Get.snackbar(
-                    'Warning',
-                    'Payment amount cannot exceed ₹$maxPaymentAmount',
-                    backgroundColor: Colors.orange,
-                    colorText: Colors.white,
-                  );
+                const SizedBox(height: 14),
 
-                  totalPayAmount.value = maxPaymentAmount;
-                  payAmountController.text = maxPaymentAmount.toString();
-                  payAmountController.selection = TextSelection.fromPosition(
-                    TextPosition(offset: payAmountController.text.length),
-                  );
-                } else {
-                  totalPayAmount.value = enteredAmount;
-                }
-              },
-              // Disable editing if more than 1 row is selected
-              enabled: selectedRows.length == 1,
-              // Show total amount and disable editing if multiple rows are selected
-              readOnly: selectedRows.length > 1,
-            ),
-
-            const SizedBox(height: 14),
-
-            // Payment Date
-            Obx(() {
-              // keep controller in sync
-              if (paymentDateController.text != selectedDate.value) {
-                paymentDateController.text = selectedDate.value;
-              }
-
-              return TextField(
-                controller: paymentDateController,
-                readOnly: true,
-                decoration: InputDecoration(
-                  labelText: 'Payment Date',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                TextField(
+                  controller: payAmountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Payment Amount',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    helperText: selectedRows.length > 1
+                        ? "Max ₹${selectedDue > totalAmount ? selectedDue : totalAmount.toStringAsFixed(0)}"
+                        : "Max ₹${selectedDue > 0 ? selectedDue : totalAmount.toStringAsFixed(0)}",
+                    helperStyle: const TextStyle(color: Colors.orange),
                   ),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.calendar_today),
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: Get.context!,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                          );
-                          if (date != null) {
-                            selectedDate.value =
-                                date.toIso8601String().split('T')[0];
-                          }
-                        },
+                  onChanged: (value) {
+                    final enteredAmount = int.tryParse(value) ?? 0;
+
+                    // ✅ If there's no real due amount selected (< 1), the limit is
+                    // simply the total amount. Otherwise, take whichever is larger
+                    // between the selected due and the total — same rule as the
+                    // helper text above, so the displayed max and enforced max
+                    // always agree.
+                    final int dynamicMax = selectedDue < 1
+                        ? totalAmount.toInt()
+                        : (selectedDue > totalAmount ? selectedDue : totalAmount.toInt());
+
+                    if (enteredAmount > dynamicMax) {
+                      Get.snackbar(
+                        'Warning',
+                        'Payment amount cannot exceed ₹$dynamicMax',
+                        backgroundColor: Colors.orange,
+                        colorText: Colors.white,
+                      );
+
+                      totalPayAmount.value = dynamicMax;
+                      payAmountController.text = dynamicMax.toString();
+                      payAmountController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: payAmountController.text.length),
+                      );
+                    } else {
+                      totalPayAmount.value = enteredAmount;
+                    }
+                  },
+                  // Always editable now, regardless of how many rows are selected
+                  enabled: true,
+                  readOnly: false,
+                ),
+                const SizedBox(height: 14),
+
+                // Payment Date
+                Obx(() {
+                  // keep controller in sync
+                  if (paymentDateController.text != selectedDate.value) {
+                    paymentDateController.text = selectedDate.value;
+                  }
+
+                  return TextField(
+                    controller: paymentDateController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'Payment Date',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
-                  ),
-                ),
-                style: const TextStyle(fontSize: 12),
-              );
-            }),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.calendar_today),
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: Get.context!,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now(),
+                              );
+                              if (date != null) {
+                                selectedDate.value =
+                                date.toIso8601String().split('T')[0];
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                  );
+                }),
 
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            // Payment Mode
-            Obx(() => DropdownButtonFormField<String>(
+                // Payment Mode
+                Obx(() => DropdownButtonFormField<String>(
                   value: selectedPaymentMode.value.isEmpty
                       ? null
                       : selectedPaymentMode.value,
@@ -626,60 +635,60 @@ void showPaymentDetailsDialog({
                   ),
                   items: paymentModes
                       .map((mode) => DropdownMenuItem(
-                            value: mode.paymentMode,
-                            child: Text(mode.paymentMode ?? 'N/A', style: TextStyle(fontSize: 12)),
-                          ))
+                    value: mode.paymentMode,
+                    child: Text(mode.paymentMode ?? 'N/A', style: TextStyle(fontSize: 12)),
+                  ))
                       .toList(),
                   onChanged: (value) => selectedPaymentMode.value = value ?? '',
                 )),
 
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            /// Conditional Fields
-            Obx(() {
-              if (selectedPaymentMode.value == 'NEFT' ||
-                  selectedPaymentMode.value == 'Cheque') {
-                return Column(
-                  children: [
-                    TextFormField(
+                /// Conditional Fields
+                Obx(() {
+                  if (selectedPaymentMode.value == 'NEFT' ||
+                      selectedPaymentMode.value == 'Cheque') {
+                    return Column(
+                      children: [
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Bank Name',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => bankName.value = v.trim(),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Cheque Date',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => chequeDate.value = v.trim(),
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Cheque No',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => chequeNo.value = v.trim(),
+                        ),
+                      ],
+                    );
+                  }
+
+                  if (selectedPaymentMode.value == 'UPI') {
+                    return TextFormField(
                       decoration: const InputDecoration(
-                        labelText: 'Bank Name',
+                        labelText: 'UPI ID',
                         border: OutlineInputBorder(),
                       ),
-                      onChanged: (v) => bankName.value = v.trim(),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Cheque Date',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (v) => chequeDate.value = v.trim(),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Cheque No',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (v) => chequeNo.value = v.trim(),
-                    ),
-                  ],
-                );
-              }
+                      onChanged: (v) => upiId.value = v.trim(),
+                    );
+                  }
 
-              if (selectedPaymentMode.value == 'UPI') {
-                return TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'UPI ID',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (v) => upiId.value = v.trim(),
-                );
-              }
-
-              return const SizedBox(height: 10);
-            }),
+                  return const SizedBox(height: 10);
+                }),
 
                 const SizedBox(height: 20),
 
@@ -730,138 +739,137 @@ void showPaymentDetailsDialog({
           ),
         ),
       ),
-    barrierDismissible: false,
-  );
-}
-
-Future<void> submitFeeInstallment(
-  {
-    required String studentn,
-    required String fesmonth,
-    required var feetype,
-    required var dueamount,
-    required var paydatee,
-  }
-) async {
-  final url = Uri.parse(
-      "${AppUrl.base_url}api/FeePaymentApp/SubmitFeeInstallsMentApp");
-
-  String utcNow() => DateTime.now().toUtc().toIso8601String();
-  // Calculate total due for selected fees
-  final int totalDueValue = totalDueAmount.toInt();
-  final int totalPayValue = totalPayAmount.value.toInt();
-  
-  // Distribute payment proportionally across selected fees
-  int remainingPayment = totalPayValue;
-  
-  final List<Map<String, dynamic>> paymentItems = [];
-
-  for (final row in selectedRows) {
-    if (remainingPayment <= 0) break;
-
-    final key = '${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}';
-    final dueForThisFee = dueAmounts[key] ?? (row.dueAmount ?? 0);
-    final baseAmount = int.tryParse(row.amount) ?? 0;
-    final discountForThisFee = row.discount ?? 0;
-
-    // Priority: pay due amount first, then base amount
-    int payForThisFee = 0;
-    int newDueAmount = dueForThisFee;
-
-    if (dueForThisFee > 0) {
-      // Pay towards due
-      payForThisFee = remainingPayment > dueForThisFee ? dueForThisFee : remainingPayment;
-      newDueAmount = dueForThisFee - payForThisFee;
-      remainingPayment -= payForThisFee;
-    } else if (remainingPayment > 0) {
-      // No due, pay towards base amount
-      payForThisFee = remainingPayment > baseAmount ? baseAmount : remainingPayment;
-      remainingPayment -= payForThisFee;
-    }
-
-    if (payForThisFee <= 0) continue;
-
-    // Convert date-only string "2026-05-12" to full ISO 8601 UTC format
-    final String payDateIso = paydatee.isNotEmpty
-        ? DateTime.tryParse(paydatee)?.toUtc().toIso8601String() ?? utcNow()
-        : utcNow();
-
-    final item = {
-      "paymentId": 0,
-      "studentId": selectedStudentId.value,
-      "registrationNo": row.registrationNo ?? "",
-      "studentName": studentn,
-      "session": session.value,
-      "payDate": payDateIso,
-      "feetype": row.feeType ?? "",
-      "totalAmount": baseAmount,
-      "payAmount": payForThisFee,
-      "dueAmount": newDueAmount,
-      "totalPay": payForThisFee,
-      "discount": discountForThisFee,
-      "receiptno": "string",
-      "paymentReceiptNo": "string",
-      "action": "1",
-      "paymentMode": selectedPaymentMode.value,
-      "remarks": remarksController.text.trim(),
-      "bankName": bankName.value.isNotEmpty ? bankName.value : "string",
-      "chequeDate": chequeDate.value.isNotEmpty ? chequeDate.value : "string",
-      "chequeNo": chequeNo.value.isNotEmpty ? chequeNo.value : "string",
-      "createDate": utcNow(),
-      "createBy": "string",
-      "schoolId": schoolId.value,
-      "paidAmount": payForThisFee.toString(),
-      "paidaction": newDueAmount == 0 && payForThisFee == baseAmount ? "Paid" : "Partial",
-      "classid": row.classId,
-      "feeMonth": row.feesDuration ?? "",
-      "approveDate": utcNow(),
-      "modePaymentOnline": selectedPaymentMode.value == 'UPI' ? upiId.value : "string",
-      "orderNumber": "string",
-      "transactionid": "string",
-      "invid": 0,
-      "createBy1": "string",
-      "quarterFee": "string",
-    };
-    
-    paymentItems.add(item);
-  }
-
-  if (paymentItems.isEmpty) {
-    Get.snackbar("Error", "No valid payment items to submit");
-    return;
-  }
-
-  print("Prepared ${paymentItems.length} payment items");
-  print("REQUEST BODY => ${jsonEncode(paymentItems)}");
-
-  try {
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(paymentItems),
+      barrierDismissible: false,
     );
-
-    if (response.statusCode == 200) {
-      print(response.body);
-      Get.snackbar(
-        "Success",
-        "Payment of ₹$totalPayValue submitted successfully for ${paymentItems.length} fee(s)!",
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-      
-      // Clear selections and refresh
-      clearAllSelections();
-      await refreshData();
-    } else {
-      print("ERROR => ${response.body}");
-      Get.snackbar("Error", "Submission failed (${response.statusCode})");
-    }
-  } catch (e) {
-    print("Exception => $e");
-    Get.snackbar("Error", "$e");
   }
-}
+
+  Future<void> submitFeeInstallment(
+      {
+        required String studentn,
+        required String fesmonth,
+        required var feetype,
+        required var dueamount,
+        required var paydatee,
+      }
+      ) async {
+    final url = Uri.parse(
+        "${AppUrl.base_url}api/FeePaymentApp/SubmitFeeInstallsMentApp");
+
+    String utcNow() => DateTime.now().toUtc().toIso8601String();
+    // Calculate total due for selected fees
+    final int totalDueValue = totalDueAmount.toInt();
+    final int totalPayValue = totalPayAmount.value.toInt();
+
+    // Distribute payment proportionally across selected fees
+    int remainingPayment = totalPayValue;
+
+    final List<Map<String, dynamic>> paymentItems = [];
+
+    for (final row in selectedRows) {
+      if (remainingPayment <= 0) break;
+
+      final key = '${_norm(row.feesDuration ?? '')}-${_norm(row.feeType ?? '')}';
+      final dueForThisFee = dueAmounts[key] ?? (row.dueAmount ?? 0);
+      final baseAmount = int.tryParse(row.amount) ?? 0;
+      final discountForThisFee = row.discount ?? 0;
+
+      // Priority: pay due amount first, then base amount
+      int payForThisFee = 0;
+      int newDueAmount = dueForThisFee;
+
+      if (dueForThisFee > 0) {
+        // Pay towards due
+        payForThisFee = remainingPayment > dueForThisFee ? dueForThisFee : remainingPayment;
+        newDueAmount = dueForThisFee - payForThisFee;
+        remainingPayment -= payForThisFee;
+      } else if (remainingPayment > 0) {
+        // No due, pay towards base amount
+        payForThisFee = remainingPayment > baseAmount ? baseAmount : remainingPayment;
+        remainingPayment -= payForThisFee;
+      }
+
+      if (payForThisFee <= 0) continue;
+
+      // Convert date-only string "2026-05-12" to full ISO 8601 UTC format
+      final String payDateIso = paydatee.isNotEmpty
+          ? "${paydatee}T12:00:00" // Time add karein bina toUtc() ke
+          : DateTime.now().toIso8601String();
+
+      final item = {
+        "paymentId": 0,
+        "studentId": selectedStudentId.value,
+        "registrationNo": row.registrationNo ?? "",
+        "studentName": studentn,
+        "session": session.value,
+        "payDate": payDateIso,
+        "feetype": row.feeType ?? "",
+        "totalAmount": baseAmount,
+        "payAmount": payForThisFee,
+        "dueAmount": newDueAmount,
+        "totalPay": payForThisFee,
+        "discount": discountForThisFee,
+        "receiptno": "string",
+        "paymentReceiptNo": "string",
+        "action": "1",
+        "paymentMode": selectedPaymentMode.value,
+        "remarks": remarksController.text.trim(),
+        "bankName": bankName.value.isNotEmpty ? bankName.value : "string",
+        "chequeDate": chequeDate.value.isNotEmpty ? chequeDate.value : "string",
+        "chequeNo": chequeNo.value.isNotEmpty ? chequeNo.value : "string",
+        "createDate": utcNow(),
+        "createBy": "string",
+        "schoolId": schoolId.value,
+        "paidAmount": payForThisFee.toString(),
+        "paidaction": newDueAmount == 0 && payForThisFee == baseAmount ? "Paid" : "Partial",
+        "classid": row.classId,
+        "feeMonth": row.feesDuration ?? "",
+        "approveDate": utcNow(),
+        "modePaymentOnline": selectedPaymentMode.value == 'UPI' ? upiId.value : "string",
+        "orderNumber": "string",
+        "transactionid": "string",
+        "invid": 0,
+        "createBy1": "string",
+        "quarterFee": "string",
+      };
+
+      paymentItems.add(item);
+    }
+
+    if (paymentItems.isEmpty) {
+      Get.snackbar("Error", "No valid payment items to submit");
+      return;
+    }
+
+    print("Prepared ${paymentItems.length} payment items");
+    print("REQUEST BODY => ${jsonEncode(paymentItems)}");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(paymentItems),
+      );
+
+      if (response.statusCode == 200) {
+        print(response.body);
+        Get.snackbar(
+          "Success",
+          "Payment of ₹$totalPayValue submitted successfully for ${paymentItems.length} fee(s)!",
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
+        // Clear selections and refresh
+        clearAllSelections();
+        await refreshData();
+      } else {
+        print("ERROR => ${response.body}");
+        Get.snackbar("Error", "Submission failed (${response.statusCode})");
+      }
+    } catch (e) {
+      print("Exception => $e");
+      Get.snackbar("Error", "$e");
+    }
+  }
 
 }
- 

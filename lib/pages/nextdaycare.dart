@@ -19,16 +19,37 @@ const _textSecondary = Color(0xFF607D8B);
 const _textPrimary   = Color(0xFF1A2B3C);
 const _divider       = Color(0xFFE0F2F1);
 
-class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
-  Nextdaycare({super.key});
+class Nextdaycare extends StatefulWidget {
+  const Nextdaycare({super.key});
 
-  final _formKey       = GlobalKey<FormState>();
-  final _phoneCtrl     = TextEditingController();
-  final _whatsappCtrl  = TextEditingController();
-  bool _sameAsPhone    = false;
+  @override
+  State<Nextdaycare> createState() => _NextdaycareState();
+}
+
+class _NextdaycareState extends State<Nextdaycare> {
+  // controller.<Fields> ko GetView ki jagah Get.find se access karenge
+  final daycare.StudentControllerdaycare controller =
+  Get.find<daycare.StudentControllerdaycare>();
+
+  final _formKey      = GlobalKey<FormState>();
+  final _phoneCtrl    = TextEditingController();
+  final _whatsappCtrl = TextEditingController();
+  final _phoneFocus   = FocusNode();
+  final _whatsappFocus = FocusNode();
+
+  bool _sameAsPhone = false;
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    _whatsappCtrl.dispose();
+    _phoneFocus.dispose();
+    _whatsappFocus.dispose();
+    super.dispose();
+  }
 
   // ── Phone changed → mirror to WhatsApp if checkbox ON ────
-  void _onPhoneChanged(String v, StateSetter ss) {
+  void _onPhoneChanged(String v) {
     controller.phone.value = v.trim();
     if (_sameAsPhone) {
       _whatsappCtrl.text = v;
@@ -39,8 +60,8 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
   }
 
   // ── Toggle checkbox ───────────────────────────────────────
-  void _toggle(bool? val, StateSetter ss) {
-    ss(() => _sameAsPhone = val ?? false);
+  void _toggle(bool? val) {
+    setState(() => _sameAsPhone = val ?? false);
     if (_sameAsPhone) {
       _whatsappCtrl.text = controller.phone.value;
       controller.whatsappNo.value = controller.phone.value;
@@ -121,12 +142,14 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
     required String label,
     required Function(String) onChanged,
     TextEditingController? extController,
+    FocusNode? focusNode,
     IconData? icon,
   }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: TextFormField(
         controller: extController,
+        focusNode: focusNode,
         keyboardType: TextInputType.phone,
         maxLength: 10,
         onChanged: onChanged,
@@ -185,6 +208,7 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
     required String label,
     required Function(String) onChanged,
     TextEditingController? extController,
+    FocusNode? focusNode,
     bool enabled = true,
     IconData? icon,
   }) {
@@ -192,6 +216,7 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: TextFormField(
         controller: extController,
+        focusNode: focusNode,
         enabled: enabled,
         keyboardType: TextInputType.phone,
         maxLength: 10,
@@ -213,11 +238,11 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
   }
 
   // ── WhatsApp checkbox row ─────────────────────────────────
-  Widget _checkboxRow(StateSetter ss) {
+  Widget _checkboxRow() {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.h),
       child: InkWell(
-        onTap: () => _toggle(!_sameAsPhone, ss),
+        onTap: () => _toggle(!_sameAsPhone),
         borderRadius: BorderRadius.circular(10.r),
         child: Container(
           padding:
@@ -242,7 +267,7 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
                 activeColor: _teal,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4)),
-                onChanged: (v) => _toggle(v, ss),
+                onChanged: _toggle,
               ),
             ),
             SizedBox(width: 10.w),
@@ -270,6 +295,7 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: _teal,
@@ -283,175 +309,172 @@ class Nextdaycare extends GetView<daycare.StudentControllerdaycare> {
               letterSpacing: 0.3),
         ),
       ),
-      body: StatefulBuilder(
-        builder: (context, setState) {
-          return SingleChildScrollView(
-            padding:
-            EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-                  // ══════════════════════════════════
-                  // 1. CONTACT INFO
-                  //    Phone → Checkbox → WhatsApp → Emergency
-                  // ══════════════════════════════════
-                  _sectionHeader(
-                      'Contact Information', Icons.contact_phone_outlined),
-                  _buildCard([
-                    _requiredPhoneField(
-                      label: "Phone",
-                      icon: Icons.phone_outlined,
-                      extController: _phoneCtrl,
-                      onChanged: (v) => _onPhoneChanged(v, setState),
-                    ),
-                    _checkboxRow(setState),
-                    _optional10DigitPhoneField(
-                      label: "WhatsApp No",
-                      icon: Icons.chat_outlined,
-                      extController: _whatsappCtrl,
-                      enabled: !_sameAsPhone,
-                      onChanged: (v) =>
-                      controller.whatsappNo.value = v.trim(),
-                    ),
-                    _optional10DigitPhoneField(
-                      label: "Emergency No",
-                      icon: Icons.emergency_outlined,
-                      onChanged: (v) =>
-                      controller.emergencyNo.value = v.trim(),
-                    ),
-                  ]),
+              // ══════════════════════════════════
+              // 1. CONTACT INFO
+              //    Phone → Checkbox → WhatsApp → Emergency
+              // ══════════════════════════════════
+              _sectionHeader(
+                  'Contact Information', Icons.contact_phone_outlined),
+              _buildCard([
+                _requiredPhoneField(
+                  label: "Phone",
+                  icon: Icons.phone_outlined,
+                  extController: _phoneCtrl,
+                  focusNode: _phoneFocus,
+                  onChanged: _onPhoneChanged,
+                ),
+                _checkboxRow(),
+                _optional10DigitPhoneField(
+                  label: "WhatsApp No",
+                  icon: Icons.chat_outlined,
+                  extController: _whatsappCtrl,
+                  focusNode: _whatsappFocus,
+                  enabled: !_sameAsPhone,
+                  onChanged: (v) =>
+                  controller.whatsappNo.value = v.trim(),
+                ),
+                _optional10DigitPhoneField(
+                  label: "Emergency No",
+                  icon: Icons.emergency_outlined,
+                  onChanged: (v) =>
+                  controller.emergencyNo.value = v.trim(),
+                ),
+              ]),
 
-                  SizedBox(height: 16.h),
+              SizedBox(height: 16.h),
 
-                  // ══════════════════════════════════
-                  // 2. FAMILY INFO
-                  // ══════════════════════════════════
-                  _sectionHeader(
-                      'Family Information', Icons.family_restroom_outlined),
-                  _buildCard([
-                    _normalField(
-                      label: "Father Occupation",
-                      icon: Icons.work_outline,
-                      onChanged: (v) =>
-                      controller.fatherOccupation.value = v,
-                    ),
-                    _requiredTextField(
-                      label: "Father Name",
-                      icon: Icons.person_outline,
-                      onChanged: (v) =>
-                      controller.fatherName.value = v,
-                    ),
-                    _requiredTextField(
-                      label: "Mother Name",
-                      icon: Icons.person_outline,
-                      onChanged: (v) =>
-                      controller.motherName.value = v,
-                    ),
-                  ]),
+              // ══════════════════════════════════
+              // 2. FAMILY INFO
+              // ══════════════════════════════════
+              _sectionHeader(
+                  'Family Information', Icons.family_restroom_outlined),
+              _buildCard([
+                _normalField(
+                  label: "Father Occupation",
+                  icon: Icons.work_outline,
+                  onChanged: (v) =>
+                  controller.fatherOccupation.value = v,
+                ),
+                _requiredTextField(
+                  label: "Father Name",
+                  icon: Icons.person_outline,
+                  onChanged: (v) =>
+                  controller.fatherName.value = v,
+                ),
+                _requiredTextField(
+                  label: "Mother Name",
+                  icon: Icons.person_outline,
+                  onChanged: (v) =>
+                  controller.motherName.value = v,
+                ),
+              ]),
 
-                  SizedBox(height: 16.h),
+              SizedBox(height: 16.h),
 
-                  // ══════════════════════════════════
-                  // 3. SESSION
-                  // ══════════════════════════════════
-                  _sectionHeader(
-                      'Academic Session', Icons.school_outlined),
-                  _buildCard([
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 6.h),
-                      child: Obx(() {
-                        return DropdownButtonFormField<
-                            session_model.sListDdata>(
-                          value: controller.selectedSession.value,
-                          hint: Text('Select Session',
-                              style: TextStyle(
-                                  color: _textSecondary,
-                                  fontSize: 14.sp)),
-                          onChanged: (newVal) {
-                            controller.selectedSession.value = newVal;
-                            controller.session.value =
-                                newVal?.session ?? '';
-                          },
-                          items: controller.sessionList.map((session) {
-                            return DropdownMenuItem(
-                                value: session,
-                                child: Text(
-                                    session.session ?? 'No session'));
-                          }).toList(),
-                          decoration: _inputDeco('Session',
-                              icon: Icons.calendar_month_outlined),
-                          validator: (val) =>
-                          val == null ? "Required" : null,
-                        );
-                      }),
-                    ),
-                  ]),
+              // ══════════════════════════════════
+              // 3. SESSION
+              // ══════════════════════════════════
+              _sectionHeader(
+                  'Academic Session', Icons.school_outlined),
+              _buildCard([
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6.h),
+                  child: Obx(() {
+                    return DropdownButtonFormField<
+                        session_model.sListDdata>(
+                      value: controller.selectedSession.value,
+                      hint: Text('Select Session',
+                          style: TextStyle(
+                              color: _textSecondary,
+                              fontSize: 14.sp)),
+                      onChanged: (newVal) {
+                        controller.selectedSession.value = newVal;
+                        controller.session.value =
+                            newVal?.session ?? '';
+                      },
+                      items: controller.sessionList.map((session) {
+                        return DropdownMenuItem(
+                            value: session,
+                            child: Text(
+                                session.session ?? 'No session'));
+                      }).toList(),
+                      decoration: _inputDeco('Session',
+                          icon: Icons.calendar_month_outlined),
+                      validator: (val) =>
+                      val == null ? "Required" : null,
+                    );
+                  }),
+                ),
+              ]),
 
-                  SizedBox(height: 28.h),
+              SizedBox(height: 28.h),
 
-                  // ══════════════════════════════════
-                  // SAVE & NEXT
-                  // ══════════════════════════════════
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52.h,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFAD1457 ),
-                              Color(0xFF97144D)
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight),
-                        borderRadius: BorderRadius.circular(14.r),
-                        boxShadow: [
-                          BoxShadow(
-                              color: _teal.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4))
+              // ══════════════════════════════════
+              // SAVE & NEXT
+              // ══════════════════════════════════
+              SizedBox(
+                width: double.infinity,
+                height: 52.h,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFAB1A5E),
+                          Color(0xFF97144D)
                         ],
-                      ),
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(14.r)),
-                        ),
-                        icon: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white),
-                        label: Text('Save & Next',
-                            style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white)),
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    NextNextStudentdaycare(),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(14.r),
+                    boxShadow: [
+                      BoxShadow(
+                          color: _teal.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4))
+                    ],
                   ),
-
-                  SizedBox(height: 20.h),
-                ],
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(14.r)),
+                    ),
+                    icon: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white),
+                    label: Text('Save & Next',
+                        style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white)),
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                NextNextStudentdaycare(),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
               ),
-            ),
-          );
-        },
+
+              SizedBox(height: 20.h),
+            ],
+          ),
+        ),
       ),
     );
   }
