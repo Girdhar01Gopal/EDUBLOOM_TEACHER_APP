@@ -91,6 +91,7 @@ class FeesController extends GetxController {
           (s.fatherName ?? '').toLowerCase().contains(query) ||
           (s.motherName ?? '').toLowerCase().contains(query) ||
           (s.registrationNo ?? '').toLowerCase().contains(query) ||
+          (s.admissionNo ?? '').toLowerCase().contains(query) ||
           (s.fatherPhone ?? '').toLowerCase().contains(query) ||
           (s.className ?? '').toLowerCase().contains(query) ||
           (s.sectionName ?? '').toLowerCase().contains(query);
@@ -333,6 +334,7 @@ class FeesController extends GetxController {
             schoolId: e['schoolId'],
             fatherPhone: e['phone'] ?? e['fatherPhone'],
             registrationNo: e['registrationNo'],
+            admissionNo: e['admissionNo'],
             pickupPoint: e['pickupPoint'],
             playAmount: e['playAmount'],
           );
@@ -498,6 +500,7 @@ class sdataData {
   final String? schoolId;
   final String? fatherPhone;
   final String? registrationNo;
+  final String? admissionNo;
   final String? pickupPoint;
   final String? playAmount;
 
@@ -516,6 +519,7 @@ class sdataData {
     this.schoolId,
     this.fatherPhone,
     this.registrationNo,
+    this.admissionNo,
     this.pickupPoint,
     this.playAmount,
   });
@@ -536,6 +540,7 @@ class sdataData {
       schoolId: json['schoolId'],
       fatherPhone: json['fatherPhone'],
       registrationNo: json['registrationNo'],
+      admissionNo: json['admissionNo'],
       pickupPoint: json['pickupPoint'],
       playAmount: json['playAmount'],
     );
@@ -557,6 +562,7 @@ class sdataData {
       'schoolId': schoolId,
       'fatherPhone': fatherPhone,
       'registrationNo': registrationNo,
+      'admissionNo': admissionNo,
       'pickupPoint': pickupPoint,
       'playAmount': playAmount,
     };

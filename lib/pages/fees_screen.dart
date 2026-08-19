@@ -293,6 +293,8 @@ class FeesScreen extends GetView<FeesController> {
             Text('Class: ${student.className ?? '-'}'),
             Text('Section: ${student.sectionName ?? '-'}'),
             Text('Father Phone: ${student.fatherPhone ?? '-'}'),
+            Text('Admission No: ${student.admissionNo ?? '-'}'),
+
           ],
         ),
         trailing: ElevatedButton(

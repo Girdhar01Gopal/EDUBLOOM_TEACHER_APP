@@ -136,6 +136,8 @@ class StudentDetailScreen extends StatelessWidget {
               _detailRow('Section', student.sectionName),
               _detailRow('Roll No', student.rollNo),
               _detailRow('Registration No', student.registrationNo),
+              _detailRow('Admission No', student.admissionNo),
+
               //   _detailRow('Session', student.session),
             ]),
             SizedBox(height: 12.h),
@@ -443,6 +445,7 @@ class StudentDetailScreen extends StatelessWidget {
     c.bloodGroup.value = student.bloodGroup ?? '';
     c.religion.value = student.religion ?? '';
     c.rollNo.value = student.rollNo ?? '';
+    c.admissionNo.value = student.admissionNo ?? '';
     c.address.value = student.address ?? '';
     c.aAdharNo.value = student.aAdharNo ?? '';
     c.phone.value = student.phone ?? '';
@@ -602,6 +605,10 @@ class StudentDetailScreen extends StatelessWidget {
         SizedBox(height: 10.h),
         _tf("Student Name *", c.studentName.value,
                 (v) => c.studentName.value = v),
+        _tf("Admission No", c.admissionNo.value,
+                (v) => c.admissionNo.value = v,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
         _tf("Father Name", c.fatherName.value,
                 (v) => c.fatherName.value = v),
         _tf("Mother Name", c.motherName.value,

@@ -374,6 +374,9 @@ class _TransactionCard extends StatelessWidget {
                       : Colors.grey.shade600)),
         ],
       ),
+      const SizedBox(height: 5),   // 🆕 add this
+      _detailRow("Admission No", item.admissionNo ?? 'N/A'),
+
     ];
   }
 
@@ -421,6 +424,9 @@ class _TransactionCard extends StatelessWidget {
                         : Colors.grey.shade600)),
           ],
         ),
+        const SizedBox(height: 5),   // 🆕 add this
+        _detailRow("Admission No", it.admissionNo ?? 'N/A'),
+
       ]);
     }
 

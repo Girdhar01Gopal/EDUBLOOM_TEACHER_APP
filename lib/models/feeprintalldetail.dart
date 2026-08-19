@@ -46,6 +46,7 @@ class FeeReceiptAllDetailModel {
   final String? numbertoword;
   final String? feeDurationId;
   final String? feetype1;
+  final String? admissionNo;
 
   FeeReceiptAllDetailModel({
     this.paid,
@@ -95,6 +96,7 @@ class FeeReceiptAllDetailModel {
     this.numbertoword,
     this.feeDurationId,
     this.feetype1,
+    this.admissionNo,
   });
 
   factory FeeReceiptAllDetailModel.fromJson(Map<String, dynamic> json) {
@@ -150,6 +152,7 @@ class FeeReceiptAllDetailModel {
       numbertoword: json['numbertoword'] as String?,
       feeDurationId: json['feeDurationId'] as String?,
       feetype1: json['feetype1'] as String?,
+      admissionNo: json['admissionNo']?.toString(),
     );
   }
 
@@ -202,6 +205,7 @@ class FeeReceiptAllDetailModel {
       'numbertoword': numbertoword,
       'feeDurationId': feeDurationId,
       'feetype1': feetype1,
+      'admissionNo': admissionNo,
     };
   }
 
@@ -253,6 +257,7 @@ class FeeReceiptAllDetailModel {
     String? numbertoword,
     String? feeDurationId,
     String? feetype1,
+    String? admissionNo,
   }) {
     return FeeReceiptAllDetailModel(
       paid: paid ?? this.paid,
@@ -302,6 +307,7 @@ class FeeReceiptAllDetailModel {
       numbertoword: numbertoword ?? this.numbertoword,
       feeDurationId: feeDurationId ?? this.feeDurationId,
       feetype1: feetype1 ?? this.feetype1,
+      admissionNo: admissionNo ?? this.admissionNo,
     );
   }
 
@@ -310,8 +316,6 @@ class FeeReceiptAllDetailModel {
     return 'FeeReceiptAllDetailModel(paid: $paid, studentName: $studentName, feetype: $feetype, receiptno: $receiptno, payAmount: $payAmount)';
   }
 }
-
-// ─── Wrapper model for the full API response ───────────────────────────────
 
 class FeeReceiptAllDetailResponse {
   final List<FeeReceiptAllDetailModel> listData;

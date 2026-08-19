@@ -46,6 +46,7 @@ class StudentController extends GetxController {
   var phone = ''.obs;
   var guardianPhone = ''.obs;
   var admissionDate = ''.obs;
+  var admissionNo = ''.obs;
   var fatherOccupation = ''.obs;
   var fatherName = ''.obs;
   var motherName = ''.obs;
@@ -236,6 +237,7 @@ class StudentController extends GetxController {
       request.fields['StudentName'] = studentName.value;
       request.fields['FatherName'] = fatherName.value;
       request.fields['MotherName'] = motherName.value;
+      request.fields['AdmissionNo'] = admissionNo.value.trim();
       request.fields['Gender'] = gender.value;
       request.fields['DateOfBirth'] = dob.text;
       request.fields['BloodGroup'] = bloodGroup.value;
@@ -259,6 +261,7 @@ class StudentController extends GetxController {
       request.fields['Action'] =
       actionStatus.value.trim().isEmpty ? '1' : actionStatus.value.trim();
       request.fields['Roll'] = rollNo.value.trim();
+      request.fields['AdmissionNo'] = admissionNo.value.trim();
       request.fields['Address'] = address.value;
       request.fields['AadharNo'] = aAdharNo.value;
 

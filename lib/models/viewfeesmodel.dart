@@ -50,6 +50,7 @@ class fListData {
   String? transactionDate;
   String? transactionId;
   String? modePaymentOnline;
+  String? admissionNo;
 
   fListData({
     this.paymentId,
@@ -80,6 +81,7 @@ class fListData {
     this.transactionDate,
     this.transactionId,
     this.modePaymentOnline,
+    this.admissionNo,
   });
 
   fListData.fromJson(Map<String, dynamic> json) {
@@ -111,6 +113,7 @@ class fListData {
     transactionDate = json['transaction_date'];
     transactionId = json['transactionid'];
     modePaymentOnline = json['modePaymentOnline'];
+    admissionNo = json['admissionNo'];
   }
 
   Map<String, dynamic> toJson() {
@@ -143,6 +146,7 @@ class fListData {
       'transaction_date': transactionDate,
       'transactionid': transactionId,
       'modePaymentOnline': modePaymentOnline,
+      'admissionNo': admissionNo,
     };
   }
 }

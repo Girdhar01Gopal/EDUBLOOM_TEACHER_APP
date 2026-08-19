@@ -112,6 +112,13 @@ class AddStudentTab extends GetView<StudentController> {
                 rollNoValidation: true,
               ),
               _inputField(
+                'Admission No.',
+                controller.admissionNo,
+                icon: Icons.badge_outlined,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+              _inputField(
                 'Aadhar No.',
                 controller.aAdharNo,
                 icon: Icons.credit_card_outlined,

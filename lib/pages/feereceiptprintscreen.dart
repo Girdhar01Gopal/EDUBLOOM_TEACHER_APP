@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +13,6 @@ import '../controller/home_page_controller.dart';
 import '../models/feeprintalldetail.dart';
 import '../models/feeprintreceiptschname.dart';
 import '../res/app_url.dart';
-
-// ─── Axis Bank maroon accent ───────────────────────────────────────────────
-const Color kAxisMaroon = Color(0xFF97144D);
-final PdfColor kAxisMaroonPdf = PdfColor.fromInt(0xFF97144D);
 
 String _fmtDt(DateTime? dt) {
   if (dt == null) return 'N/A';
@@ -39,6 +36,10 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
   late int _studentId;
   late String _session;
   late String _receiptNo;
+
+  // Same accent color used everywhere (screen + both print copies) so
+  // Parents Copy & School Copy always look identical in color.
+  static const Color kAccentColor = Color(0xFF97144D);
 
   String get _dynamicSchoolLogoUrl {
     try {
@@ -113,15 +114,18 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
     }
   }
 
-  Future<Uint8List> _buildPdf({required bool isParentCopy}) async {
+  // ─────────────────────────────────────────────────────────────────
+  // Builds ONE combined PDF page containing BOTH copies side-by-side
+  // (Parents Copy on the left, School Copy on the right), separated by
+  // a dashed "Cut Here" divider — exactly like the reference layout.
+  // Both buttons ("Print Parents Copy" / "Print School Copy") call this
+  // SAME function so the printed output is always identical.
+  // ─────────────────────────────────────────────────────────────────
+  Future<Uint8List> _buildCombinedPdf() async {
     final pdf   = pw.Document();
     final s     = _studentData;
     final items = _feeDetails;
     if (s == null || items.isEmpty) return pdf.save();
-
-    final first     = items.first;
-    final totalPaid = items.fold<double>(0, (sum, e) => sum + (e.payAmount ?? 0));
-    final totalDue  = items.fold<double>(0, (sum, e) => sum + (e.dueAmount ?? 0));
 
     pw.ImageProvider? pdfLogo;
     final logoUrl = _dynamicSchoolLogoUrl;
@@ -136,156 +140,294 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a5.landscape,
-        margin: const pw.EdgeInsets.all(18),
-        build: (ctx) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Center(
-              child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  if (pdfLogo != null)
-                    pw.Container(
-                      width: 70, height: 70,
-                      child: pw.Image(pdfLogo, fit: pw.BoxFit.contain),
-                    ),
-                  if (pdfLogo != null) pw.SizedBox(height: 6),
-                  pw.Text(s.schoolName ?? '',
-                      textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
-                  pw.SizedBox(height: 2),
-                  pw.Text(
-                      "Phone: ${s.schoolPhone ?? ''}  |  Email: ${s.schoolEmail ?? ''}",
-                      textAlign: pw.TextAlign.center,
-                      style: const pw.TextStyle(fontSize: 7)),
-                  pw.Text(s.schoolAddress ?? '',
-                      textAlign: pw.TextAlign.center,
-                      style: const pw.TextStyle(fontSize: 7)),
-                  pw.SizedBox(height: 3),
-                  pw.Text(isParentCopy ? "Parents Copy" : "School Copy",
-                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                ],
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(16),
+        build: (ctx) => pw.Container(
+          // Outer border for the whole printed page (border lines on the sides)
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: PdfColors.grey800, width: 1),
+          ),
+          padding: const pw.EdgeInsets.all(8),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              pw.Expanded(
+                child: _buildReceiptHalf(
+                  copyLabel: "Parents Copy",
+                  items: items,
+                  s: s,
+                  logo: pdfLogo,
+                ),
               ),
-            ),
-            pw.SizedBox(height: 6),
-            pw.Text("FEE RECEIPT",
-                style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    fontSize: 12,
-                    decoration: pw.TextDecoration.underline)),
-            pw.SizedBox(height: 6),
-            pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Expanded(
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      _pCol("Receipt No",   first.receiptno ?? _receiptNo),
-                      _pCol("Name",         s.studentName ?? ''),
-                      _pCol("Parents Name", s.fatherName  ?? ''),
-                      _pCol("Class/Sec",    "${s.className ?? ''} / ${s.sectionName ?? ''}"),
-                    ],
-                  ),
+              _buildCutDivider(),
+              pw.Expanded(
+                child: _buildReceiptHalf(
+                  copyLabel: "School Copy",
+                  items: items,
+                  s: s,
+                  logo: pdfLogo,
                 ),
-                pw.Expanded(
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      _pCol("Payment Date",     _fmtDt(first.payDate)),
-                      _pCol("Registration No.", s.registrationNo ?? ''),
-                      _pCol("Academic Year",    s.session ?? ''),
-                      _pCol("Mobile No",        s.phone   ?? ''),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            pw.SizedBox(height: 8),
-            pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-              columnWidths: const {
-                0: pw.FixedColumnWidth(22),
-                1: pw.FlexColumnWidth(2),
-                2: pw.FlexColumnWidth(2),
-                3: pw.FlexColumnWidth(1.5),
-                4: pw.FlexColumnWidth(1.5),
-                5: pw.FlexColumnWidth(1.5),
-                6: pw.FlexColumnWidth(1.5),
-              },
-              children: [
-                pw.TableRow(
-                  decoration: pw.BoxDecoration(color: kAxisMaroonPdf),
-                  children: [
-                    _pTH("S.No"), _pTH("Fee Type"), _pTH("Description"),
-                    _pTH("Amount"), _pTH("Discount"), _pTH("Due"), _pTH("Paid"),
-                  ],
-                ),
-                ...items.asMap().entries.map((e) => pw.TableRow(
-                  decoration: pw.BoxDecoration(
-                      color: e.key.isOdd ? PdfColors.grey100 : PdfColors.white),
-                  children: [
-                    _pTC("${e.key + 1}"),
-                    _pTC(e.value.feetype  ?? ''),
-                    _pTC(e.value.feeMonth ?? ''),
-                    _pTC("${e.value.totalAmount?.toStringAsFixed(0) ?? 0}"),
-                    _pTC("${e.value.discount?.toStringAsFixed(0)    ?? 0}"),
-                    _pTC("${e.value.dueAmount?.toStringAsFixed(0)   ?? 0}"),
-                    _pTC("${e.value.payAmount?.toStringAsFixed(0)   ?? 0}"),
-                  ],
-                )),
-              ],
-            ),
-            pw.SizedBox(height: 6),
-            pw.Row(
-              children: [
-                pw.Text(
-                  "Pay Mode : ${first.paymentMode ?? 'N/A'}   "
-                      "Total Due: ${totalDue.toStringAsFixed(0)}   ",
-                  style: const pw.TextStyle(fontSize: 8),
-                ),
-                pw.Text(
-                  "Total Amount : ${totalPaid.toStringAsFixed(0)}",
-                  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-                ),
-              ],
-            ),
-            pw.Spacer(),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.end,
-              children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Text("For ${s.schoolName ?? ''}",
-                        style: const pw.TextStyle(fontSize: 8)),
-                    pw.SizedBox(height: 16),
-                    pw.Text("Authorized Signatory",
-                        style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold, fontSize: 8)),
-                  ],
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
     return pdf.save();
   }
 
-  pw.Widget _pCol(String label, String value) => pw.Padding(
-    padding: const pw.EdgeInsets.only(bottom: 4),
-    child: pw.Column(
+  // One half of the page (a single receipt copy) — reused for both sides.
+  pw.Widget _buildReceiptHalf({
+    required String copyLabel,
+    required List<FeeReceiptAllDetailModel> items,
+    required PreschoolReceiptModel s,
+    pw.ImageProvider? logo,
+  }) {
+    final first      = items.first;
+    final totalPaid  = items.fold<double>(0, (sum, e) => sum + (e.payAmount ?? 0));
+    final totalDue   = items.fold<double>(0, (sum, e) => sum + (e.dueAmount ?? 0));
+    final totalAmt   = items.fold<double>(0, (sum, e) => sum + (e.totalAmount ?? 0));
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey700, width: 0.8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Align(
+            alignment: pw.Alignment.topRight,
+            child: pw.Text(
+              copyLabel,
+              style: pw.TextStyle(
+                fontSize: 8,
+                fontStyle: pw.FontStyle.italic,
+                color: PdfColors.grey700,
+              ),
+            ),
+          ),
+
+          // ── School header ──
+          pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                if (logo != null)
+                  pw.Container(
+                    width: 55,
+                    height: 55,
+                    child: pw.Image(logo, fit: pw.BoxFit.contain),
+                  ),
+                if (logo != null) pw.SizedBox(height: 4),
+                pw.Text(
+                  s.schoolName ?? '',
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  "Phone: ${s.schoolPhone ?? ''} , Email: ${s.schoolEmail ?? ''}",
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(fontSize: 7),
+                ),
+                pw.Text(
+                  s.schoolAddress ?? '',
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(fontSize: 7),
+                ),
+              ],
+            ),
+          ),
+
+          pw.SizedBox(height: 8),
+
+          // ── "FEE RECEIPT" heading box ──
+          pw.Container(
+            width: double.infinity,
+            alignment: pw.Alignment.center,
+            padding: const pw.EdgeInsets.symmetric(vertical: 5),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey300,
+              border: pw.Border.all(color: PdfColors.black, width: 0.8),
+            ),
+            child: pw.Text(
+              "FEE RECEIPT",
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+            ),
+          ),
+
+          pw.SizedBox(height: 8),
+
+          // ── Info rows ──
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _pRow("Receipt No", first.receiptno ?? _receiptNo),
+                    _pRow("Name", s.studentName ?? ''),
+                    _pRow("Parents Name", s.fatherName ?? ''),
+                    _pRow("Class/Sec", "${s.className ?? ''} / ${s.sectionName ?? ''}"),
+                    _pRow("Admission No", first.admissionNo ?? 'N/A'),
+                  ],
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _pRow("Payment Date", _fmtDt(first.payDate)),
+                    _pRow("Registration No.", s.registrationNo ?? ''),
+                    _pRow("Academic Year", s.session ?? ''),
+                    _pRow("Mobile No", s.phone ?? ''),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          pw.SizedBox(height: 8),
+
+          // ── Fee table ──
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+            columnWidths: const {
+              0: pw.FixedColumnWidth(18),
+              1: pw.FlexColumnWidth(2),
+              2: pw.FlexColumnWidth(2),
+              3: pw.FlexColumnWidth(1.4),
+              4: pw.FlexColumnWidth(1.4),
+              5: pw.FlexColumnWidth(1.2),
+              6: pw.FlexColumnWidth(1.2),
+            },
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColors.teal700),
+                children: [
+                  _pTH("S.No"), _pTH("Fee Type"), _pTH("Description"),
+                  _pTH("Fees\nAmount"), _pTH("Discount\nAmount"), _pTH("Due"), _pTH("Paid"),
+                ],
+              ),
+              ...items.asMap().entries.map((e) => pw.TableRow(
+                decoration: pw.BoxDecoration(
+                    color: e.key.isOdd ? PdfColors.grey100 : PdfColors.white),
+                children: [
+                  _pTC("${e.key + 1}"),
+                  _pTC(e.value.feetype  ?? ''),
+                  _pTC(e.value.feeMonth ?? ''),
+                  _pTC("${e.value.totalAmount?.toStringAsFixed(0) ?? 0}"),
+                  _pTC("${e.value.discount?.toStringAsFixed(0)    ?? 0}"),
+                  _pTC("${e.value.dueAmount?.toStringAsFixed(0)   ?? 0}"),
+                  _pTC("${e.value.payAmount?.toStringAsFixed(0)   ?? 0}"),
+                ],
+              )),
+            ],
+          ),
+
+          pw.SizedBox(height: 6),
+
+          // ── Totals ──
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Text(
+                  "Pay Mode : ${first.paymentMode ?? 'N/A'}",
+                  style: const pw.TextStyle(fontSize: 8),
+                ),
+              ),
+              pw.Text(
+                "Total Due: ${totalDue.toStringAsFixed(0)} ,  ",
+                style: const pw.TextStyle(fontSize: 8),
+              ),
+              pw.Text(
+                "Total Amount : ${totalAmt.toStringAsFixed(0)}",
+                style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+              ),
+            ],
+          ),
+
+          pw.SizedBox(height: 16),
+
+          // ── Signatory ──
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text("For ${s.schoolName ?? ''}",
+                      style: const pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 16),
+                  pw.Text("Authorized Signatory",
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 8)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Dashed vertical divider with rotated "Cut Here" text between the two copies.
+  pw.Widget _buildCutDivider() {
+    return pw.Container(
+      width: 20,
+      alignment: pw.Alignment.center,
+      child: pw.Stack(
+        alignment: pw.Alignment.center,
+        children: [
+          pw.Column(
+            mainAxisSize: pw.MainAxisSize.max,
+            children: List.generate(
+              40,
+                  (i) => pw.Expanded(
+                child: pw.Container(
+                  width: 1,
+                  margin: const pw.EdgeInsets.symmetric(vertical: 1.2),
+                  color: PdfColors.grey700,
+                ),
+              ),
+            ),
+          ),
+          pw.Transform.rotate(
+            angle: -math.pi / 2,
+            child: pw.Container(
+              color: PdfColors.white,
+              padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              child: pw.Text(
+                "- - - Cut Here - - -",
+                style: pw.TextStyle(fontSize: 7, color: PdfColors.grey700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _pRow(String label, String value) => pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 3),
+    child: pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(label,
-            style: pw.TextStyle(fontSize: 7, color: PdfColors.grey600)),
-        pw.SizedBox(height: 1),
-        pw.Text(value,
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 7.5)),
+        pw.SizedBox(
+          width: 68,
+          child: pw.Text(label,
+              style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+        ),
+        pw.Text(" : ", style: const pw.TextStyle(fontSize: 8)),
+        pw.Expanded(
+          child: pw.Text(
+            value,
+            style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold),
+          ),
+        ),
       ],
     ),
   );
@@ -305,11 +447,12 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
         style: const pw.TextStyle(fontSize: 7.5)),
   );
 
-  void _doPrint({required bool isParentCopy}) async {
-    final bytes = await _buildPdf(isParentCopy: isParentCopy);
+  // Called by BOTH print buttons — always prints Parents Copy + School Copy together.
+  void _printBoth() async {
+    final bytes = await _buildCombinedPdf();
     await Printing.layoutPdf(
       onLayout: (_) async => bytes,
-      name: "$_receiptNo-${isParentCopy ? 'ParentsCopy' : 'SchoolCopy'}",
+      name: "$_receiptNo-FeeReceipt",
     );
   }
 
@@ -324,7 +467,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
               fontWeight: FontWeight.w700, fontSize: 17, color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: kAxisMaroon,
+        backgroundColor: kAccentColor,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         shape: const RoundedRectangleBorder(
@@ -332,7 +475,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: kAxisMaroon))
+          ? const Center(child: CircularProgressIndicator(color: kAccentColor))
           : _error != null
           ? Center(
         child: Padding(
@@ -355,24 +498,26 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Same accent color on BOTH cards (as requested) — only the
+            // label differs. Both "Print" buttons print the combined PDF.
             _ReceiptCopyCard(
               copyLabel:   "Parents Copy",
-              accentColor: kAxisMaroon,
+              accentColor: kAccentColor,
               feeDetails:  _feeDetails,
               studentData: _studentData,
               receiptNo:   _receiptNo,
               logoUrl:     _dynamicSchoolLogoUrl,
-              onPrint:     () => _doPrint(isParentCopy: true),
+              onPrint:     _printBoth,
             ),
             const SizedBox(height: 20),
             _ReceiptCopyCard(
               copyLabel:   "School Copy",
-              accentColor: const Color(0xFF1565C0),
+              accentColor: kAccentColor,
               feeDetails:  _feeDetails,
               studentData: _studentData,
               receiptNo:   _receiptNo,
               logoUrl:     _dynamicSchoolLogoUrl,
-              onPrint:     () => _doPrint(isParentCopy: false),
+              onPrint:     _printBoth,
             ),
             const SizedBox(height: 30),
           ],
@@ -382,7 +527,7 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
   }
 }
 
-// ─── Single receipt copy card ──────────────────────────────────────────────
+// ─── Single receipt copy card (on-screen preview) ──────────────────────────
 
 class _ReceiptCopyCard extends StatelessWidget {
   final String       copyLabel;
@@ -489,14 +634,14 @@ class _ReceiptCopyCard extends StatelessWidget {
                 children: [
                   _buildSchoolLogo(),
                   if (logoUrl.isNotEmpty) const SizedBox(width: 10),
-                  Expanded(                                          // ← prevents overflow
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           s.schoolName ?? '',
                           maxLines: 2,
-                          overflow: TextOverflow.ellipsis,           // ← fix
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize:   15,
                               fontWeight: FontWeight.w800,
@@ -508,7 +653,7 @@ class _ReceiptCopyCard extends StatelessWidget {
                           Text(
                             "Ph: ${s.schoolPhone ?? ''}  |  ${s.schoolEmail ?? ''}",
                             maxLines: 2,
-                            overflow: TextOverflow.ellipsis,         // ← fix
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 11, color: Colors.grey.shade600),
                           ),
@@ -516,7 +661,7 @@ class _ReceiptCopyCard extends StatelessWidget {
                           Text(
                             s.schoolAddress ?? '',
                             maxLines: 2,
-                            overflow: TextOverflow.ellipsis,         // ← fix
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 11, color: Colors.grey.shade600),
                           ),
@@ -532,7 +677,7 @@ class _ReceiptCopyCard extends StatelessWidget {
             child: Divider(height: 1, color: Color(0xFFE8EAF6)),
           ),
 
-          // ── Student info ──
+          // ── Student info (includes Admission No) ──
           if (s != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -548,6 +693,7 @@ class _ReceiptCopyCard extends StatelessWidget {
                         _infoTileV("Parents Name",  s.fatherName  ?? '',           accentColor),
                         _infoTileV("Class / Sec",
                             "${s.className ?? ''} / ${s.sectionName ?? ''}",       accentColor),
+                        _infoTileV("Admission No",  first?.admissionNo ?? 'N/A',   accentColor),
                       ],
                     ),
                   ),
@@ -662,7 +808,6 @@ class _ReceiptCopyCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Print button — takes remaining space
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: onPrint,
@@ -686,15 +831,14 @@ class _ReceiptCopyCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Signatory — fixed, won't push button
-                Flexible(                                             // ← fix
+                Flexible(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         "For ${s?.schoolName ?? ''}",
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,              // ← fix
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.end,
                         style: TextStyle(
                             fontSize: 11, color: Colors.grey.shade600),
@@ -735,7 +879,7 @@ class _ReceiptCopyCard extends StatelessWidget {
           Text(
             value,
             maxLines: 2,
-            overflow: TextOverflow.ellipsis,                          // ← fix
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
                 fontSize:   12.5,
                 fontWeight: FontWeight.w700,

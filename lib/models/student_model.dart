@@ -70,16 +70,17 @@ class StudentData {
   String? session;
   String? ppassword;
   String? registrationNo;
+  String? admissionNo;
 
   String? action;
 
-  // Images
+  /// Images
   String? studentPic;
   String? fatherPic;
   String? motherPic;
   String? guardianImage;
 
-  // Fee / School / Others
+  /// Fee / School / Others
   int? feesDurationId;
   String? schoolName;
   String? affiliated;
@@ -109,7 +110,6 @@ class StudentData {
     this.religion,
     this.admissionDate,
     this.parentId,
-    this.aAdharNo,
     this.phone,
     this.whatsAppNo,
     this.emergencyNo,
@@ -118,6 +118,7 @@ class StudentData {
     this.session,
     this.ppassword,
     this.registrationNo,
+    this.admissionNo,
     this.action,
     this.studentPic,
     this.fatherPic,
@@ -133,6 +134,7 @@ class StudentData {
     this.logo,
     this.logoWithName,
     this.address,
+    this.aAdharNo,
   });
 
   StudentData.fromJson(Map<String, dynamic> json) {
@@ -143,10 +145,7 @@ class StudentData {
     motherName = json['motherName'];
     fatherOccupation = json['fatherOccupation'];
     dateOfBirth = json['dateOfBirth'];
-
-    aAdharNo = (json['aAdharNo'] ?? json['AAdharNo'] ?? json['aadhaarNo'] ?? json['aadharNo'])
-        ?.toString()
-        .trim();
+    aAdharNo = json['aAdharNo'];
 
     classId = json['classId'];
     sectionId = json['sectionId'];
@@ -156,7 +155,6 @@ class StudentData {
     rollNo = json['rollNo']?.toString() ??
         json['roll']?.toString() ??
         json['Roll']?.toString();
-
     bloodGroup = json['bloodGroup'];
     religion = json['religion'];
 
@@ -168,6 +166,7 @@ class StudentData {
     emergencyNo = json['emergencyNo'];
 
     createDate = json['createDate'];
+    // ✅ MAIN FIX (Email multi-key)
     email = (json['email'] ??
         json['Email'] ??
         json['emailId'] ??
@@ -176,10 +175,10 @@ class StudentData {
         json['StudentEmail'])
         ?.toString()
         .trim();
-
     session = json['session'];
     ppassword = json['ppassword'];
     registrationNo = json['registrationNo'];
+    admissionNo = json['admissionNo'] ?? json['AdmissionNo'];
     action = json['action'];
 
     studentPic = json['studentPic'];
@@ -209,7 +208,6 @@ class StudentData {
     "motherName": motherName,
     "fatherOccupation": fatherOccupation,
     "dateOfBirth": dateOfBirth,
-    "aAdharNo": aAdharNo,
     "classId": classId,
     "sectionId": sectionId,
     "className": className,
@@ -227,6 +225,7 @@ class StudentData {
     "session": session,
     "ppassword": ppassword,
     "registrationNo": registrationNo,
+    "admissionNo": admissionNo,
     "action": action,
     "studentPic": studentPic,
     "fatherPic": fatherPic,
@@ -242,5 +241,6 @@ class StudentData {
     "logo": logo,
     "logoWithName": logoWithName,
     "address": address,
+    "aAdharNo": aAdharNo,
   };
 }
