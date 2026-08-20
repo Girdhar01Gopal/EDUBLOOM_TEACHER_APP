@@ -299,7 +299,7 @@ class _LoginCard extends StatelessWidget {
         Container(
           height: _avatarSize,
           width: _avatarSize,
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
@@ -311,8 +311,9 @@ class _LoginCard extends StatelessWidget {
               ),
             ],
           ),
-          child: ClipOval(
-            child: Image.asset(ImageConstants.logo, fit: BoxFit.cover),
+          child: Image.asset(
+              ImageConstants.logo,
+              fit: BoxFit.contain
           ),
         ),
       ],

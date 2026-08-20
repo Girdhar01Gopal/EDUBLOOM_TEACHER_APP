@@ -89,7 +89,7 @@ class _SplashContent extends StatelessWidget {
               );
             },
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -101,13 +101,11 @@ class _SplashContent extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ClipOval(
-                child: Image.asset(
-                  ImageConstants.logo,
-                  height: 110.w,
-                  width: 110.w,
-                  fit: BoxFit.cover,
-                ),
+              child: Image.asset(
+                ImageConstants.logo,
+                height: 100.w,
+                width: 100.w,
+                fit: BoxFit.contain,
               ),
             ),
           ),

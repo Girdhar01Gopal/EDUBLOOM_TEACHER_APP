@@ -1,32 +1,33 @@
-class accessmodel {
+class Accessmodel {
   int? id;
   int? schoolAccessId;
   int? activityId;
   String? activityName;
   String? displayName;
   bool? isActive;
-  Null? parentActivityId;
+  int? parentActivityId; // Null? tha pehle — int? use karo taaki value aa sake
   bool? displayOnMenuFlag;
   int? sequence;
   bool? isDelete;
   bool? access;
-  List<accessmodel>? childActivity;
+  List<Accessmodel>? childActivity;
 
-  accessmodel(
-      {this.id,
-      this.schoolAccessId,
-      this.activityId,
-      this.activityName,
-      this.displayName,
-      this.isActive,
-      this.parentActivityId,
-      this.displayOnMenuFlag,
-      this.sequence,
-      this.isDelete,
-      this.access,
-      this.childActivity});
+  Accessmodel({
+    this.id,
+    this.schoolAccessId,
+    this.activityId,
+    this.activityName,
+    this.displayName,
+    this.isActive,
+    this.parentActivityId,
+    this.displayOnMenuFlag,
+    this.sequence,
+    this.isDelete,
+    this.access,
+    this.childActivity,
+  });
 
-  accessmodel.fromJson(Map<String, dynamic> json) {
+  Accessmodel.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     schoolAccessId = json['schoolAccessId'];
     activityId = json['activityId'];
@@ -39,29 +40,28 @@ class accessmodel {
     isDelete = json['isDelete'];
     access = json['access'];
     if (json['childActivity'] != null) {
-      childActivity = <accessmodel>[];
+      childActivity = <Accessmodel>[];
       json['childActivity'].forEach((v) {
-        childActivity!.add(accessmodel.fromJson(v));
+        childActivity!.add(Accessmodel.fromJson(v));
       });
     }
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['schoolAccessId'] = this.schoolAccessId;
-    data['activityId'] = this.activityId;
-    data['activityName'] = this.activityName;
-    data['displayName'] = this.displayName;
-    data['isActive'] = this.isActive;
-    data['parentActivityId'] = this.parentActivityId;
-    data['displayOnMenuFlag'] = this.displayOnMenuFlag;
-    data['sequence'] = this.sequence;
-    data['isDelete'] = this.isDelete;
-    data['access'] = this.access;
-    if (this.childActivity != null) {
-      data['childActivity'] =
-          this.childActivity!.map((v) => v.toJson()).toList();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['schoolAccessId'] = schoolAccessId;
+    data['activityId'] = activityId;
+    data['activityName'] = activityName;
+    data['displayName'] = displayName;
+    data['isActive'] = isActive;
+    data['parentActivityId'] = parentActivityId;
+    data['displayOnMenuFlag'] = displayOnMenuFlag;
+    data['sequence'] = sequence;
+    data['isDelete'] = isDelete;
+    data['access'] = access;
+    if (childActivity != null) {
+      data['childActivity'] = childActivity!.map((v) => v.toJson()).toList();
     }
     return data;
   }

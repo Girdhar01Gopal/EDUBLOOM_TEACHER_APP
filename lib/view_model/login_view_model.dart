@@ -11,6 +11,7 @@ import '../infrastructures/utils/utils.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
 import '../res/app_url.dart';
+import 'accessmodel.dart';
 
 class LoginViewModel with ChangeNotifier {
   final myRepo = LoginRepository();
@@ -23,20 +24,21 @@ class LoginViewModel with ChangeNotifier {
       var data = Login_Model.fromJson(value);
 
       if (data.data == null) {
-        ShortMessage.toast(
-          title: data.messages.toString(),
-        );
+        ShortMessage.toast(title: data.messages.toString());
         isLoading.value = false;
-      }
-        else if(data.data!.webandApp=="Web"){
-           ShortMessage.toast(
+      } else if (data.data!.webandApp == "Web") {
+        ShortMessage.toast(
           title: "Please login through web ! You are not authorized to login through app",
         );
-        }
-       else if (data.data != null) {
+        isLoading.value = false;
+      } else if (data.data!.role?.roleName?.trim().toLowerCase() != 'teacher') {
+        // Sirf 'Teacher' allow — Admin/Staff/kisi aur role ko block kar dega
         ShortMessage.toast(
-          title: data.messages.toString(),
+          title: "You are not authorized to login through Teacher app",
         );
+        isLoading.value = false;
+      } else if (data.data != null) {
+        ShortMessage.toast(title: data.messages.toString());
 
         debugPrint("please proceed ! path is clear");
         PrefManager().writeValue(key: PrefConst.isLoggedIn, value: "Yes");
@@ -46,32 +48,32 @@ class LoginViewModel with ChangeNotifier {
         PrefManager().writeValue(
             key: PrefConst.expireDate,
             value: data.data!.accessToker!.expireIn.toString());
-            PrefManager().writeValue(
+        PrefManager().writeValue(
             key: PrefConst.schoolname,
             value: data.data!.schoolName.toString());
-            PrefManager().writeValue(
+        PrefManager().writeValue(
             key: PrefConst.schoollogo,
             value: data.data!.logoWithName.toString());
         PrefManager().writeValue(
             key: PrefConst.Name,
             value: data.data!.name.toString());
-             PrefManager().writeValue(
+        PrefManager().writeValue(
             key: PrefConst.Userid,
             value: data.data!.userId.toString());
-            PrefManager().writeValue(
+        PrefManager().writeValue(
             key: PrefConst.RName,
-            value: data.data?.role?.roleName .toString());
-            PrefManager().writeValue(
+            value: data.data?.role?.roleName.toString());
+        PrefManager().writeValue(
             key: PrefConst.session,
             value: data.data!.currentSession.toString());
-       var user =  PrefManager().writeValue(
+        var user = PrefManager().writeValue(
             key: PrefConst.schollId, value: data.data!.schoolId.toString());
+
         print(data.data!.accessToker!.expireIn.toString());
         print("school id  is ${user}");
-        // PrefManager().writeValue(key: PrefConst.userPassword, value:  userPassword value.text.toString());
 
-        // Fetch the per-user module access list before navigating so the
-        // drawer/dashboard menu is filtered correctly on first render.
+        // Navigate se pehle module access fetch karo taaki
+        // dashboard/drawer menu pehli render pe hi sahi filter ho
         await fetchModuleAccess(data.data!.userId, data.data!.schoolId);
 
         Get.offAllNamed(RouteName.dashboard_screen);
@@ -80,12 +82,9 @@ class LoginViewModel with ChangeNotifier {
         if (kDebugMode) {
           print(" no error this side");
         }
-        isLoading.value = false;
       } else if (data.statusCode == 400) {
         debugPrint("chakkar hai yahi pr re ");
-        ShortMessage.toast(
-          title: data.messages.toString(),
-        );
+        ShortMessage.toast(title: data.messages.toString());
       }
     }).onError((error, stackTrace) {
       ShortMessage.toast(title: "Something went wrong!\n Please Try again ");
@@ -97,8 +96,8 @@ class LoginViewModel with ChangeNotifier {
   }
 
   /// Fetches the logged-in user's per-module access rights and caches the
-  /// raw list under [PrefConst.moduleAccess] so [RoleBasedModuleVisibility]
-  /// can filter the drawer/dashboard menu against it.
+  /// parsed [Accessmodel] list under [PrefConst.moduleAccess] (JSON-encoded)
+  /// so [RoleBasedModuleVisibility] can filter the drawer/dashboard menu.
   Future<void> fetchModuleAccess(int? userId, String? schoolId) async {
     if (userId == null || schoolId == null) return;
     try {
@@ -106,7 +105,7 @@ class LoginViewModel with ChangeNotifier {
       final uri = Uri.parse(
         '${AppUrl.base_url}api/SchoolApp/GetUserAccessApp?userId=$userId&schoolId=$schoolId',
       );
-      
+
       final response = await https.get(uri, headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -116,11 +115,22 @@ class LoginViewModel with ChangeNotifier {
         final decoded = jsonDecode(response.body);
         final rawList = decoded is List
             ? decoded
-            : (decoded is Map && decoded['data'] != null ? decoded['data'] as List : []);
-                        print("module access list is ${rawList}");
+            : (decoded is Map && decoded['data'] != null
+            ? decoded['data'] as List
+            : []);
 
-        await PrefManager()
-            .writeValue(key: PrefConst.moduleAccess, value: jsonEncode(rawList));
+        // Type-safe parse into Accessmodel objects
+        final accessList =
+        rawList.map((e) => Accessmodel.fromJson(e)).toList();
+
+        if (kDebugMode) {
+          print("module access list is ${accessList.length} items");
+        }
+
+        await PrefManager().writeValue(
+          key: PrefConst.moduleAccess,
+          value: jsonEncode(accessList.map((e) => e.toJson()).toList()),
+        );
       } else {
         debugPrint("GetUserAccessApp error: ${response.statusCode}");
       }
@@ -130,5 +140,4 @@ class LoginViewModel with ChangeNotifier {
       }
     }
   }
-
 }
