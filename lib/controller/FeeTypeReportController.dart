@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model; // ✅ fixed: relative import
 
 import '../models/FeeTypeReportmodel.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
-import '../models/classmodel.dart';
+import '../models/classmodel.dart'; // ✅ now contains ClassListModel / ClassData (GetClassTeacher)
 import '../models/fee_type_model.dart';
 
 class FeeTypeReportController extends GetxController {
@@ -18,8 +19,8 @@ class FeeTypeReportController extends GetxController {
   final feeTypeList = <fData>[].obs;
   final selectedFeeType = Rx<fData?>(null);
 
-  final listDataa = <ListDataa>[].obs;
-  final selectedClass = Rx<ListDataa?>(null);
+  final listDataa = <ClassData>[].obs; // ✅ now ClassData instead of ListDataa
+  final selectedClass = Rx<ClassData?>(null); // ✅ type updated
 
   final feeReportList = <fListData>[].obs;
 
@@ -29,10 +30,16 @@ class FeeTypeReportController extends GetxController {
   String schoolId = '';
   String token = '';
 
+  // ✅ added for GetClassTeacher API — adjust PrefConst keys if names differ
+  String session = '';
+  String userId = '';
+
   @override
   void onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
+    session = await PrefManager().readValue(key: PrefConst.session); // ✅ adjust key if needed
+    userId = await PrefManager().readValue(key: PrefConst.Userid); // ✅ adjust key if needed
 
     await Future.wait([
       fetchClasses(),
@@ -46,14 +53,15 @@ class FeeTypeReportController extends GetxController {
       isPageLoading(true);
       final res = await http.get(
         Uri.parse(
-            'https://playschool.edubloom.in/api/MasterApp/ViewClass/$schoolId'),
+            'https://playschool.edubloom.in/api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$session&userId=$userId'),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
-        listDataa.assignAll(
-            parsed.listData?.where((e) => e.action == "1").toList() ?? []);
+        final parsed = ClassListModel.fromJson(jsonDecode(res.body));
+        // ⚠️ GetClassTeacher sends "action": null for most rows, so the
+        // old ".where((e) => e.action == '1')" filter would empty the list.
+        listDataa.assignAll(parsed.listData);
       } else {
         Get.snackbar('Error', 'Class API failed: ${res.statusCode}');
       }
@@ -121,7 +129,7 @@ class FeeTypeReportController extends GetxController {
     }
   }
 
-  void setSelectedClass(ListDataa? val) => selectedClass.value = val;
+  void setSelectedClass(ClassData? val) => selectedClass.value = val; // ✅ type updated
 
   void setSelectedFeeType(fData? val) => selectedFeeType.value = val;
 

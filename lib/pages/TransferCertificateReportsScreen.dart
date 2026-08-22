@@ -7,7 +7,8 @@ as tc_model;
 
 import '../controller/TransferCertificateReportsController.dart';
 import '../infrastructures/routes/page_constants.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
+import '../models/classmodel.dart'; // ✅ now contains ClassListModel / ClassData (GetClassTeacher)
 import '../models/sectionmodel.dart';
 import 'TcCertificateDownloadScreen.dart';
 
@@ -207,14 +208,14 @@ class TransferCertificateReportsScreen
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Obx(() {
-                    return DropdownButtonFormField<ListDataa>(
+                    return DropdownButtonFormField<ClassData>( // ✅ type updated
                       value: controller.selectedClass.value,
                       hint: const Text("Select Class"),
                       isExpanded: true,
                       items: controller.listDataa.map((item) {
-                        return DropdownMenuItem<ListDataa>(
+                        return DropdownMenuItem<ClassData>(
                           value: item,
-                          child: Text(item.className ?? ""),
+                          child: Text(item.className), // ✅ className is non-nullable in ClassData
                         );
                       }).toList(),
                       onChanged: (val) => controller.setSelectedClass(val),

@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../controller/curriculum controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 
 const String kCurriculumFileBasePath = 'Upload/CurriculumPdf/';
@@ -323,12 +324,12 @@ class _AddCurriculumTabState extends State<AddCurriculumTab> {
           SizedBox(height: 16.h),
 
           Obx(
-                () => DropdownButtonFormField<ListDatta>(
+                () => DropdownButtonFormField<stListData>(
               value: controller.selectedSection.value,
               isExpanded: true,
               hint: const Text('Select Section'),
               items: [
-                const DropdownMenuItem<ListDatta>(
+                const DropdownMenuItem<stListData>(
                   value: null,
                   child: Text(
                     'Select Section',
@@ -336,7 +337,7 @@ class _AddCurriculumTabState extends State<AddCurriculumTab> {
                   ),
                 ),
                 ...controller.sectionList.map(
-                      (item) => DropdownMenuItem<ListDatta>(
+                      (item) => DropdownMenuItem<stListData>(
                     value: item,
                     child: Text(item.section ?? ''),
                   ),

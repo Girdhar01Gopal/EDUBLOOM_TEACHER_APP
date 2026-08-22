@@ -3,8 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../controller/subject_class_assign_controller.dart';
-import '../models/classmodel.dart';
-import '../models/sectionmodel.dart';
+import '../models/class_list_model.dart';
+import '../models/viewsectionmodel.dart';
 import '../models/subject_model.dart';
 
 class SubjectClassAssignMasterScreen extends GetView<SubjectClassAssignController> {
@@ -178,19 +178,20 @@ class _AddTab extends GetView<SubjectClassAssignController> {
     });
   }
 
+  // ✅ CHANGED: Class dropdown now uses notification's ClassData model
   Widget _classDropdown() {
     return Obx(() {
       final items = controller.classList;
-      return DropdownButtonFormField<ListDataa>(
+      return DropdownButtonFormField<ClassData>(
         value: controller.selectedClass.value,
         isExpanded: true,
         menuMaxHeight: 300,
         hint: _ellipsis("Select Class"),
         items: items
             .map(
-              (c) => DropdownMenuItem<ListDataa>(
+              (c) => DropdownMenuItem<ClassData>(
             value: c,
-            child: _ellipsis(c.className ?? ""),
+            child: _ellipsis(c.className),
           ),
         )
             .toList(),
@@ -200,17 +201,18 @@ class _AddTab extends GetView<SubjectClassAssignController> {
     });
   }
 
+  // ✅ CHANGED: Section dropdown now uses notification's stListData model
   Widget _sectionDropdown() {
     return Obx(() {
       final items = controller.sectionList;
-      return DropdownButtonFormField<ListDatta>(
+      return DropdownButtonFormField<stListData>(
         value: controller.selectedSection.value,
         isExpanded: true,
         menuMaxHeight: 300,
         hint: _ellipsis("Select Section"),
         items: items
             .map(
-              (s) => DropdownMenuItem<ListDatta>(
+              (s) => DropdownMenuItem<stListData>(
             value: s,
             child: _ellipsis(s.section ?? ""),
           ),

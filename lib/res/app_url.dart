@@ -62,8 +62,10 @@ class AppUrl {
 
   static var view_session = "api/MasterApp/ViewSessionApp/";
     static var view_section = "api/MasterApp/ViewSectionApp/";
+  static var getSectionTeacher = "api/TeacherApp/GetSectionTeacher";
 
   static var view_subject = "api/MasterApp/ViewSubjectApp/";
+  static var get_subject_teacher = "api/TeacherApp/GetSebjectTeacher";
   static var post_subject = "api/MasterApp/PostSubjectApp";
   static var post_class = "/api/MasterApp/PostClassApp";
 

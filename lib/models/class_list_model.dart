@@ -5,27 +5,38 @@ import 'dart:convert';
 /// ==============================
 class ClassListModel {
   final List<ClassData> listData;
-  final String? currentSession;
+  final int statusCode;
+  final bool isSuccess;
+  final String? messages;
 
   ClassListModel({
     required this.listData,
-    this.currentSession,
+    this.statusCode = 0,
+    this.isSuccess = false,
+    this.messages,
   });
 
+  /// GetClassTeacher API sends the list inside "data", not "listData".
   factory ClassListModel.fromJson(Map<String, dynamic> json) {
     return ClassListModel(
-      listData: (json['listData'] as List?)
+      listData: (json['data'] as List?)
           ?.map((e) => ClassData.fromJson(e as Map<String, dynamic>))
           .toList() ??
           [],
-      currentSession: json['currentSession']?.toString(),
+      statusCode: json['statusCode'] is int
+          ? json['statusCode']
+          : int.tryParse(json['statusCode']?.toString() ?? '') ?? 0,
+      isSuccess: json['isSuccess'] == true,
+      messages: json['messages']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'listData': listData.map((e) => e.toJson()).toList(),
-      'currentSession': currentSession,
+      'data': listData.map((e) => e.toJson()).toList(),
+      'statusCode': statusCode,
+      'isSuccess': isSuccess,
+      'messages': messages,
     };
   }
 
@@ -69,11 +80,15 @@ class ClassData {
       classId: _toInt(json['classId']),
       className: (json['class'] ?? '').toString().trim(),
       studentClassId: json['studentClassId']?.toString(),
+      // GetClassTeacher sends "action": null -> fallback to "" so
+      // c.action.trim() in the view never crashes on a null.
       action: (json['action'] ?? '').toString(),
       createDate: _toDateTime(json['createDate']),
       updateDate: _toDateTime(json['updateDate']),
       createBy: json['createBy']?.toString(),
       updateBy: json['updateBy']?.toString(),
+      // GetClassTeacher sends "schoolId": null -> fallback to "" so the
+      // field stays a non-null String as declared above.
       schoolId: (json['schoolId'] ?? '').toString(),
       sqno: _toNullableInt(json['sqno']),
     );

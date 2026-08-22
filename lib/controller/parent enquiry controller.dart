@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/session_model.dart' as session_model;
+import '../models/classmodel.dart';
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
@@ -33,11 +34,16 @@ class EnquiryController extends GetxController {
   String token = "";
   String schoolId = "";
 
+  // ── Classes (Teacher-specific) ─────────────────────────────────────
+  final listDataa = <ListDataa>[].obs;
+  final selectedClass = Rx<ListDataa?>(null);
+
   @override
   void onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     await fetchCurrentSession();
+    await fetchClasses();
     await Future.wait([
       fetchSearchEnquiry(),
       fetchViewEnquiry(),
@@ -76,6 +82,62 @@ class EnquiryController extends GetxController {
       Get.snackbar("Error", "Failed to load session: $e");
     }
   }
+
+  // ── Fetch Classes (Teacher-specific) ────────────────────────────────
+  Future<void> fetchClasses() async {
+    try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+
+          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
+          listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
+
+          if (listDataa.isNotEmpty) {
+            selectedClass.value = listDataa.first;
+          } else {
+            selectedClass.value = null;
+          }
+        } else {
+          listDataa.value = [];
+          selectedClass.value = null;
+        }
+      } else {
+        Get.snackbar(
+          "Error",
+          "Failed to fetch classes: ${response.statusCode}",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      debugPrint("Error fetching classes: $e");
+    }
+  }
+
+  void setSelectedClass(ListDataa? c) => selectedClass.value = c;
 
   // ---------- Date pickers ----------
 

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../controller/map_descriptors_controller.dart';
+import '../models/class_list_model.dart';
 import '../models/classmodel.dart';
 import '../models/descriptors_model.dart';
 import '../models/subject_model.dart';
@@ -195,15 +196,15 @@ class _AddTab extends GetView<MapDescriptorsController> {
 
   // ── Class Dropdown ──
   Widget _classDropdown() {
-    return Obx(() => DropdownButtonFormField<ListDataa>(
+    return Obx(() => DropdownButtonFormField<ClassData>(   // 🔄
       value: controller.selectedClass.value,
       isExpanded: true,
       menuMaxHeight: 300,
       hint: _ellipsis("Select Class"),
       items: controller.classList
-          .map((c) => DropdownMenuItem<ListDataa>(
+          .map((c) => DropdownMenuItem<ClassData>(   // 🔄
         value: c,
-        child: _ellipsis(c.className ?? ""),
+        child: _ellipsis(c.className),   // 🔄 ?? "" hataya, non-nullable hai
       ))
           .toList(),
       onChanged: (v) => controller.selectedClass.value = v,

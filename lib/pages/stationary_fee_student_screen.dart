@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model;
 import '../controller/stationary_fee_student_controller.dart';
 import '../infrastructures/routes/page_constants.dart';
@@ -81,6 +82,7 @@ class StationaryFeeStudentScreen extends GetView<StationaryFeeStudentController>
                 SizedBox(height: 20.h),
 
                 /// Class
+                /// Class
                 Text(
                   "Class *",
                   style: TextStyle(
@@ -89,14 +91,14 @@ class StationaryFeeStudentScreen extends GetView<StationaryFeeStudentController>
                   ),
                 ),
                 SizedBox(height: 8.h),
-                DropdownButtonFormField<ListDataa>(
+                DropdownButtonFormField<ClassData>(   // 🔄 ListDataa -> ClassData
                   value: controller.selectedClass.value,
                   isExpanded: true,
                   hint: const Text("Select Class"),
                   items: controller.listDataa.map((item) {
-                    return DropdownMenuItem<ListDataa>(
+                    return DropdownMenuItem<ClassData>(   // 🔄
                       value: item,
-                      child: Text(item.className ?? ""),
+                      child: Text(item.className),        // 🔄 ?? "" hataya
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -111,7 +113,6 @@ class StationaryFeeStudentScreen extends GetView<StationaryFeeStudentController>
                     ),
                   ),
                 ),
-
                 SizedBox(height: 18.h),
 
                 /// Section

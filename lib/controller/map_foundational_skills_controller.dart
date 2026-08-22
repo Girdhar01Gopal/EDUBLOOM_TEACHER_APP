@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';   // 🔄 classmodel.dart ki jagahimport '../models/descriptors_model.dart';
 import '../models/foundational_skills_model.dart';
 import '../models/map_foundational_skills_model.dart';
 import '../models/session_model.dart';
@@ -18,12 +18,14 @@ class MapFoundationalSkillsController extends GetxController {
   String schoolId = "";
   String token = "";
   String session = "";
+  String userId = "";
+
 
   // =========================
   // DROPDOWNS
   // =========================
-  final RxList<ListDataa> classList = <ListDataa>[].obs;
-  final Rx<ListDataa?> selectedClass = Rx<ListDataa?>(null);
+  final RxList<ClassData> classList = <ClassData>[].obs;        // 🔄
+  final Rx<ClassData?> selectedClass = Rx<ClassData?>(null);     // 🔄
 
   // ✅ Section dropdown
   final RxList<dynamic> sectionList = <dynamic>[].obs;
@@ -55,10 +57,11 @@ class MapFoundationalSkillsController extends GetxController {
   // URLs
   // =========================
   String get _classUrl =>
-      '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
+      '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
 
   String get _sectionUrl =>
-      '${AppUrl.base_url}${AppUrl.view_section}$schoolId';
+      '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
 
   // ✅ Same pattern as FoundationalSkillsController — needs session
   String get _foundationalSkillsUrl =>
@@ -131,6 +134,8 @@ class MapFoundationalSkillsController extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";   // ✅ naya
+
 
     if (schoolId.trim().isEmpty) {
       _showSnack("Error", "SchoolId not found");
@@ -199,18 +204,12 @@ class MapFoundationalSkillsController extends GetxController {
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
-      if (decoded == null || decoded is! Map<String, dynamic>) {
-        classList.clear();
-        return;
-      }
-      final ClassItem parsed = ClassItem.fromJson(decoded);
-      classList.assignAll(
-        parsed.listData?.where((e) => e.action == "1").toList() ?? [],
-      );
+      final ClassListModel parsed = ClassListModel.fromJson(decoded);
+      // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
+      classList.assignAll(parsed.listData);
       selectedClass.value = null;
     } catch (e) {
-      classList.clear();
-      _showSnack("Error", "Class fetch error: $e");
+      Get.snackbar("Error", "Class fetch error: $e");
     }
   }
 

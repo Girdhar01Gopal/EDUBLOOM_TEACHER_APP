@@ -8,7 +8,7 @@ import '../models/session_model.dart' as session_model; // ✅ fixed: relative i
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';   // 🔄 classmodel.dart ki jagah
 import '../models/sectionmodel.dart';
 // ❌ removed: import '../models/session_model.dart';  -> this caused duplicate import / type-mismatch
 import '../models/stationary_student_fee_list.dart';
@@ -21,8 +21,8 @@ class StationaryFeeStudentController extends GetxController {
   Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(null); // ✅ fixed type
   var session = ''.obs;
 
-  var listDataa = <ListDataa>[].obs;
-  var selectedClass = Rx<ListDataa?>(null);
+  var listDataa = <ClassData>[].obs;              // 🔄
+  var selectedClass = Rx<ClassData?>(null);        // 🔄
 
   var sectionList = <ListDatta>[].obs;
   var selectedSection = Rx<ListDatta?>(null);
@@ -31,21 +31,23 @@ class StationaryFeeStudentController extends GetxController {
 
   String token = "";
   String schoolId = "";
+  String userId = "";   // ✅ naya
 
   @override
   void onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";   // ✅ naya
     await initData();
   }
 
   Future<void> initData() async {
     isLoading.value = true;
     try {
+      await fetchSessions();   // 🔄 pehle session fetch, taaki GetClassTeacher ko session mile
       await Future.wait([
         fetchClasses(),
         fetchSections(),
-        fetchSessions(),
       ]);
     } catch (e) {
       Get.snackbar("Error", "Failed to initialize data: $e");
@@ -54,7 +56,7 @@ class StationaryFeeStudentController extends GetxController {
     }
   }
 
-  void setSelectedClass(ListDataa? value) {
+  void setSelectedClass(ClassData? value) {   // 🔄 type change
     selectedClass.value = value;
   }
 
@@ -133,8 +135,13 @@ class StationaryFeeStudentController extends GetxController {
   }
 
   Future<void> fetchSections() async {
+    if (session.value.isEmpty) {
+      print("Session not found, skipping fetchSections");
+      return;
+    }
+
     final String url =
-        '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
+        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
 
     try {
       final response = await http.get(
@@ -147,7 +154,7 @@ class StationaryFeeStudentController extends GetxController {
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         final List<dynamic> data =
-        (decoded['listData'] ?? decoded['data'] ?? []) as List<dynamic>;
+        (decoded['data'] ?? decoded['listData'] ?? []) as List<dynamic>;
 
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
@@ -158,19 +165,26 @@ class StationaryFeeStudentController extends GetxController {
   }
 
   Future<void> fetchClasses() async {
+    if (session.value.isEmpty) {
+      print("Session not found, skipping fetchClasses");
+      return;
+    }
+
     try {
+      final String url =
+          '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
+
       final response = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+        Uri.parse(url),
         headers: {
           if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(response.body));
-        listDataa.value =
-            parsed.listData?.where((e) => e.action == "1").toList() ??
-                <ListDataa>[];
+        final parsed = ClassListModel.fromJson(jsonDecode(response.body));
+        // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
+        listDataa.value = parsed.listData;
         selectedClass.value = null;
       }
     } catch (e) {

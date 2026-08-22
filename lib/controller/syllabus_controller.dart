@@ -11,7 +11,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/activitystudentmodel.dart';
 import '../models/classmodel.dart';
-import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 import '../models/subject_model.dart';
 import '../models/syllabus_model.dart' as syllabus_model; // ✅ aliased to avoid Data clash
 import '../res/app_url.dart';
@@ -35,8 +35,8 @@ class SyllabusController extends GetxController {
   final listDataa = <ListDataa>[].obs;
   final selectedClass = Rx<ListDataa?>(null);
 
-  final selectedSection = Rx<ListDatta?>(null);
-  final sectionList = <ListDatta>[].obs;
+  final selectedSection = Rx<stListData?>(null);
+  final sectionList = <stListData>[].obs;
 
   final subjectlist = <ListDaataa>[].obs;
   final subjectdata = SubjectModel().obs;
@@ -101,43 +101,88 @@ class SyllabusController extends GetxController {
   Future<void> fetchClasses() async {
     try {
       isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
-      final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
       );
 
-      if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
-        listDataa.value = parsed.listData
-            ?.where((e) => e.action?.toString() == "1")
-            .toList() ??
-            [];
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+
+          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
+          listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
+
+          if (listDataa.isNotEmpty) {
+            selectedClass.value = listDataa.first;
+          } else {
+            selectedClass.value = null;
+          }
+        } else {
+          listDataa.value = [];
+          selectedClass.value = null;
+        }
+      } else {
+        Get.snackbar(
+          "Error",
+          "Failed to fetch classes: ${response.statusCode}",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       }
     } catch (e) {
-      print("Error fetching classes: $e");
+      debugPrint("Error fetching classes: $e");
     } finally {
       isLoading(false);
     }
   }
 
   Future<void> fetchSections() async {
-    final url = '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
-
     try {
       isLoading(true);
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}${AppUrl.getSectionTeacher}'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
       );
 
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetSectionTeacher status: ${response.statusCode}');
+      debugPrint('GetSectionTeacher body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        final List<dynamic> data = body['listData'] ?? [];
+        final jsonResponse = json.decode(response.body);
+        final sectionModel = sectionmodel.fromJson(jsonResponse);
 
-        final sections = data.map((e) => ListDatta.fromJson(e)).toList();
-
-        sectionList.assignAll(sections);
+        sectionList.assignAll(sectionModel.listData ?? []);
 
         // ✅ IMPORTANT: keep dropdown unselected by default
         selectedSection.value = null;
@@ -155,8 +200,14 @@ class SyllabusController extends GetxController {
   Future<void> fetchsubjectdata() async {
     try {
       isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
-      final url = Uri.parse('${AppUrl.base_url}${AppUrl.view_subject}$schoolId');
+      final url = Uri.parse(
+        '${AppUrl.base_url}${AppUrl.get_subject_teacher}'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
       final response = await http.get(
         url,
         headers: {
@@ -179,7 +230,7 @@ class SyllabusController extends GetxController {
 
   void setsubject(ListDaataa? s) => subject.value = s?.subjectId ?? 0;
   void setSelectedClass(ListDataa? c) => selectedClass.value = c;
-  void setSelectedSection(ListDatta? s) => selectedSection.value = s;
+  void setSelectedSection(stListData? s) => selectedSection.value = s;
 
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(

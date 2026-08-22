@@ -16,6 +16,15 @@ class ClassController extends GetxController {
   final isPosting = false.obs;
 
   String? schoolId;
+  String? userId;
+
+
+  String get session {
+    final now = DateTime.now();
+    final startYear = now.month >= 4 ? now.year : now.year - 1;
+    final endYear = startYear + 1;
+    return "$startYear-${endYear.toString().substring(2)}";
+  }
 
   final classList = ClassListModel(listData: []).obs;
 
@@ -25,10 +34,23 @@ class ClassController extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
 
+    userId = await PrefManager().readValue(key: PrefConst.Userid);
+
     if (schoolId == null || schoolId!.trim().isEmpty) {
       Get.snackbar(
         "Error",
         "SchoolId not found in storage",
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    if (userId == null || userId!.trim().isEmpty) {
+      Get.snackbar(
+        "Error",
+        "UserId not found in storage",
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -107,7 +129,7 @@ class ClassController extends GetxController {
   }
 
   // =========================
-  // FETCH CLASSES
+  // FETCH CLASSES  (GetClassTeacher API)
   // =========================
   Future<void> fetchClasses() async {
     try {
@@ -116,10 +138,15 @@ class ClassController extends GetxController {
       if (schoolId == null || schoolId!.trim().isEmpty) {
         throw Exception("SchoolId is null or empty");
       }
+      if (userId == null || userId!.trim().isEmpty) {
+        throw Exception("UserId is null or empty");
+      }
 
-      final encodedSchoolId = Uri.encodeComponent(schoolId!.trim());
       final url = Uri.parse(
-        "https://playschool.edubloom.in/api/MasterApp/ViewClass/$encodedSchoolId",
+        "https://playschool.edubloom.in/api/TeacherApp/GetClassTeacher"
+            "?schoolId=${Uri.encodeComponent(schoolId!.trim())}"
+            "&Session=${Uri.encodeComponent(session)}"
+            "&userId=${Uri.encodeComponent(userId!.trim())}",
       );
 
       final response = await http.get(

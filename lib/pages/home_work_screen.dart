@@ -13,6 +13,7 @@ import '../controller/home_work_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
+import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 
 class HomeworkScreen extends GetView<HomeworkController> {
@@ -114,12 +115,12 @@ class AddHomeworkTab extends GetView<HomeworkController> {
           SizedBox(height: 16.h),
 
           Obx(() {
-            return DropdownButtonFormField<ListDatta?>(
+            return DropdownButtonFormField<stListData?>(
               value: controller.selectedSection.value,
               isExpanded: true,
               hint: const Text('Select Section'),
               items: [
-                const DropdownMenuItem<ListDatta?>(
+                const DropdownMenuItem<stListData?>(
                   value: null,
                   child: Text(
                     'Select Section',
@@ -127,13 +128,13 @@ class AddHomeworkTab extends GetView<HomeworkController> {
                   ),
                 ),
                 ...controller.sectionList.map(
-                      (item) => DropdownMenuItem<ListDatta?>(
+                      (item) => DropdownMenuItem<stListData?>(
                     value: item,
                     child: Text(item.section ?? ''),
                   ),
                 ),
               ],
-              onChanged: (ListDatta? newVal) {
+              onChanged: (stListData? newVal) {
                 controller.setSelectedSection(newVal);
                 controller.section.value =
                     newVal?.sectionId.toString() ?? '';

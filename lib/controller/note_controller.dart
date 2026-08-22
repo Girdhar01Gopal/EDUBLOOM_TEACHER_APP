@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -9,7 +10,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/classmodel.dart';
-import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 import '../models/subject_model.dart';
 import '../models/vnote_model.dart';
 import '../res/app_url.dart';
@@ -28,13 +29,13 @@ class NoteController extends GetxController {
 
   // Lists
   var listData = <Dataa>[].obs; // ViewNote data
-  var sectionList = <ListDatta>[].obs;
+  var sectionList = <stListData>[].obs;
   var subjectlist = <ListDaataa>[].obs;
   var listDataa = <ListDataa>[].obs;
 
   // Selected items
   var selectedClass = Rx<ListDataa?>(null);
-  var selectedSection = Rx<ListDatta?>(null);
+  var selectedSection = Rx<stListData?>(null);
   var selectsubject = Rx<ListDaataa?>(null);
 
   // Model wrapper
@@ -43,7 +44,7 @@ class NoteController extends GetxController {
   @override
   Future<void> onInit() async {
     super.onInit();
-   
+
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     seassion = await PrefManager().readValue(key: PrefConst.session);
 
@@ -152,7 +153,7 @@ class NoteController extends GetxController {
         request.files.add(multipartFile);
       }
 
-     // request.headers['Authorization'] = 'Bearer $token';
+      // request.headers['Authorization'] = 'Bearer $token';
 
       final response = await request.send();
 
@@ -176,12 +177,31 @@ class NoteController extends GetxController {
 
   /// ---------------------- FETCH SECTIONS ----------------------
   Future<void> fetchSections() async {
-    String url = '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
     try {
       isLoading(true);
-      final response = await http.get(Uri.parse(url), headers: {'Content-Type': 'application/json'});
+
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}${AppUrl.getSectionTeacher}'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(seassion)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetSectionTeacher status: ${response.statusCode}');
+      debugPrint('GetSectionTeacher body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final sectionItem = Section.fromJson(jsonDecode(response.body));
+        final sectionItem = sectionmodel.fromJson(jsonDecode(response.body));
         sectionList.value = sectionItem.listData ?? [];
         if (sectionList.isNotEmpty) {
           selectedSection.value = sectionList.first;
@@ -196,42 +216,66 @@ class NoteController extends GetxController {
     }
   }
 
-  void setSelectedSection(ListDatta? sectionId) {
+  void setSelectedSection(stListData? sectionId) {
     selectedSection.value = sectionId;
   }
 
   /// ---------------------- FETCH CLASSES ----------------------
-Future<void> fetchClasses() async {
-  try {
-    isLoading(true);
-    final response = await http.get(
-      Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
-      headers: {'Content-Type': 'application/json'},
-    );
+  Future<void> fetchClasses() async {
+    try {
+      isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
-    if (response.statusCode == 200) {
-      final classItem = ClassItem.fromJson(jsonDecode(response.body));
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(seassion)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
 
-      // Filter the listData to include only classes where action == "1"
-      listDataa.value = classItem.listData
-          ?.where((e) => e.action == "1")
-          .toList() ?? [];
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
 
-      // Set the first class as the selected class if available
-      if (listDataa.isNotEmpty) {
-        selectedClass.value = listDataa.first;
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+
+          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
+          listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
+
+          if (listDataa.isNotEmpty) {
+            selectedClass.value = listDataa.first;
+          } else {
+            selectedClass.value = null;
+          }
+        } else {
+          listDataa.value = [];
+          selectedClass.value = null;
+        }
       } else {
-        selectedClass.value = null;  // Optional: Set to null if no classes are found
+        Get.snackbar(
+          "Error",
+          "Failed to fetch classes: ${response.statusCode}",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       }
-    } else {
-      throw Exception('Failed to load classes');
+    } catch (e) {
+      debugPrint("Error loading classes: $e");
+    } finally {
+      isLoading(false);
     }
-  } catch (e) {
-    print('Error: $e');
-  } finally {
-    isLoading(false);
   }
-}
 
 
   void setSelectedClass(ListDataa? studentClassId) {
@@ -239,10 +283,18 @@ Future<void> fetchClasses() async {
   }
 
   /// ---------------------- FETCH SUBJECTS ----------------------
+  /// ---------------------- FETCH SUBJECTS ----------------------
   Future<void> fetchsubjectdata() async {
     try {
       isLoading(true);
-      final url = Uri.parse('${AppUrl.base_url}${AppUrl.view_subject}$schoolId');
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}${AppUrl.get_subject_teacher}'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(seassion)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
       final response = await http.get(
         url,
         headers: {

@@ -9,8 +9,9 @@ import '../models/AddFeeHeadMasterModel.dart';
 import '../res/app_url.dart';
 
 import '../models/session_model.dart' as session_model;
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 import '../models/fee_type_model.dart';
 import '../models/feedurationmodel.dart';
 
@@ -19,8 +20,9 @@ class AddFeeHeadController extends GetxController {
   final sessionList = <session_model.sListDdata>[].obs;
   final selectedSession = Rx<session_model.sListDdata?>(null);
 
-  final classList = <ListDataa>[].obs;
-  final selectedClass = Rx<ListDataa?>(null);
+  // ✅ CHANGED: Class now uses notification's ClassData model
+  final classList = <ClassData>[].obs;
+  final selectedClass = Rx<ClassData?>(null);
 
   final feeTypeList = <fData>[].obs;
   final selectedFeeType = Rx<fData?>(null);
@@ -29,8 +31,9 @@ class AddFeeHeadController extends GetxController {
   // ✅ CHANGED: single -> multi select list
   final selectedFeeDurations = <FeeDurationItem>[].obs;
 
-  final sectionList = <ListDatta>[].obs;
-  final selectedSection = Rx<ListDatta?>(null);
+  // ✅ CHANGED: Section now uses notification's stListData model
+  final sectionList = <stListData>[].obs;
+  final selectedSection = Rxn<stListData>();
 
   // ================= INPUT =================
   final amountController = TextEditingController();
@@ -44,11 +47,11 @@ class AddFeeHeadController extends GetxController {
   final feeHeadList = <AddFeeHeadMasterData>[].obs;
 
   String schoolId = "";
+  // ✅ NEW: needed for GetClassTeacher / getSectionTeacher APIs (same as notification)
+  String session = "";
 
   // ================= API URLS =================
   String get _sessionUrl => '${AppUrl.base_url}api/MasterApp/ViewSessionApp/$schoolId';
-  String get _classUrl => '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
-  String get _sectionUrl => '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
   String get _feeTypeUrl => '${AppUrl.base_url}api/FeeMasterApp/ViewFeeTypeApp/$schoolId';
   String get _feeDurationUrl => '${AppUrl.base_url}api/FeeMasterApp/ViewFeesDurationApp/$schoolId';
 
@@ -78,6 +81,9 @@ class AddFeeHeadController extends GetxController {
     super.onInit();
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
+    // ✅ NEW: same as notification controller's onInit
+    session = await PrefManager().readValue(key: PrefConst.session) ?? "";
+
     if (schoolId.isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
       return;
@@ -140,13 +146,50 @@ class AddFeeHeadController extends GetxController {
     }
   }
 
+  // ✅ CHANGED: class fetch now uses notification's GetClassTeacher API + ClassData model
   Future<void> fetchClasses() async {
-    final res = await http.get(Uri.parse(_classUrl));
-    if (res.statusCode != 200) return;
+    try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
-    final parsed = ClassItem.fromJson(jsonDecode(res.body));
-    classList.assignAll(parsed.listData?.where((e) => e.action == "1").toList() ?? []);
-    selectedClass.value = null;
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+
+        if (jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+          classList.value = data.map((e) => ClassData.fromJson(e)).toList();
+        } else {
+          classList.value = [];
+        }
+        selectedClass.value = null;
+      } else {
+        Get.snackbar(
+          "Error",
+          "Failed to fetch classes: ${response.statusCode}",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      debugPrint("Error loading classes: $e");
+    }
   }
 
   Future<void> fetchFeeTypes() async {
@@ -168,13 +211,41 @@ class AddFeeHeadController extends GetxController {
     selectedFeeDurations.clear();
   }
 
+  // ✅ CHANGED: section fetch now uses notification's getSectionTeacher API + sectionmodel/stListData
   Future<void> fetchSections() async {
-    final res = await http.get(Uri.parse(_sectionUrl));
-    if (res.statusCode != 200) return;
+    try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
-    final list = jsonDecode(res.body)['listData'] ?? [];
-    sectionList.assignAll((list as List).map<ListDatta>((e) => ListDatta.fromJson(e)).toList());
-    selectedSection.value = null;
+      final url = Uri.parse(
+        '${AppUrl.base_url}${AppUrl.getSectionTeacher}'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetSectionTeacher status: ${response.statusCode}');
+      debugPrint('GetSectionTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final sectionModel = sectionmodel.fromJson(jsonResponse);
+
+        sectionList.assignAll(sectionModel.listData ?? []);
+        selectedSection.value = null;
+      } else {
+        Get.snackbar('Error', 'Failed to load sections');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to load sections');
+    }
   }
 
   // ================= VIEW LIST API =================

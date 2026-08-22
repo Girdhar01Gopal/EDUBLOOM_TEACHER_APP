@@ -13,7 +13,7 @@ import '../infrastructures/utils/utils.dart';
 import '../models/class_list_model.dart';
 import '../models/notificationAll_model.dart';
 import '../models/notification_model.dart';
-import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 import 'fees_controller.dart' hide ListData;
 
@@ -22,7 +22,7 @@ class NotificationController extends GetxController {
   var message = ''.obs;
   var section = ''.obs;
 
-  final Rxn<ListDatta> selectedSection = Rxn<ListDatta>();
+  final Rxn<stListData> selectedSection = Rxn<stListData>();
   var studentClass = ''.obs;
   var createDate = DateTime.now().obs;
   var updateDate = DateTime.now().obs;
@@ -31,7 +31,7 @@ class NotificationController extends GetxController {
   var isLoading = false.obs;
   final notificationall = NotificationAllModel().obs;
 
-  var sectionList = <ListDatta>[].obs;
+  var sectionList = <stListData>[].obs;
   var classes = <ClassData>[].obs;
   var selectedClass = Rx<ClassData?>(null);
   var selectedClasses = <ClassData>[].obs;
@@ -113,23 +113,34 @@ class NotificationController extends GetxController {
   }
 
   Future<void> fetchSections() async {
-    final url = '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
-
     try {
       isLoading(true);
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}${AppUrl.getSectionTeacher}'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
       );
 
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetSectionTeacher status: ${response.statusCode}');
+      debugPrint('GetSectionTeacher body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        final List<dynamic> data = body['listData'] ?? [];
+        final jsonResponse = json.decode(response.body);
+        final sectionModel = sectionmodel.fromJson(jsonResponse);
 
-        final sections = data.map((e) => ListDatta.fromJson(e)).toList();
-
-        sectionList.assignAll(sections);
+        sectionList.assignAll(sectionModel.listData ?? []);
         selectedSection.value = null;
         section.value = '';
       } else {
@@ -142,7 +153,7 @@ class NotificationController extends GetxController {
     }
   }
 
-  void setSelectedSection(ListDatta? sectionData) {
+  void setSelectedSection(stListData? sectionData) {
     selectedSection.value = sectionData;
   }
 
@@ -167,22 +178,51 @@ class NotificationController extends GetxController {
   Future<void> fetchClasses() async {
     try {
       isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
-      final url = '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
       );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
 
-        final parsed = ClassListModel.fromJson(jsonResponse);
-        classes.value =
-            parsed.listData.where((e) => e.action == "1").toList();
-        selectedClass.value = null;
+        if (jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+
+          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
+          classes.value = data.map((e) => ClassData.fromJson(e)).toList();
+
+          if (classes.isNotEmpty) {
+            selectedClass.value = classes.first;
+          } else {
+            selectedClass.value = null;
+          }
+        } else {
+          classes.value = [];
+          selectedClass.value = null;
+        }
       } else {
-        debugPrint("Failed to load classes: ${response.statusCode}");
+        Get.snackbar(
+          "Error",
+          "Failed to fetch classes: ${response.statusCode}",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
       }
     } catch (e) {
       debugPrint("Error loading classes: $e");

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/behaviourcontroller.dart';
 import '../models/activitystudentmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/classmodel.dart';
 
 class Behaviourview extends GetView<Behaviourcontroller> {
@@ -510,7 +511,7 @@ Widget _classDropdown(Behaviourcontroller controller) {
     if (controller.isLoading.value) {
       return const Center(child: CircularProgressIndicator());
     }
-    return DropdownButtonFormField<ListDataa>(
+    return DropdownButtonFormField<ClassData>(   // 🔄 ListDataa -> ClassData
       value: controller.selectedClass.value,
       hint: Text(
         "Choose a class",
@@ -538,7 +539,7 @@ Widget _classDropdown(Behaviourcontroller controller) {
       items: controller.listDataa.map((item) {
         return DropdownMenuItem(
           value: item,
-          child: Text(item.className ?? ""),
+          child: Text(item.className),   // 🔄 non-nullable, ?? "" ki zaroorat nahi
         );
       }).toList(),
       onChanged: (val) {

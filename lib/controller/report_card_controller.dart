@@ -6,7 +6,7 @@ import '../models/session_model.dart' as session_model; // ✅ fixed: relative i
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/ReportCardData1.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';   // 🔄 classmodel.dart ki jagahimport '../models/descriptors_model.dart';
 // ❌ removed: import '../models/session_model.dart';  -> this caused duplicate import / type-mismatch
 import '../models/terms_result_model.dart';
 import '../models/viewsectionmodel.dart';
@@ -25,12 +25,15 @@ class ReportCardController extends GetxController {
   // =========================
   // DROPDOWNS
   // =========================
-  var listDataa = <ListDataa>[].obs;
-  var selectedClass = Rx<ListDataa?>(null);
+  final RxList<ClassData> classList = <ClassData>[].obs; // 🔄
+  final Rx<ClassData?> selectedClass = Rx<ClassData?>(null); // 🔄
 
-  RxList<session_model.sListDdata> sessionList = <session_model.sListDdata>[].obs; // ✅ fixed type
-  Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(null); // ✅ fixed type
+  RxList<session_model.sListDdata> sessionList = <session_model.sListDdata>[]
+      .obs; // ✅ fixed type
+  Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(
+      null); // ✅ fixed type
   var session = ''.obs;
+
 
   // Section
   final RxList<dynamic> sectionList = <dynamic>[].obs;
@@ -51,18 +54,21 @@ class ReportCardController extends GetxController {
   // =========================
   String token = "";
   String schoolId = "";
+  String userId = "";
+
 
   // =========================
   // URLs
   // =========================
   String get _classUrl =>
-      '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
+      '${AppUrl
+          .base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
 
   String get _sessionUrl =>
       '${AppUrl.base_url}api/MasterApp/ViewSessionApp/$schoolId';
 
   String get _sectionUrl =>
-      '${AppUrl.base_url}${AppUrl.view_section}$schoolId';
+      '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
 
   String get _termUrl =>
       '${AppUrl.base_url}api/Result/ViewTerm/$schoolId/${session.value}';
@@ -73,14 +79,18 @@ class ReportCardController extends GetxController {
     final sectionId = selectedSection.value?.sectionId ?? 0;
     final termVal = Uri.encodeComponent(selectedTerm.value?.term ?? "");
     final sessionVal = Uri.encodeComponent(session.value);
-    return '${AppUrl.base_url}api/Result/ViewStudentRePortCard/$classId/$sessionVal/$termVal/$schoolId/$sectionId';
+    return '${AppUrl
+        .base_url}api/Result/ViewStudentRePortCard/$classId/$sessionVal/$termVal/$schoolId/$sectionId';
   }
 
-  Map<String, String> get _headers => {
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-    if (token.trim().isNotEmpty) "Authorization": "Bearer $token",
-  };
+  Map<String, String> get _headers =>
+      {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        if (token
+            .trim()
+            .isNotEmpty) "Authorization": "Bearer $token",
+      };
 
   // =========================
   // SAFE DECODE
@@ -101,7 +111,9 @@ class ReportCardController extends GetxController {
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception("[$label] HTTP ${res.statusCode}");
     }
-    if (body.trim().isEmpty) return null;
+    if (body
+        .trim()
+        .isEmpty) return null;
     return jsonDecode(body);
   }
 
@@ -127,8 +139,13 @@ class ReportCardController extends GetxController {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+    userId =
+        await PrefManager().readValue(key: PrefConst.Userid) ?? ""; // ✅ naya
 
-    if (schoolId.trim().isEmpty) {
+
+    if (schoolId
+        .trim()
+        .isEmpty) {
       _showSnack("Error", "School ID not found. Please login again.");
       return;
     }
@@ -161,17 +178,14 @@ class ReportCardController extends GetxController {
   // =========================
   Future<void> fetchClasses() async {
     try {
-      final res =
-      await http.get(Uri.parse(_classUrl), headers: _headers);
+      final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
-      final ClassItem parsed = ClassItem.fromJson(decoded);
-      listDataa.assignAll(
-        parsed.listData?.where((e) => e.action == "1").toList() ?? [],
-      );
+      final ClassListModel parsed = ClassListModel.fromJson(decoded);
+      // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
+      classList.assignAll(parsed.listData);
       selectedClass.value = null;
     } catch (e) {
-      listDataa.clear();
-      _showSnack("Error", "Class fetch failed: $e");
+      Get.snackbar("Error", "Class fetch error: $e");
     }
   }
 
@@ -349,6 +363,4 @@ class ReportCardController extends GetxController {
       isSearching(false);
     }
   }
-
-  void setSelectedClass(ListDataa? val) => selectedClass.value = val;
 }

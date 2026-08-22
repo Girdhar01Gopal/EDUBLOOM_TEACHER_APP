@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../controller/AddResultController.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/subject_model.dart';
 import '../models/terms_result_model.dart';
 
@@ -216,14 +216,14 @@ class _SearchTab extends GetView<AddResultController> {
   }
 
   Widget _classDropdown() {
-    return Obx(() => DropdownButtonFormField<ListDataa>(
+    return Obx(() => DropdownButtonFormField<ClassData>(
       value: controller.selectedClass.value,
       isExpanded: true,
       menuMaxHeight: 300,
       hint: _ellipsis("Select Class"),
       decoration: _fieldDec("Class"),
       items: controller.classList
-          .map((c) => DropdownMenuItem<ListDataa>(
+          .map((c) => DropdownMenuItem<ClassData>(
         value: c,
         child: _ellipsis(c.className ?? ""),
       ))

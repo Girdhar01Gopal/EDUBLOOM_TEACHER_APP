@@ -10,7 +10,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import 'package:http/http.dart' as http;
 
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/sectionmodel.dart';
 import '../models/student_fee_model.dart';
 import '../res/app_url.dart';
@@ -24,9 +24,8 @@ class FeesController extends GetxController {
 
 // String to store session name (optional)
   var session = ''.obs;
-  var classes = <ClassItem>[].obs; // Whole API object
-  var listDataa = <ListDataa>[].obs; // Flattened list of classes
-  var selectedClass = Rx<ListDataa?>(null);
+  var listDataa = <ClassData>[].obs; // Flattened list of classes
+  var selectedClass = Rx<ClassData?>(null);
 
   var section = 0;
   var studentClass = ''.obs;
@@ -38,6 +37,7 @@ class FeesController extends GetxController {
 
   var token = "";
   var schoolId = "";
+  var userId = "";
 
   // 🔍 Search ke liye naye variables
   var isSearching = false.obs;
@@ -57,9 +57,10 @@ class FeesController extends GetxController {
   void onInit() async {
     // TODO: implement onInit
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
+    userId = await PrefManager().readValue(key: PrefConst.Userid);
 
+    await fetchSessions();
     fetchClasses();
-    await fetchSessions(); // 🆕 awaited so session.value is set before auto-fetch
     fetchSections();
     fetchAllStudentsAuto(); // 🆕 auto load ALL students on screen open
     // fetchStudentFeeData();
@@ -112,21 +113,27 @@ class FeesController extends GetxController {
 
   // fetch sections
   Future<void> fetchSections() async {
-    final String url =
-        '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
-
     try {
       isLoading(true);
 
+      final String currentSession =
+          selectedSession.value?.session ?? session.value;
+
+      final String url =
+          '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$currentSession&userId=$userId';
+
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
 
-        List<dynamic> data = decoded['listData'] ?? decoded['data'] ?? [];
+        List<dynamic> data = decoded['data'] ?? decoded['listData'] ?? [];
 
         // update observable list
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
@@ -155,16 +162,24 @@ class FeesController extends GetxController {
     try {
       isLoading(true);
 
+      final String currentSession =
+          selectedSession.value?.session ?? session.value;
+
+      final String apiUrl =
+          '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$currentSession&userId=$userId';
+
       final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+        },
       );
 
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
+        final parsed = ClassListModel.fromJson(jsonDecode(res.body));
 
-        // Filter the listData to include only classes where action == "1"
-        listDataa.value =
-            parsed.listData?.where((e) => e.action == "1").toList() ?? [];
+        listDataa.value = parsed.listData;
 
         // Set empty selection so dropdown shows "Select Class"
         selectedClass.value = null;
@@ -176,7 +191,7 @@ class FeesController extends GetxController {
     }
   }
 
-  void setSelectedClass(ListDataa? studentClassId) {
+  void setSelectedClass(ClassData? studentClassId) {
     selectedClass.value = studentClassId;
   }
 

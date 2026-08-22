@@ -6,23 +6,28 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/SubjectClassAssignModel.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 import '../models/subject_model.dart';
 import '../res/app_url.dart';
 
 class SubjectClassAssignController extends GetxController {
   String schoolId = "";
   String token = "";
+  String session = "";
+  String userId = "";
 
   // =========================
   // DROPDOWNS
   // =========================
-  final classList = <ListDataa>[].obs;
-  final selectedClass = Rx<ListDataa?>(null);
+  // ✅ CHANGED: Class now uses notification's ClassData model
+  final classList = <ClassData>[].obs;
+  final selectedClass = Rx<ClassData?>(null);
 
-  final sectionList = <ListDatta>[].obs;
-  final selectedSection = Rx<ListDatta?>(null);
+  // ✅ CHANGED: Section now uses notification's stListData model
+  final sectionList = <stListData>[].obs;
+  final selectedSection = Rx<stListData?>(null);
 
   final subjectList = <ListDaataa>[].obs;
   final selectedSubject = Rx<ListDaataa?>(null);
@@ -42,9 +47,15 @@ class SubjectClassAssignController extends GetxController {
   // =========================
   // URLs
   // =========================
-  String get _classUrl => '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
-  String get _sectionUrl => '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
-  String get _subjectUrl => '${AppUrl.base_url}api/MasterApp/ViewSubjectApp/$schoolId';
+  // ✅ CHANGED: class/section URLs now point to the notification-style teacher APIs
+  String get _classUrl =>
+      '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
+  String get _sectionUrl =>
+      '${AppUrl.base_url}${AppUrl.getSectionTeacher}?schoolId=$schoolId&Session=$session&userId=$userId';
+
+  String get _subjectUrl =>
+      '${AppUrl.base_url}${AppUrl.get_subject_teacher}?schoolId=$schoolId&Session=$session&userId=$userId';
 
   String get _subjectClassAssignListUrl =>
       '${AppUrl.base_url}api/MasterApp/GetAllClassSubjectAsyncApp/$schoolId';
@@ -95,6 +106,8 @@ class SubjectClassAssignController extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+    session = await PrefManager().readValue(key: PrefConst.session) ?? "";
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
 
     if (schoolId.trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -123,14 +136,16 @@ class SubjectClassAssignController extends GetxController {
   // =========================
   // CLASSES
   // =========================
+  // ✅ CHANGED: class fetch now uses notification's GetClassTeacher API + ClassData model
   Future<void> fetchClasses() async {
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
 
-      final parsed = ClassItem.fromJson(decoded);
+      final list = (decoded is Map<String, dynamic>) ? (decoded['data'] ?? []) : [];
+
       classList.assignAll(
-        parsed.listData?.where((e) => e.action == "1").toList() ?? [],
+        (list as List).map<ClassData>((e) => ClassData.fromJson(e)).toList(),
       );
       selectedClass.value = null;
     } catch (e) {
@@ -141,18 +156,15 @@ class SubjectClassAssignController extends GetxController {
   // =========================
   // SECTIONS
   // =========================
+  // ✅ CHANGED: section fetch now uses notification's getSectionTeacher API + sectionmodel/stListData
   Future<void> fetchSections() async {
     try {
       final res = await http.get(Uri.parse(_sectionUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Sections");
 
-      final list = (decoded is Map<String, dynamic>)
-          ? (decoded['listData'] ?? [])
-          : [];
+      final sectionModel = sectionmodel.fromJson(decoded);
 
-      sectionList.assignAll(
-        (list as List).map<ListDatta>((e) => ListDatta.fromJson(e)).toList(),
-      );
+      sectionList.assignAll(sectionModel.listData ?? []);
       selectedSection.value = null;
     } catch (e) {
       Get.snackbar("Error", "Section fetch error: $e");
@@ -168,7 +180,7 @@ class SubjectClassAssignController extends GetxController {
       final decoded = _safeDecodeResponse(res, label: "Subjects");
 
       final list = (decoded is Map<String, dynamic>)
-          ? (decoded['listData'] ?? [])
+          ? (decoded['data'] ?? [])
           : [];
 
       subjectList.assignAll(

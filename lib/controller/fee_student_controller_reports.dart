@@ -9,7 +9,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import 'package:http/http.dart' as http;
 
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/fee_student_model_reports.dart';
 import '../models/sectionmodel.dart';
 // ❌ removed: import '../models/session_model.dart';  -> this caused the type-mismatch errors
@@ -26,9 +26,8 @@ class FeeStudentReportsController extends GetxController {
 
   // String to store session name (optional)
   var session = ''.obs;
-  var classes = <ClassItem>[].obs; // Whole API object
-  var listDataa = <ListDataa>[].obs; // Flattened list of classes
-  var selectedClass = Rx<ListDataa?>(null);
+  var listDataa = <ClassData>[].obs;
+  var selectedClass = Rx<ClassData?>(null);
 
   var section = 0;
   var studentClass = ''.obs;
@@ -38,22 +37,22 @@ class FeeStudentReportsController extends GetxController {
   var isLoading = true.obs; // Loading state
   var isloading = false.obs; // Loading state
 
-  var token = "";
-  var schoolId = "";
+  String token = "";
+  String schoolId = "";
+  String userId = ""; // ✅ naya
 
   get grandTotal => null;
   @override
   void onInit() async {
     // TODO: implement onInit
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? ""; // ✅ naya
 
-    fetchClasses();
-    fetchSessions();
-    fetchSections();
-    // fetchStudentFeeData();
-    super.onInit();
+
+    await fetchSessions();   // pehle session set hoga
+    await fetchClasses();    // ab session.value available rahega
+    await fetchSections();
   }
-
   // Method to fetch student data based on session, class, and section
   Future<void> fetchStudentData() async {
     if (selectedSession.value == null || selectedClass.value == null || selectedSection.value == null) {
@@ -92,7 +91,8 @@ class FeeStudentReportsController extends GetxController {
 
   // fetch sections
   Future<void> fetchSections() async {
-    final String url = '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
+    final String url =
+        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
 
     try {
       isLoading(true);
@@ -105,7 +105,7 @@ class FeeStudentReportsController extends GetxController {
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
 
-        List<dynamic> data = decoded['listData'] ?? decoded['data'] ?? [];
+        List<dynamic> data = decoded['data'] ?? decoded['listData'] ?? [];
 
         // update observable list
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
@@ -131,33 +131,45 @@ class FeeStudentReportsController extends GetxController {
   }
 
   Future<void> fetchClasses() async {
+    if (session.value.isEmpty) {
+      // session abhi tak select/available nahi hai
+      Get.snackbar('Error', 'Session not found');
+      return;
+    }
+
+    final String url =
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
+
     try {
       isLoading(true);
 
       final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
 
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
+        final parsed = ClassListModel.fromJson(jsonDecode(res.body));
 
-        // Filter the listData to include only classes where action == "1"
-        listDataa.value = parsed.listData
-            ?.where((e) => e.action == "1")
-            .toList() ?? [];
+        // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
+        listDataa.value = parsed.listData;
 
-        // Set empty selection so dropdown shows "Select Class"
         selectedClass.value = null;
+      } else {
+        Get.snackbar('Error', 'Failed to load classes');
       }
     } catch (e) {
-      print("Error fetching classes: $e");
+      Get.snackbar('Error', 'Error fetching classes: $e');
     } finally {
       isLoading(false);
     }
   }
 
-  void setSelectedClass(ListDataa? studentClassId) {
-    selectedClass.value = studentClassId;
+  void setSelectedClass(ClassData? value) {   // 🔄 type change
+    selectedClass.value = value;
   }
 
   Future<void> fetchSessions() async {

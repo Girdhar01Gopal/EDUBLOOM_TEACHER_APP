@@ -13,6 +13,7 @@ import '../controller/note_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
+import '../models/viewsectionmodel.dart';
 
 const Color axisMaroon = Color(0xFF97144D);
 const Color axisMaroonShade50 = Color(0xFFF3E0E9);
@@ -104,14 +105,14 @@ class AddNoteTab extends GetView<NoteController> {
 
           // Section Dropdown
           Obx(
-                () => DropdownButtonFormField<ListDatta>(
+                () => DropdownButtonFormField<stListData>(
               value: controller.sectionList
                   .contains(controller.selectedSection.value)
                   ? controller.selectedSection.value
                   : null,
               items: controller.sectionList
                   .map(
-                    (item) => DropdownMenuItem<ListDatta>(
+                    (item) => DropdownMenuItem<stListData>(
                   value: item,
                   child: Text(item.section ?? ''),
                 ),
@@ -473,7 +474,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     }
   }
 
-  ListDatta? _findSectionById(dynamic sectionId) {
+  stListData? _findSectionById(dynamic sectionId) {
     try {
       return controller.sectionList.firstWhere((s) => s.sectionId == sectionId);
     } catch (_) {

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../controller/map_foundational_skills_controller.dart';
+import '../models/class_list_model.dart';
 import '../models/classmodel.dart';
 import '../models/foundational_skills_model.dart';
 
@@ -181,19 +182,19 @@ class _AddTab extends GetView<MapFoundationalSkillsController> {
 
   // ── Class Dropdown ──
   Widget _classDropdown() {
-    return Obx(() => DropdownButtonFormField<ListDataa>(
+    return Obx(() => DropdownButtonFormField<ClassData>(   // 🔄
       value: controller.selectedClass.value,
       isExpanded: true,
       menuMaxHeight: 300,
       hint: _ellipsis("Select Class"),
-      decoration: _dec("Class"),
       items: controller.classList
-          .map((item) => DropdownMenuItem<ListDataa>(
-        value: item,
-        child: _ellipsis(item.className ?? ""),
+          .map((c) => DropdownMenuItem<ClassData>(   // 🔄
+        value: c,
+        child: _ellipsis(c.className),   // 🔄 ?? "" hataya, non-nullable hai
       ))
           .toList(),
-      onChanged: (value) => controller.selectedClass.value = value,
+      onChanged: (v) => controller.selectedClass.value = v,
+      decoration: _dec("Class"),
     ));
   }
 

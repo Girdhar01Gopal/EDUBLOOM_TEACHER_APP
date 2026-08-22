@@ -98,7 +98,16 @@ class AttendanceController extends GetxController {
     try {
       schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
       token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-      await Future.wait([fetchSessions(), fetchClasses(), fetchSections()]);
+
+      if (schoolId.trim().isEmpty) {
+        _snack("Error", "SchoolId not found in storage",
+            color: Colors.red.shade600);
+        return;
+      }
+
+      await fetchSessions();
+      await Future.wait(
+          [fetchClasses(), fetchSections()]);
     } catch (e) {
       _snack("Error", "Initialization failed: $e", color: Colors.red.shade600);
     } finally {
@@ -137,14 +146,45 @@ class AttendanceController extends GetxController {
 
   Future<void> fetchClasses() async {
     try {
-      final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      if (userId == null || userId.trim().isEmpty) {
+        _snack("Error", "UserId not found in storage",
+            color: Colors.red.shade600);
+        return;
+      }
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId)}',
       );
+
+      final res = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${res.statusCode}');
+      debugPrint('GetClassTeacher body: ${res.body}');
+
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
-        listDataa.value =
-            parsed.listData?.where((e) => e.action == "1").toList() ?? [];
-        selectedClass.value = null;
+        final jsonResponse = jsonDecode(res.body);
+
+        if (jsonResponse['data'] != null) {
+          final List<dynamic> data = jsonResponse['data'] ?? [];
+
+          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
+          listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
+          selectedClass.value = null;
+        } else {
+          listDataa.value = [];
+          selectedClass.value = null;
+        }
       } else {
         _snack("Error", "Classes load failed (${res.statusCode})",
             color: Colors.red.shade600);
@@ -156,16 +196,35 @@ class AttendanceController extends GetxController {
 
   Future<void> fetchSections() async {
     try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      if (userId == null || userId.trim().isEmpty) {
+        _snack("Error", "UserId not found in storage",
+            color: Colors.red.shade600);
+        return;
+      }
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId)}',
+      );
+
       final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId'),
+        url,
         headers: {
+          'accept': '*/*',
           'Content-Type': 'application/json',
-          if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
       );
+
+      debugPrint('GetSectionTeacher status: ${res.statusCode}');
+      debugPrint('GetSectionTeacher body: ${res.body}');
+
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
-        List<dynamic> data = decoded['listData'] ?? decoded['data'] ?? [];
+        List<dynamic> data = decoded['data'] ?? decoded['listData'] ?? [];
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
       } else {

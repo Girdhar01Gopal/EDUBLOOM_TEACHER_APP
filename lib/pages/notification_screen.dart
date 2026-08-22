@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../controller/notification_controller.dart';
 import '../models/sectionmodel.dart';
 import '../models/class_list_model.dart';
+import '../models/viewsectionmodel.dart';
 
 const Color axisMaroon = Color(0xFF97144D);
 const Color axisMaroonShade50 = Color(0xFFF3E0E9);
@@ -255,7 +256,7 @@ class AddNotificationTab extends GetView<NotificationController> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      return DropdownButtonFormField<ListDatta>(
+      return DropdownButtonFormField<stListData>(
         value: controller.selectedSection.value,
         isExpanded: true,
         hint: Text('Choose a section',
@@ -271,7 +272,7 @@ class AddNotificationTab extends GetView<NotificationController> {
         },
         items: controller.sectionList
             .map(
-              (item) => DropdownMenuItem<ListDatta>(
+              (item) => DropdownMenuItem<stListData>(
             value: item,
             child: Text(item.section ?? '',
                 style: TextStyle(fontSize: 14.sp)),

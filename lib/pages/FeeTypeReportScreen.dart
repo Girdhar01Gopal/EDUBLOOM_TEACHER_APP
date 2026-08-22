@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model; // ✅ fixed: relative import
 
 import '../controller/FeeTypeReportController.dart';
-import '../models/classmodel.dart';
+import '../models/classmodel.dart'; // ✅ now contains ClassListModel / ClassData (GetClassTeacher)
 import '../models/fee_type_model.dart';
 
 class FeeTypeReportScreen extends GetView<FeeTypeReportController> {
@@ -95,14 +96,14 @@ class FeeTypeReportScreen extends GetView<FeeTypeReportController> {
               SizedBox(height: 16.h),
 
               Obx(() {
-                return DropdownButtonFormField<ListDataa>(
+                return DropdownButtonFormField<ClassData>( // ✅ type updated
                   value: controller.selectedClass.value,
                   isExpanded: true,
                   hint: const Text("Select Class"),
                   items: controller.listDataa
                       .map((c) => DropdownMenuItem(
                     value: c,
-                    child: Text(c.className ?? ''),
+                    child: Text(c.className), // ✅ className is non-nullable in ClassData
                   ))
                       .toList(),
                   onChanged: controller.setSelectedClass,

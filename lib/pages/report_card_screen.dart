@@ -6,7 +6,7 @@ import '../models/session_model.dart' as session_model;
 
 import '../controller/report_card_controller.dart';
 import '../controller/reportcarddetailcontroller.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/terms_result_model.dart';
 import 'ReportCardDetailScreenfull.dart';
 
@@ -323,23 +323,28 @@ class ReportCardScreen extends GetView<ReportCardController> {
     );
   }
 
+  // 🔧 Missing method jo error de raha tha, ab add kar diya
+  Widget _ellipsis(String text) => Text(
+    text,
+    style: const TextStyle(fontSize: 13),
+    overflow: TextOverflow.ellipsis,
+    maxLines: 1,
+  );
+
   Widget _classDropdown() {
-    return Obx(() => DropdownButtonFormField<ListDataa>(
+    return Obx(() => DropdownButtonFormField<ClassData>(   // 🔄
       value: controller.selectedClass.value,
       isExpanded: true,
       menuMaxHeight: 300,
-      hint: const Text("Select Class",
-          style: TextStyle(fontSize: 13),
-          overflow: TextOverflow.ellipsis),
-      decoration: _dec("Class"),
-      items: controller.listDataa
-          .map((c) => DropdownMenuItem<ListDataa>(
+      hint: _ellipsis("Select Class"),
+      items: controller.classList
+          .map((c) => DropdownMenuItem<ClassData>(   // 🔄
         value: c,
-        child: Text(c.className ?? "",
-            overflow: TextOverflow.ellipsis),
+        child: _ellipsis(c.className),   // 🔄 ?? "" hataya, non-nullable hai
       ))
           .toList(),
-      onChanged: (v) => controller.setSelectedClass(v),
+      onChanged: (v) => controller.selectedClass.value = v,
+      decoration: _dec("Class"),
     ));
   }
 

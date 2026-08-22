@@ -1,25 +1,43 @@
 class SubjectModel {
+  int? statusCode;
+  bool? isSuccess;
+  String? messages;
   List<ListDaataa>? listData;
-  String? currentSession;
+  bool? showPopup;
+  String? popupMessage;
 
-  SubjectModel({this.listData, this.currentSession});
+  SubjectModel(
+      {this.statusCode,
+        this.isSuccess,
+        this.messages,
+        this.listData,
+        this.showPopup,
+        this.popupMessage});
 
   SubjectModel.fromJson(Map<String, dynamic> json) {
-    if (json['listData'] != null) {
+    statusCode = json['statusCode'];
+    isSuccess = json['isSuccess'];
+    messages = json['messages'];
+    if (json['data'] != null) {
       listData = <ListDaataa>[];
-      json['listData'].forEach((v) {
+      json['data'].forEach((v) {
         listData!.add(new ListDaataa.fromJson(v));
       });
     }
-    currentSession = json['currentSession'];
+    showPopup = json['showPopup'];
+    popupMessage = json['popupMessage'];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['statusCode'] = this.statusCode;
+    data['isSuccess'] = this.isSuccess;
+    data['messages'] = this.messages;
     if (this.listData != null) {
-      data['listData'] = this.listData!.map((v) => v.toJson()).toList();
+      data['data'] = this.listData!.map((v) => v.toJson()).toList();
     }
-    data['currentSession'] = this.currentSession;
+    data['showPopup'] = this.showPopup;
+    data['popupMessage'] = this.popupMessage;
     return data;
   }
 }
@@ -36,13 +54,13 @@ class ListDaataa {
 
   ListDaataa(
       {this.subjectId,
-      this.subject,
-      this.action,
-      this.createDate,
-      this.updateDate,
-      this.createBy,
-      this.updateBy,
-      this.schoolId});
+        this.subject,
+        this.action,
+        this.createDate,
+        this.updateDate,
+        this.createBy,
+        this.updateBy,
+        this.schoolId});
 
   ListDaataa.fromJson(Map<String, dynamic> json) {
     subjectId = json['subjectId'];

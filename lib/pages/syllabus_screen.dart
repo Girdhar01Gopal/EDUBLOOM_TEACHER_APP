@@ -12,6 +12,7 @@ import '../controller/syllabus_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
+import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 
 class SyllabusScreen extends GetView<SyllabusController> {
@@ -299,12 +300,12 @@ class _AddSyllabusTabState extends State<AddSyllabusTab> {
           SizedBox(height: 16.h),
 
           Obx(
-                () => DropdownButtonFormField<ListDatta>(
+                () => DropdownButtonFormField<stListData>(
               value: controller.selectedSection.value,
               isExpanded: true,
               hint: const Text('Select Section'),
               items: [
-                const DropdownMenuItem<ListDatta>(
+                const DropdownMenuItem<stListData>(
                   value: null,
                   child: Text(
                     'Select Section',
@@ -312,7 +313,7 @@ class _AddSyllabusTabState extends State<AddSyllabusTab> {
                   ),
                 ),
                 ...controller.sectionList.map(
-                      (item) => DropdownMenuItem<ListDatta>(
+                      (item) => DropdownMenuItem<stListData>(
                     value: item,
                     child: Text(item.section ?? ''),
                   ),

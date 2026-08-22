@@ -4,10 +4,10 @@ import 'package:get/get.dart';
 
 import '../controller/fee_head_master_controller.dart';
 import '../models/session_model.dart' as session_model;
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/fee_type_model.dart';
 import '../models/feedurationmodel.dart';
-import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 
 class AddFeeHeadScreen extends GetView<AddFeeHeadController> {
   const AddFeeHeadScreen({super.key});
@@ -205,10 +205,11 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
     });
   }
 
+  // ✅ CHANGED: Class dropdown now uses notification's ClassData model
   Widget _class() {
     return Obx(() {
       final items = controller.classList;
-      return DropdownButtonFormField<ListDataa>(
+      return DropdownButtonFormField<ClassData>(
         value: controller.selectedClass.value,
         isExpanded: true,
         menuMaxHeight: 300,
@@ -216,14 +217,14 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
         items: items
             .map((c) => DropdownMenuItem(
           value: c,
-          child: _ellipsis(c.className ?? ""),
+          child: _ellipsis(c.className),
         ))
             .toList(),
         selectedItemBuilder: (_) {
           return items
               .map((c) => Align(
             alignment: Alignment.centerLeft,
-            child: _ellipsis(c.className ?? ""),
+            child: _ellipsis(c.className),
           ))
               .toList();
         },
@@ -354,10 +355,11 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
     );
   }
 
+  // ✅ CHANGED: Section dropdown now uses notification's stListData model
   Widget _section() {
     return Obx(() {
       final items = controller.sectionList;
-      return DropdownButtonFormField<ListDatta>(
+      return DropdownButtonFormField<stListData>(
         value: controller.selectedSection.value,
         isExpanded: true,
         menuMaxHeight: 300,

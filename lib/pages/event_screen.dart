@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../controller/event_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
+import '../models/viewsectionmodel.dart';
 
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -121,12 +122,12 @@ class _AddEventTabState extends State<AddEventTab> {
           SizedBox(height: 16.h),
 
           Obx(
-                () => DropdownButtonFormField<ListDatta?>(
+                () => DropdownButtonFormField<stListData?>(
               value: controller.selectedSection.value,
               isExpanded: true,
               hint: const Text('Select Section'),
               items: [
-                const DropdownMenuItem<ListDatta?>(
+                const DropdownMenuItem<stListData?>(
                   value: null,
                   child: Text(
                     'Select Section',
@@ -134,13 +135,13 @@ class _AddEventTabState extends State<AddEventTab> {
                   ),
                 ),
                 ...controller.sectionList.map(
-                      (item) => DropdownMenuItem<ListDatta?>(
+                      (item) => DropdownMenuItem<stListData?>(
                     value: item,
                     child: Text(item.section ?? ''),
                   ),
                 ),
               ],
-              onChanged: (ListDatta? newVal) {
+              onChanged: (stListData? newVal) {
                 controller.setSelectedSection(newVal);
                 controller.section.value =
                     newVal?.sectionId.toString() ?? '';

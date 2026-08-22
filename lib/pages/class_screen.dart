@@ -14,7 +14,7 @@ class ClassScreen extends GetView<ClassController> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
+      child:  Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
           backgroundColor: const Color(0xFF97144D),

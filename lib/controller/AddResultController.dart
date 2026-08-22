@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/addresultmodel1.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';   // 🔄 classmodel.dart ki jagahimport '../models/descriptors_model.dart';
 import '../models/grade_list_model.dart';
 import '../models/session_model.dart';
 import '../models/subject_model.dart';
@@ -19,6 +19,8 @@ class AddResultController extends GetxController {
   String schoolId = "";
   String token = "";
   String session = "";
+  String userId = "";
+
 
   // =========================
   // TAB INDEX
@@ -30,8 +32,8 @@ class AddResultController extends GetxController {
   // =========================
   // DROPDOWNS
   // =========================
-  final RxList<ListDataa> classList = <ListDataa>[].obs;
-  final Rx<ListDataa?> selectedClass = Rx<ListDataa?>(null);
+  final RxList<ClassData> classList = <ClassData>[].obs;        // 🔄
+  final Rx<ClassData?> selectedClass = Rx<ClassData?>(null);     // 🔄
 
   final RxList<ListDaataa> subjectList = <ListDaataa>[].obs;
   final Rx<ListDaataa?> selectedSubject = Rx<ListDaataa?>(null);
@@ -68,13 +70,14 @@ class AddResultController extends GetxController {
   // URLs
   // =========================
   String get _classUrl =>
-      '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
+      '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
 
   String get _subjectUrl =>
-      '${AppUrl.base_url}api/MasterApp/ViewSubjectApp/$schoolId';
+      '${AppUrl.base_url}${AppUrl.get_subject_teacher}?schoolId=$schoolId&Session=$session&userId=$userId';
 
   String get _sectionUrl =>
-      '${AppUrl.base_url}${AppUrl.view_section}$schoolId';
+      '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
 
   String get _termUrl =>
       '${AppUrl.base_url}api/Result/ViewTerm/$schoolId/$session';
@@ -187,6 +190,8 @@ class AddResultController extends GetxController {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";   // ✅ naya
+
 
     if (schoolId.trim().isEmpty) {
       _showSnack("Error", "School ID not found. Please login again.");
@@ -241,14 +246,12 @@ class AddResultController extends GetxController {
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
-      final ClassItem parsed = ClassItem.fromJson(decoded);
-      classList.assignAll(
-        parsed.listData?.where((e) => e.action == "1").toList() ?? [],
-      );
+      final ClassListModel parsed = ClassListModel.fromJson(decoded);
+      // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
+      classList.assignAll(parsed.listData);
       selectedClass.value = null;
     } catch (e) {
-      classList.clear();
-      _showSnack("Error", "Class fetch failed: $e");
+      Get.snackbar("Error", "Class fetch error: $e");
     }
   }
 
@@ -257,7 +260,7 @@ class AddResultController extends GetxController {
       final res = await http.get(Uri.parse(_subjectUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Subjects");
       final List<dynamic> list = (decoded is Map<String, dynamic>)
-          ? (decoded['listData'] ?? [])
+          ? (decoded['data'] ?? [])
           : [];
       subjectList.assignAll(
         list.map<ListDaataa>((e) => ListDaataa.fromJson(e)).toList(),

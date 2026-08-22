@@ -12,6 +12,8 @@ class SubjectController extends GetxController {
   final TextEditingController subject = TextEditingController();
 
   var schoolId;
+  var session;
+  var userId;
   final isLoading = false.obs;
 
   final subjectdata = SubjectModel().obs;
@@ -20,6 +22,8 @@ class SubjectController extends GetxController {
   void onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
+    session = await PrefManager().readValue(key: PrefConst.session);
+    userId = await PrefManager().readValue(key: PrefConst.Userid);
 
     if (schoolId == null || schoolId.toString().trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -210,7 +214,9 @@ class SubjectController extends GetxController {
     try {
       isLoading(true);
 
-      final url = Uri.parse('${AppUrl.base_url}${AppUrl.view_subject}$schoolId');
+      final url = Uri.parse(
+        "${AppUrl.base_url}${AppUrl.get_subject_teacher}?schoolId=$schoolId&Session=$session&userId=$userId",
+      );
 
       final response = await http.get(
         url,

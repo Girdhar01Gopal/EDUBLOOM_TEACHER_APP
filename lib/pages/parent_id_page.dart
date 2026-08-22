@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import '../models/class_list_model.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/session_model.dart' as session_model;
@@ -238,14 +239,14 @@ class _ParentIdPageState extends State<ParentIdPage>
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
-      return DropdownButtonFormField<ListDataa>(
+      return DropdownButtonFormField<ClassData>(
         value: controller.selectedClass.value,
         hint: const Text("Select Class"),
         isExpanded: true,
         items: controller.listDataa.map((item) {
-          return DropdownMenuItem<ListDataa>(
+          return DropdownMenuItem<ClassData>(
             value: item,
-            child: Text(item.className ?? ""),
+            child: Text(item.className),
           );
         }).toList(),
         onChanged: (val) => controller.setSelectedClass(val),

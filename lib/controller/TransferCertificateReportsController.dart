@@ -9,7 +9,8 @@ as tc_model;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
+import '../models/classmodel.dart'; // ✅ now contains ClassListModel / ClassData (GetClassTeacher)
 import '../models/sectionmodel.dart';
 import '../res/app_url.dart';
 
@@ -36,8 +37,8 @@ class TransferCertificateReportsController extends GetxController {
   Rx<session_model.sListDdata?>(null);
   final RxString session = ''.obs;
 
-  final RxList<ListDataa> listDataa = <ListDataa>[].obs;
-  final Rx<ListDataa?> selectedClass = Rx<ListDataa?>(null);
+  final RxList<ClassData> listDataa = <ClassData>[].obs; // ✅ now ClassData instead of ListDataa
+  final Rx<ClassData?> selectedClass = Rx<ClassData?>(null); // ✅ type updated
 
   int section = 0;
   final RxList<ListDatta> sectionList = <ListDatta>[].obs;
@@ -48,10 +49,17 @@ class TransferCertificateReportsController extends GetxController {
   String token = "";
   String schoolId = "";
 
+  // ✅ added for GetClassTeacher API — adjust PrefConst keys if names differ
+  String classSession = '';
+  String userId = '';
+
   @override
   void onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? '';
+    classSession = await PrefManager().readValue(key: PrefConst.session) ?? ''; // ✅ adjust key if needed
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? ''; // ✅ adjust key if needed
+
     await Future.wait([
       fetchSessions(),
       fetchClasses(),
@@ -141,14 +149,16 @@ class TransferCertificateReportsController extends GetxController {
   }
 
   Future<void> fetchClasses() async {
-    final String url = '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
+    final String url =
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$classSession&userId=$userId';
     try {
       isLoading(true);
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
-        listDataa.value =
-            parsed.listData?.where((e) => e.action == "1").toList() ?? [];
+        final parsed = ClassListModel.fromJson(jsonDecode(res.body));
+        // ⚠️ GetClassTeacher sends "action": null for most rows, so the
+        // old ".where((e) => e.action == '1')" filter would empty the list.
+        listDataa.value = parsed.listData;
         selectedClass.value = null;
       }
     } catch (e) {
@@ -160,17 +170,15 @@ class TransferCertificateReportsController extends GetxController {
 
   Future<void> fetchSections() async {
     final String url =
-        '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
+        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$classSession&userId=$userId';
     try {
       isLoading(true);
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        // ⚠️ naya API "data" key me list bhejta hai (purana "listData" tha)
         final List<dynamic> data =
-            decoded['listData'] ?? decoded['data'] ?? [];
+            decoded['data'] ?? decoded['listData'] ?? [];
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
       }
@@ -181,7 +189,7 @@ class TransferCertificateReportsController extends GetxController {
     }
   }
 
-  void setSelectedClass(ListDataa? val) => selectedClass.value = val;
+  void setSelectedClass(ClassData? val) => selectedClass.value = val; // ✅ type updated
   void setSelectedSection(ListDatta? val) => selectedSection.value = val;
   void setSelectedSession(session_model.sListDdata val) =>
       selectedSession.value = val;

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model;
 
 import '../controller/fees_controller.dart';
@@ -177,7 +178,7 @@ class FeesScreen extends GetView<FeesController> {
         return const Center(child: CircularProgressIndicator());
       }
 
-      return DropdownButtonFormField<ListDataa>(
+      return DropdownButtonFormField<ClassData>(
         value: controller.selectedClass.value,
         hint: const Text("Select Class"),
         isExpanded: true,
@@ -185,9 +186,9 @@ class FeesScreen extends GetView<FeesController> {
           controller.setSelectedClass(val);
         },
         items: controller.listDataa.map((item) {
-          return DropdownMenuItem<ListDataa>(
+          return DropdownMenuItem<ClassData>(
             value: item,
-            child: Text(item.className ?? ""),
+            child: Text(item.className),
           );
         }).toList(),
         decoration: InputDecoration(

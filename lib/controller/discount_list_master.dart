@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
@@ -19,8 +20,8 @@ class DiscountListMasterController extends GetxController {
   Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(null);
   var session = ''.obs;
 
-  var listDataa = <ListDataa>[].obs;
-  var selectedClass = Rx<ListDataa?>(null);
+  var listDataa = <ClassData>[].obs;
+  var selectedClass = Rx<ClassData?>(null);
 
   var sectionList = <ListDatta>[].obs;
   var selectedSection = Rxn<ListDatta>();
@@ -29,6 +30,8 @@ class DiscountListMasterController extends GetxController {
 
   String token = "";
   String schoolId = "";
+  String userId = ""; // ✅ naya
+
 
   // 🔍 Search ke liye naye variables
   var isSearching = false.obs;
@@ -39,9 +42,10 @@ class DiscountListMasterController extends GetxController {
   void onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? ""; // ✅ naya
 
-    await fetchSessions();
-    await fetchClasses();
+    await fetchSessions();   // pehle session set hoga
+    await fetchClasses();    // ab session.value available rahega
     await fetchSections();
   }
 
@@ -130,19 +134,23 @@ class DiscountListMasterController extends GetxController {
   }
 
   Future<void> fetchSections() async {
-    final String url = '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
+    final String url =
+        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
 
     try {
       isLoading(true);
 
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        List<dynamic> data = decoded['listData'] ?? decoded['data'] ?? [];
+        List<dynamic> data = decoded['data'] ?? decoded['listData'] ?? [];
 
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
@@ -157,11 +165,20 @@ class DiscountListMasterController extends GetxController {
   }
 
   Future<void> fetchClasses() async {
+    if (session.value.isEmpty) {
+      // session abhi tak select/available nahi hai
+      Get.snackbar('Error', 'Session not found');
+      return;
+    }
+
+    final String url =
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
+
     try {
       isLoading(true);
 
       final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+        Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -169,10 +186,10 @@ class DiscountListMasterController extends GetxController {
       );
 
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
+        final parsed = ClassListModel.fromJson(jsonDecode(res.body));
 
-        listDataa.value =
-            parsed.listData?.where((e) => e.action == "1").toList() ?? [];
+        // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
+        listDataa.value = parsed.listData;
 
         selectedClass.value = null;
       } else {
@@ -183,6 +200,10 @@ class DiscountListMasterController extends GetxController {
     } finally {
       isLoading(false);
     }
+  }
+
+  void setSelectedClass(ClassData? value) {   // 🔄 type change
+    selectedClass.value = value;
   }
 
   Future<void> fetchSessions() async {
@@ -219,10 +240,6 @@ class DiscountListMasterController extends GetxController {
     } finally {
       isLoading(false);
     }
-  }
-
-  void setSelectedClass(ListDataa? value) {
-    selectedClass.value = value;
   }
 
   void setSelectedSection(ListDatta? value) {

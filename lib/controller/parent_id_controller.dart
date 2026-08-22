@@ -11,7 +11,7 @@ import '../models/session_model.dart' as session_model;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
-import '../models/classmodel.dart';
+import '../models/class_list_model.dart';
 import '../models/sectionmodel.dart';
 import '../res/app_url.dart';
 
@@ -66,8 +66,8 @@ class ParentIdController extends GetxController {
   Rx<session_model.sListDdata?> selectedSession = Rx<session_model.sListDdata?>(null);
   var session = ''.obs;
 
-  var listDataa = <ListDataa>[].obs;
-  var selectedClass = Rx<ListDataa?>(null);
+  var listDataa = <ClassData>[].obs;
+  var selectedClass = Rx<ClassData?>(null);
 
   var sectionList = <ListDatta>[].obs;
   var selectedSection = Rx<ListDatta?>(null);
@@ -76,6 +76,7 @@ class ParentIdController extends GetxController {
 
   String schoolId = "";
   String token = "";
+  String userId = "";
 
   // 🔍 Search variables
   var isSearching = false.obs;
@@ -90,6 +91,7 @@ class ParentIdController extends GetxController {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     token = await PrefManager().readValue(key: PrefConst.token);
+    userId = await PrefManager().readValue(key: PrefConst.Userid);
     await _loadMasters();
   }
 
@@ -128,9 +130,9 @@ class ParentIdController extends GetxController {
   Future<void> _loadMasters() async {
     try {
       isLoading(true);
+      await fetchSessions(); // pehle session load hoga
       await Future.wait([
-        fetchSessions(),
-        fetchClasses(),
+        fetchClasses(),      // fir class + section parallel
         fetchSections(),
       ]);
     } finally {
@@ -175,29 +177,40 @@ class ParentIdController extends GetxController {
 
   Future<void> fetchClasses() async {
     try {
+      final String currentSession =
+          selectedSession.value?.session ?? session.value;
+
+      final String apiUrl =
+          '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$currentSession&userId=$userId';
+
       final res = await http.get(
-        Uri.parse('${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId'),
+        Uri.parse(apiUrl),
         headers: {
+          'Content-Type': 'application/json',
           if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
       );
 
       if (res.statusCode == 200) {
-        final parsed = ClassItem.fromJson(jsonDecode(res.body));
-        listDataa.value =
-            parsed.listData?.where((e) => e.action == "1").toList() ?? [];
+        final parsed = ClassListModel.fromJson(jsonDecode(res.body));
+        listDataa.value = parsed.listData;
         selectedClass.value = null;
       }
     } catch (_) {}
   }
 
   Future<void> fetchSections() async {
-    final String url =
-        '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
     try {
+      final String currentSession =
+          selectedSession.value?.session ?? session.value;
+
+      final String url =
+          '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$currentSession&userId=$userId';
+
       final response = await http.get(
         Uri.parse(url),
         headers: {
+          'Content-Type': 'application/json',
           if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         },
       );
@@ -205,14 +218,14 @@ class ParentIdController extends GetxController {
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         final List<dynamic> data =
-            decoded['listData'] ?? decoded['data'] ?? [];
+            decoded['data'] ?? decoded['listData'] ?? [];
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
       }
     } catch (_) {}
   }
 
-  void setSelectedClass(ListDataa? val) => selectedClass.value = val;
+  void setSelectedClass(ClassData? val) => selectedClass.value = val;
   void setSelectedSection(ListDatta? val) => selectedSection.value = val;
 
   bool _validate() {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model;
 import 'package:teacher_app_edubloom/pages/student_wise_fee_screen.dart';
 import '../binding/student_wise_fee_binding.dart';
@@ -95,14 +96,14 @@ class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    return DropdownButtonFormField<ListDataa>(
+                    return DropdownButtonFormField<ClassData>(   // 🔄 ListDataa -> ClassData
                       value: controller.selectedClass.value,
                       hint: const Text("Select Class"),
                       isExpanded: true,
                       items: controller.listDataa.map((item) {
-                        return DropdownMenuItem<ListDataa>(
+                        return DropdownMenuItem<ClassData>(       // 🔄
                           value: item,
-                          child: Text(item.className ?? ""),
+                          child: Text(item.className),            // note: ab non-nullable hai, "" ho sakta hai
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -110,7 +111,7 @@ class FeeStudentReportsScreen extends GetView<FeeStudentReportsController> {
                       },
                       decoration: const InputDecoration(
                         labelText: 'Class',
-                        labelStyle: TextStyle(color: kAxisMaroon),
+                        labelStyle: TextStyle(color: Color(0xFF97144D)),
                         border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../models/class_list_model.dart';
 import '../models/session_model.dart' as session_model;
 
 import '../controller/discount_list_master.dart';
@@ -124,14 +125,14 @@ class DiscountListMasterScreen extends StatelessWidget {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    return DropdownButtonFormField<ListDataa>(
+                    return DropdownButtonFormField<ClassData>(   // 🔄 ListDataa -> ClassData
                       value: controller.selectedClass.value,
                       hint: const Text("Select Class"),
                       isExpanded: true,
                       items: controller.listDataa.map((item) {
-                        return DropdownMenuItem<ListDataa>(
+                        return DropdownMenuItem<ClassData>(       // 🔄
                           value: item,
-                          child: Text(item.className ?? ""),
+                          child: Text(item.className),            // note: ab non-nullable hai, "" ho sakta hai
                         );
                       }).toList(),
                       onChanged: (val) {
