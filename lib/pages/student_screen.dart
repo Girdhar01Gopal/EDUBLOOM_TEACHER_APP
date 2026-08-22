@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:teacher_app_edubloom/pages/studentdetialsview.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../controller/home_page_controller.dart';
 import '../controller/student_controller.dart';
 import '../models/sectionmodel.dart';
 import '../models/routeno.dart';
@@ -25,22 +26,63 @@ const _divider = Color(0xFFE0F2F1);
 class StudentScreen extends GetView<StudentController> {
   @override
   Widget build(BuildContext context) {
+    // ── Access check: 'Student' module ke andar konsi child
+    // activities (AddStudent / ViewStudent) allow hain ──────
+    final accessible = accessibleChildNames('Student');
+    final bool showAdd = accessible.contains('AddStudent');
+    final bool showView = accessible.contains('ViewStudent');
+
+    final List<Tab> tabs = [];
+    final List<Widget> tabViews = [];
+
+    if (showAdd) {
+      tabs.add(const Tab(
+          icon: Icon(Icons.person_add_alt_1, size: 20), text: 'Add Student'));
+      tabViews.add(const AddStudentTab());
+    }
+    if (showView) {
+      tabs.add(const Tab(
+          icon: Icon(Icons.people_alt_outlined, size: 20),
+          text: 'View Students'));
+      tabViews.add(const ViewStudentTab());
+    }
+
+    // Agar dono ka access nahi hai to empty-state dikhado
+    if (tabs.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF0F4F8),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: _teal,
+          title: const Text(
+            '🎓 Pre School Students',
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                letterSpacing: 0.3),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: const Center(
+          child: Text('You do not have access to this module.'),
+        ),
+      );
+    }
+
     return DefaultTabController(
-      length: 2,
+      length: tabs.length,
       child: Scaffold(
         backgroundColor: const Color(0xFFF0F4F8),
-        appBar: _buildAppBar(),
-        body: const TabBarView(
-          children: [
-            AddStudentTab(),
-            ViewStudentTab(),
-          ],
+        appBar: _buildAppBar(tabs),
+        body: TabBarView(
+          children: tabViews,
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(List<Tab> tabs) {
     return AppBar(
       elevation: 0,
       backgroundColor: _teal,
@@ -60,7 +102,9 @@ class StudentScreen extends GetView<StudentController> {
         ],
       ),
       iconTheme: const IconThemeData(color: Colors.white),
-      bottom: TabBar(
+      // ── Sirf tab hi tabh dikhana jab 1 se zyada tab ho ────
+      bottom: tabs.length > 1
+          ? TabBar(
         indicator: BoxDecoration(
           color: Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(30),
@@ -70,15 +114,9 @@ class StudentScreen extends GetView<StudentController> {
         unselectedLabelColor: Colors.white70,
         labelStyle:
         const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        tabs: const [
-          Tab(
-              icon: Icon(Icons.person_add_alt_1, size: 20),
-              text: 'Add Student'),
-          Tab(
-              icon: Icon(Icons.people_alt_outlined, size: 20),
-              text: 'View Students'),
-        ],
-      ),
+        tabs: tabs,
+      )
+          : null,
     );
   }
 }

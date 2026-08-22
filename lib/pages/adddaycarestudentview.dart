@@ -7,6 +7,7 @@ import 'package:teacher_app_edubloom/pages/studentdaycardetails.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
+import '../controller/home_page_controller.dart';
 import '../controller/student_controller daycare.dart' as daycare_controller;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
@@ -88,22 +89,64 @@ class StudentScreen2
     if (!Get.isRegistered<daycare_controller.StudentControllerdaycare>()) {
       Get.put(daycare_controller.StudentControllerdaycare());
     }
+
+    // ── Access check: 'Student' module ke andar konsi child
+    // activities (AddDaycareStudent / ViewDaycareStudent) allow hain ──
+    final accessible = accessibleChildNames('Student');
+    final bool showAdd = accessible.contains('AddDaycareStudent');
+    final bool showView = accessible.contains('ViewDaycareStudent');
+
+    final List<Tab> tabs = [];
+    final List<Widget> tabViews = [];
+
+    if (showAdd) {
+      tabs.add(const Tab(
+          icon: Icon(Icons.person_add_alt_1, size: 20), text: 'Add Student'));
+      tabViews.add(const AddDaycareStudentTab());
+    }
+    if (showView) {
+      tabs.add(const Tab(
+          icon: Icon(Icons.people_alt_outlined, size: 20),
+          text: 'View Students'));
+      tabViews.add(const ViewDaycareStudentTab());
+    }
+
+    // Agar dono ka access nahi hai to empty-state dikhado
+    if (tabs.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF0F4F8),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: _teal,
+          title: const Text(
+            'Student Day Care',
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                letterSpacing: 0.3),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: const Center(
+          child: Text('You do not have access to this module.'),
+        ),
+      );
+    }
+
     return DefaultTabController(
-      length: 2,
+      length: tabs.length,
       child: Scaffold(
         backgroundColor: const Color(0xFFF0F4F8),
-        appBar: _buildAppBar(),
-        body: const TabBarView(
-          children: [
-            AddDaycareStudentTab(),
-            ViewDaycareStudentTab(),
-          ],
+        appBar: _buildAppBar(tabs),
+        body: TabBarView(
+          children: tabViews,
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(List<Tab> tabs) {
     return AppBar(
       elevation: 0,
       backgroundColor: _teal,
@@ -130,7 +173,9 @@ class StudentScreen2
         ],
       ),
       iconTheme: const IconThemeData(color: Colors.white),
-      bottom: TabBar(
+      // ── Sirf tab bar tabhi dikhana jab 1 se zyada tab ho ──
+      bottom: tabs.length > 1
+          ? TabBar(
         indicator: BoxDecoration(
           color: Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(30),
@@ -140,15 +185,9 @@ class StudentScreen2
         unselectedLabelColor: Colors.white70,
         labelStyle:
         const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        tabs: const [
-          Tab(
-              icon: Icon(Icons.person_add_alt_1, size: 20),
-              text: 'Add Student'),
-          Tab(
-              icon: Icon(Icons.people_alt_outlined, size: 20),
-              text: 'View Students'),
-        ],
-      ),
+        tabs: tabs,
+      )
+          : null,
     );
   }
 }
