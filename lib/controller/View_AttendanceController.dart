@@ -6,10 +6,13 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/classmodel.dart';
+import '../models/new model teacher section attendance.dart';
+import '../models/pre school student teach stu filter api model.dart';
 import '../models/sectionmodel.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/viewattendancemodel.dart';
 import '../res/app_url.dart';
+import 'student_controller.dart'; // 🆕 ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
 class ViewAttendanceController extends GetxController {
   RxList<session_model.sListDdata> sessionList = <session_model.sListDdata>[].obs;
@@ -45,6 +48,11 @@ class ViewAttendanceController extends GetxController {
   var schoolId = "";
   var token = "";
 
+  // 🆕 Class Teacher filter (jo classes teacher ko assigned hain)
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var allowedClassNames = <String>[].obs;
+  var isClassTeacherLogin = false.obs; // 🆕 true agar ClassTeacher API se data mile
+
   @override
   void onInit() async {
     super.onInit();
@@ -56,8 +64,9 @@ class ViewAttendanceController extends GetxController {
       return;
     }
 
-    await fetchSessions(); // ✅ pehle session load hone do
-    await fetchClasses();  // ✅ ab Session param sahi jayega
+    await fetchSessions();           // ✅ pehle session load hone do
+    await fetchClassTeacherFilter(); // 🆕 teacher ke allowed classes le lo
+    await fetchClasses();            // ✅ ab Session param sahi jayega
     fetchSections();
   }
 
@@ -95,7 +104,79 @@ class ViewAttendanceController extends GetxController {
     selectedSession.value = session;
   }
 
+  // 🆕 Logged-in teacher ke assigned classes fetch karo (access filter ke liye)
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      if (userId == null || userId.trim().isEmpty) {
+        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+        return;
+      }
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(selectedSession.value?.session ?? '')}'
+            '&userId=${Uri.encodeComponent(userId)}',
+      );
+
+      final res = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('ClassTeacher status: ${res.statusCode}');
+      debugPrint('ClassTeacher body: ${res.body}');
+
+      if (res.statusCode == 200) {
+        final jsonResponse = jsonDecode(res.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+
+        allowedClassNames.value = classTeacherList
+            .map((e) => (e.className ?? '').trim().toLowerCase())
+            .where((s) => s.isNotEmpty)
+            .toList();
+
+        // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      }
+    } catch (e) {
+      debugPrint("Error loading ClassTeacher filter: $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
   Future<void> fetchClasses() async {
+    // 🆕 Agar class teacher login hai, to class dropdown ClassTeacher API ke
+    // data se hi banao — GetClassTeacher API call hi nahi lagegi
+    if (isClassTeacherLogin.value) {
+      listDataa.value = classTeacherList.map((e) {
+        return ListDataa.fromJson({
+          'classId': e.classId,
+          'class': e.className,
+          'studentClassId': e.studentClassId,
+          'action': e.action,
+          'createDate': e.createDate,
+          'updateDate': e.updateDate,
+          'createBy': e.createBy,
+          'updateBy': e.updateBy,
+          'schoolId': e.schoolId,
+          'sqno': e.sqno,
+        });
+      }).toList();
+      selectedClass.value = null;
+      return;
+    }
+
+    // 🔁 Otherwise — normal teacher — jo API pehle se lagi hui hai wahi chalegi
     try {
       isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -144,6 +225,7 @@ class ViewAttendanceController extends GetxController {
     }
   }
 
+  // 🔁 Ab SectionTeacher API se sections fetch honge, SectionForAttendanceModel se parse karke
   Future<void> fetchSections() async {
     try {
       isLoading(true);
@@ -155,7 +237,7 @@ class ViewAttendanceController extends GetxController {
       }
 
       final url = Uri.parse(
-        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher'
+        '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
             '?schoolId=${Uri.encodeComponent(schoolId)}'
             '&Session=${Uri.encodeComponent(selectedSession.value?.session ?? '')}'
             '&userId=${Uri.encodeComponent(userId)}',
@@ -169,13 +251,27 @@ class ViewAttendanceController extends GetxController {
         },
       );
 
-      debugPrint('GetSectionTeacher status: ${res.statusCode}');
-      debugPrint('GetSectionTeacher body: ${res.body}');
+      debugPrint('SectionTeacher status: ${res.statusCode}');
+      debugPrint('SectionTeacher body: ${res.body}');
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body);
-        final List<dynamic> data = decoded['data'] ?? decoded['listData'] ?? [];
-        sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
+        final model = SectionForAttendanceModel.fromJson(decoded);
+
+        // ✅ existing ListDatta type me hi map kar rahe hai taaki screen untouched rahe
+        sectionList.value = (model.data ?? []).map((e) {
+          return ListDatta.fromJson({
+            'sectionId': e.sectionId,
+            'section': e.section,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+          });
+        }).toList();
+
         selectedSection.value = null;
       }
     } catch (e) {
@@ -213,7 +309,19 @@ class ViewAttendanceController extends GetxController {
       debugPrint("📥 Response => ${res.body}");
       if (res.statusCode == 200) {
         final parsed = viewattendence.fromJson(jsonDecode(res.body));
-        students.value = parsed.listData ?? [];
+        final allStudents = parsed.listData ?? [];
+
+        // 🆕 sirf teacher ke assigned class ke students ki attendance dikhao
+        if (allowedClassNames.isNotEmpty) {
+          final filtered = allStudents.where((s) {
+            final cName = (s.className ?? '').trim().toLowerCase();
+            return allowedClassNames.contains(cName);
+          }).toList();
+
+          students.value = filtered;
+        } else {
+          students.value = allStudents;
+        }
       } else {
         Get.snackbar("Error", "Failed to load attendance");
       }

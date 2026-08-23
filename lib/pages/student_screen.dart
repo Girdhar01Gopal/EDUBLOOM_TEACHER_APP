@@ -23,7 +23,7 @@ const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
 const _divider = Color(0xFFE0F2F1);
 
-class StudentScreen extends GetView<StudentController> {
+ class StudentScreen extends GetView<StudentController> {
   @override
   Widget build(BuildContext context) {
     // ── Access check: 'Student' module ke andar konsi child

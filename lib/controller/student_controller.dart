@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide Route;
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../models/pre school student teach stu filter api model.dart';
 import '../models/session_model.dart' as session_model;
 import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
@@ -84,6 +85,13 @@ class StudentController extends GetxController {
   var isLoading = false.obs;
   var isSubmitting = false.obs;
 
+  // 🆕 Class Teacher filter (jo classes teacher ko assigned hain)
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var allowedClassNames = <String>[].obs;
+
+  // 🆕 Section filter (jo sections teacher ko assigned hain) — GetSectionTeacher se hi milta hai
+  var allowedSectionNames = <String>[].obs;
+
 
   @override
   void onInit() async {
@@ -92,7 +100,8 @@ class StudentController extends GetxController {
     await fetchClasses();
     await fetchSessions();
     await fetchSections();
-    await fetchVStudents();
+    await fetchClassTeacherFilter(); // 🆕 pehle teacher ke allowed classes le lo
+    await fetchVStudents();          // fir students filter honge
     await fetchRoutes();
     super.onInit();
   }
@@ -107,6 +116,48 @@ class StudentController extends GetxController {
     if (!value) selectedSection.value = null;
   }
 
+  // 🆕 Logged-in teacher ke assigned classes fetch karo
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      isLoading(true);
+
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('ClassTeacher status: ${response.statusCode}');
+      print('ClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+
+        allowedClassNames.value = classTeacherList
+            .map((e) => (e.className ?? '').trim().toLowerCase())
+            .where((s) => s.isNotEmpty)
+            .toList();
+      }
+    } catch (e) {
+      print("Error loading ClassTeacher filter: $e");
+    } finally {
+      isLoading(false);
+    }
+  }
 
   Future<void> fetchVStudents() async {
     try {
@@ -130,8 +181,39 @@ class StudentController extends GetxController {
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         final students = StudentModel.fromJson(jsonResponse);
-        listData.value = students.data ?? [];
-        filteredData.value = students.data ?? [];
+        final allStudents = students.data ?? [];
+
+        // 🆕 sirf teacher ke assigned class AND section ke students dikhao
+        if (allowedClassNames.isEmpty && allowedSectionNames.isEmpty) {
+          // ❌ Teacher ko koi class ya section hi assign nahi hai — koi student mat dikhao
+          listData.value = [];
+          filteredData.value = [];
+
+          // ── 🗑️ PURANA FALLBACK LOGIC (comment kar diya) ──────────────
+          // Pehle jab allowedClassNames aur allowedSectionNames dono empty
+          // hote the, to saare students dikha diye jaate the (fallback).
+          // Ab requirement change ho gayi hai — is condition me ab koi
+          // student nahi dikhana, isliye neeche wala purana code comment
+          // kar diya hai (future reference ke liye rakha hai):
+          //
+          // listData.value = allStudents;
+          // filteredData.value = allStudents;
+        } else {
+          final filtered = allStudents.where((s) {
+            final cName = (s.className ?? '').trim().toLowerCase();
+            final sName = (s.sectionName ?? '').trim().toLowerCase();
+
+            final classMatch =
+                allowedClassNames.isEmpty || allowedClassNames.contains(cName);
+            final sectionMatch = allowedSectionNames.isEmpty ||
+                allowedSectionNames.contains(sName);
+
+            return classMatch && sectionMatch;
+          }).toList();
+
+          listData.value = filtered;
+          filteredData.value = filtered;
+        }
       } else {
         Get.snackbar("Error", "Failed to fetch students");
       }
@@ -591,6 +673,12 @@ class StudentController extends GetxController {
         } else {
           selectedSection.value = null;
         }
+
+        // 🆕 teacher ko jo sections assigned hain unke naam nikal lo (student filter ke liye)
+        allowedSectionNames.value = sectionList
+            .map((e) => (e.section ?? '').trim().toLowerCase())
+            .where((s) => s.isNotEmpty)
+            .toList();
       }
     } catch (e) {
       print("Error loading sections: $e");
