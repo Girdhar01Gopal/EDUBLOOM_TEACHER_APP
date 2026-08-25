@@ -24,7 +24,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.teacher_app_edubloom"
+    namespace = "com.monteage.teacher_app_edubloom"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
@@ -40,11 +40,11 @@ android {
     sourceSets["main"].java.srcDirs("src/main/kotlin")
 
     defaultConfig {
-        applicationId = "com.example.teacher_app_edubloom"
+        applicationId = "com.monteage.teacher_app_edubloom"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 12
-        versionName = "2.0.2"
+        versionCode = 3
+        versionName = "1.0.3"
         multiDexEnabled = true
     }
 
