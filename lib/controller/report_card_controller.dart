@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import '../models/pre school student teach stu filter api model.dart';
 import '../models/session_model.dart' as session_model; // ✅ fixed: relative import
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
@@ -10,7 +11,10 @@ import '../models/class_list_model.dart';   // 🔄 classmodel.dart ki jagahimpo
 // ❌ removed: import '../models/session_model.dart';  -> this caused duplicate import / type-mismatch
 import '../models/terms_result_model.dart';
 import '../models/viewsectionmodel.dart';
+import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import 'student_controller.dart'
+    show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
 class ReportCardController extends GetxController {
   // =========================
@@ -56,6 +60,9 @@ class ReportCardController extends GetxController {
   String schoolId = "";
   String userId = "";
 
+  // 🆕 Class Teacher filter
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var isClassTeacherLogin = false.obs;
 
   // =========================
   // URLs
@@ -72,6 +79,14 @@ class ReportCardController extends GetxController {
 
   String get _termUrl =>
       '${AppUrl.base_url}api/Result/ViewTerm/$schoolId/${session.value}';
+
+  // 🆕 Class Teacher filter URL
+  String get _classTeacherFilterUrl =>
+      '${AppUrl.base_url}api/TeacherApp/ClassTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
+
+  // 🆕 SectionTeacher URL (for class teacher login)
+  String get _sectionTeacherUrl =>
+      '${AppUrl.base_url}api/TeacherApp/SectionTeacher?schoolId=$schoolId&Session=${session.value}&userId=$userId';
 
   // ViewStudentRePortCard/{classId}/{session}/{term}/{schoolId}/{sectionId}
   String get _reportCardUrl {
@@ -161,6 +176,7 @@ class ReportCardController extends GetxController {
       isLoading(true);
       // Session pehle fetch karo — term URL mein session chahiye
       await fetchSessions();
+      await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
       await Future.wait([
         fetchClasses(),
         fetchSections(),
@@ -173,10 +189,57 @@ class ReportCardController extends GetxController {
     }
   }
 
+  // 🆕 Logged-in teacher ke assigned classes fetch karo
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      if (userId.trim().isEmpty) {
+        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+        return;
+      }
+
+      final res =
+      await http.get(Uri.parse(_classTeacherFilterUrl), headers: _headers);
+
+      debugPrint('ClassTeacher status: ${res.statusCode}');
+      debugPrint('ClassTeacher body: ${res.body}');
+
+      if (res.statusCode == 200) {
+        final jsonResponse = json.decode(res.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      }
+    } catch (e) {
+      debugPrint("Error loading ClassTeacher filter: $e");
+    }
+  }
+
   // =========================
   // FETCH CLASSES
   // =========================
   Future<void> fetchClasses() async {
+    // 🆕 Class teacher login → ClassTeacher API data se hi banao
+    if (isClassTeacherLogin.value) {
+      classList.value = classTeacherList.map((e) {
+        return ClassData.fromJson({
+          'classId': e.classId,
+          'class': e.className,
+          'studentClassId': e.studentClassId,
+          'action': e.action,
+          'createDate': e.createDate,
+          'updateDate': e.updateDate,
+          'createBy': e.createBy,
+          'updateBy': e.updateBy,
+          'schoolId': e.schoolId,
+          'sqno': e.sqno,
+        });
+      }).toList();
+      selectedClass.value = null;
+      return;
+    }
+
+    // 🔁 Normal teacher — existing
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
@@ -235,6 +298,41 @@ class ReportCardController extends GetxController {
   // FETCH SECTIONS
   // =========================
   Future<void> fetchSections() async {
+    // 🆕 Class teacher login → SectionTeacher API
+    if (isClassTeacherLogin.value) {
+      try {
+        final res =
+        await http.get(Uri.parse(_sectionTeacherUrl), headers: _headers);
+        final decoded = _safeDecodeResponse(res, label: "SectionTeacher");
+        if (decoded == null) {
+          sectionList.clear();
+          return;
+        }
+        final model = SectionForAttendanceModel.fromJson(decoded);
+        sectionList.assignAll(
+          (model.data ?? []).map((e) {
+            return stListData.fromJson({
+              'sectionId': e.sectionId,
+              'section': e.section,
+              'action': e.action,
+              'createDate': e.createDate,
+              'updateDate': e.updateDate,
+              'createBy': e.createBy,
+              'updateBy': e.updateBy,
+              'schoolId': e.schoolId,
+            });
+          }).toList(),
+        );
+        selectedSection.value = null;
+      } catch (e) {
+        sectionList.clear();
+        selectedSection.value = null;
+        _showSnack("Error", "Section fetch failed: $e");
+      }
+      return;
+    }
+
+    // 🔁 Normal teacher — existing
     try {
       final res =
       await http.get(Uri.parse(_sectionUrl), headers: _headers);

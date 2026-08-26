@@ -10,11 +10,14 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/classmodel.dart';
+import '../models/pre school student teach stu filter api model.dart';
 import '../models/viewsectionmodel.dart';
 import '../models/subject_model.dart';
 import '../models/vnote_model.dart';
+import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
-
+import 'student_controller.dart'
+    show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
 class NoteController extends GetxController {
   var token = "";
@@ -41,6 +44,10 @@ class NoteController extends GetxController {
   // Model wrapper
   final subjectdata = SubjectModel().obs;
 
+  // 🆕 Class Teacher filter
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var isClassTeacherLogin = false.obs;
+
   @override
   Future<void> onInit() async {
     super.onInit();
@@ -48,6 +55,7 @@ class NoteController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     seassion = await PrefManager().readValue(key: PrefConst.session);
 
+    await fetchClassTeacherFilter(); // 🆕 pehle
     await fetchClasses();
     await fetchSections();
     await fetchsubjectdata();
@@ -174,9 +182,107 @@ class NoteController extends GetxController {
     }
   }
 
+  // 🆕 Logged-in teacher ke assigned classes fetch karo
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      if (userId == null || userId.trim().isEmpty) {
+        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+        return;
+      }
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(seassion)}'
+            '&userId=${Uri.encodeComponent(userId)}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '/',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('ClassTeacher status: ${response.statusCode}');
+      debugPrint('ClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      }
+    } catch (e) {
+      debugPrint("Error loading ClassTeacher filter: $e");
+    }
+  }
 
   /// ---------------------- FETCH SECTIONS ----------------------
   Future<void> fetchSections() async {
+    // 🆕 Class teacher login → SectionTeacher API
+    if (isClassTeacherLogin.value) {
+      try {
+        isLoading(true);
+
+        final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+        final url = Uri.parse(
+          '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
+              '?schoolId=${Uri.encodeComponent(schoolId)}'
+              '&Session=${Uri.encodeComponent(seassion)}'
+              '&userId=${Uri.encodeComponent(userId ?? '')}',
+        );
+
+        final response = await http.get(
+          url,
+          headers: {
+            'accept': '/',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        debugPrint('SectionTeacher status: ${response.statusCode}');
+        debugPrint('SectionTeacher body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final decoded = json.decode(response.body);
+          final model = SectionForAttendanceModel.fromJson(decoded);
+
+          sectionList.value = (model.data ?? []).map((e) {
+            return stListData.fromJson({
+              'sectionId': e.sectionId,
+              'section': e.section,
+              'action': e.action,
+              'createDate': e.createDate,
+              'updateDate': e.updateDate,
+              'createBy': e.createBy,
+              'updateBy': e.updateBy,
+              'schoolId': e.schoolId,
+            });
+          }).toList();
+
+          if (sectionList.isNotEmpty) {
+            selectedSection.value = sectionList.first;
+          } else {
+            selectedSection.value = null;
+          }
+        } else {
+          Get.snackbar('Error', 'Failed to load sections');
+        }
+      } catch (e) {
+        Get.snackbar('Error', 'Failed to load sections');
+      } finally {
+        isLoading(false);
+      }
+      return;
+    }
+
+    // 🔁 Normal teacher — existing
     try {
       isLoading(true);
 
@@ -192,7 +298,7 @@ class NoteController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '*/*',
+          'accept': '/',
           'Content-Type': 'application/json',
         },
       );
@@ -222,6 +328,32 @@ class NoteController extends GetxController {
 
   /// ---------------------- FETCH CLASSES ----------------------
   Future<void> fetchClasses() async {
+    // 🆕 Class teacher login → ClassTeacher API data se hi banao
+    if (isClassTeacherLogin.value) {
+      listDataa.value = classTeacherList.map((e) {
+        return ListDataa.fromJson({
+          'classId': e.classId,
+          'class': e.className,
+          'studentClassId': e.studentClassId,
+          'action': e.action,
+          'createDate': e.createDate,
+          'updateDate': e.updateDate,
+          'createBy': e.createBy,
+          'updateBy': e.updateBy,
+          'schoolId': e.schoolId,
+          'sqno': e.sqno,
+        });
+      }).toList();
+
+      if (listDataa.isNotEmpty) {
+        selectedClass.value = listDataa.first;
+      } else {
+        selectedClass.value = null;
+      }
+      return;
+    }
+
+    // 🔁 Normal teacher — existing
     try {
       isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -236,7 +368,7 @@ class NoteController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '*/*',
+          'accept': '/',
           'Content-Type': 'application/json',
         },
       );
@@ -282,7 +414,6 @@ class NoteController extends GetxController {
     selectedClass.value = studentClassId;
   }
 
-  /// ---------------------- FETCH SUBJECTS ----------------------
   /// ---------------------- FETCH SUBJECTS ----------------------
   Future<void> fetchsubjectdata() async {
     try {

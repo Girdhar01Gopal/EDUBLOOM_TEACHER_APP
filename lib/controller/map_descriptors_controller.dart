@@ -9,10 +9,14 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/class_list_model.dart';   // 🔄 classmodel.dart ki jagahimport '../models/descriptors_model.dart';
 import '../models/descriptors_model.dart';
 import '../models/map_descriptor_model.dart';
+import '../models/pre school student teach stu filter api model.dart';
 import '../models/session_model.dart';
 import '../models/subject_model.dart';
 import '../models/viewsectionmodel.dart';
+import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import 'student_controller.dart'
+    show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
 class MapDescriptorsController extends GetxController {
   String schoolId = "";
@@ -50,6 +54,10 @@ class MapDescriptorsController extends GetxController {
   final RxBool isSaving = false.obs;
   final RxBool isListLoading = false.obs;
 
+  // 🆕 Class Teacher filter
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var isClassTeacherLogin = false.obs;
+
   // =========================
   // URLs
   // =========================
@@ -67,6 +75,14 @@ class MapDescriptorsController extends GetxController {
 
   String get _sectionUrl =>
       '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
+  // 🆕 Class Teacher filter URL
+  String get _classTeacherFilterUrl =>
+      '${AppUrl.base_url}api/TeacherApp/ClassTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
+  // 🆕 SectionTeacher URL (for class teacher login)
+  String get _sectionTeacherUrl =>
+      '${AppUrl.base_url}api/TeacherApp/SectionTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
 
   // ✅ View API with session
   String get _mapDescriptorViewUrl =>
@@ -160,6 +176,8 @@ class MapDescriptorsController extends GetxController {
       // ✅ Session pehle — baaki URLs mein session chahiye
       await _fetchCurrentSession();
 
+      await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
+
       // ✅ Baaki sab parallel
       await Future.wait([
         fetchClasses(),
@@ -175,10 +193,56 @@ class MapDescriptorsController extends GetxController {
     }
   }
 
+  // 🆕 Logged-in teacher ke assigned classes fetch karo
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      if (userId.trim().isEmpty) {
+        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+        return;
+      }
+
+      final res =
+      await http.get(Uri.parse(_classTeacherFilterUrl), headers: _headers);
+
+      debugPrint('ClassTeacher status: ${res.statusCode}');
+      debugPrint('ClassTeacher body: ${res.body}');
+
+      if (res.statusCode == 200) {
+        final jsonResponse = json.decode(res.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      }
+    } catch (e) {
+      debugPrint("Error loading ClassTeacher filter: $e");
+    }
+  }
 
   // CLASS API
   // =========================
   Future<void> fetchClasses() async {
+    // 🆕 Class teacher login → ClassTeacher API data se hi banao
+    if (isClassTeacherLogin.value) {
+      classList.value = classTeacherList.map((e) {
+        return ClassData.fromJson({
+          'classId': e.classId,
+          'class': e.className,
+          'studentClassId': e.studentClassId,
+          'action': e.action,
+          'createDate': e.createDate,
+          'updateDate': e.updateDate,
+          'createBy': e.createBy,
+          'updateBy': e.updateBy,
+          'schoolId': e.schoolId,
+          'sqno': e.sqno,
+        });
+      }).toList();
+      selectedClass.value = null;
+      return;
+    }
+
+    // 🔁 Normal teacher — existing
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
@@ -236,6 +300,37 @@ class MapDescriptorsController extends GetxController {
   // SECTION DROPDOWN API
   // =========================
   Future<void> fetchSections() async {
+    // 🆕 Class teacher login → SectionTeacher API
+    if (isClassTeacherLogin.value) {
+      try {
+        final res =
+        await http.get(Uri.parse(_sectionTeacherUrl), headers: _headers);
+        final decoded = _safeDecodeResponse(res, label: "SectionTeacher");
+        final model = SectionForAttendanceModel.fromJson(decoded);
+        sectionList.assignAll(
+          (model.data ?? []).map((e) {
+            return stListData.fromJson({
+              'sectionId': e.sectionId,
+              'section': e.section,
+              'action': e.action,
+              'createDate': e.createDate,
+              'updateDate': e.updateDate,
+              'createBy': e.createBy,
+              'updateBy': e.updateBy,
+              'schoolId': e.schoolId,
+            });
+          }).toList(),
+        );
+        selectedSection.value = null;
+      } catch (e) {
+        sectionList.clear();
+        selectedSection.value = null;
+        Get.snackbar("Error", "Section fetch error: $e");
+      }
+      return;
+    }
+
+    // 🔁 Normal teacher — existing
     try {
       final res = await http.get(Uri.parse(_sectionUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Sections");

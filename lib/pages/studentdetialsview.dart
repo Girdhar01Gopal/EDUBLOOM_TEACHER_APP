@@ -97,12 +97,13 @@ class StudentDetailScreen extends StatelessWidget {
               fontSize: 17),
         ),
         actions: [
-          if (showEdit) // Ye condition add karein
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Colors.white),
-              tooltip: "Edit Student",
-              onPressed: () => _openEditDialog(context),
-            ),
+          // Edit icon hata diya gaya hai (comment out kiya gaya)
+          // if (showEdit) // Ye condition add karein
+          //   IconButton(
+          //     icon: const Icon(Icons.edit_outlined, color: Colors.white),
+          //     tooltip: "Edit Student",
+          //     onPressed: () => _openEditDialog(context),
+          //   ),
         ],
       ),
       body: SingleChildScrollView(

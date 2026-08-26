@@ -11,11 +11,15 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/class_list_model.dart';
+import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (class teacher ke sections ke liye)
 import '../models/notificationAll_model.dart';
 import '../models/notification_model.dart';
+import '../models/pre school student teach stu filter api model.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 import 'fees_controller.dart' hide ListData;
+import 'student_controller.dart'
+    show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
 class NotificationController extends GetxController {
   var title = ''.obs;
@@ -45,12 +49,17 @@ class NotificationController extends GetxController {
 
   var notificationList = <ListData>[].obs;
 
+  // 🆕 Class Teacher filter (jo classes teacher ko assigned hain)
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var isClassTeacherLogin = false.obs; // 🆕 true agar ClassTeacher API se data mile
+
   @override
   Future<void> onInit() async {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     session = await PrefManager().readValue(key: PrefConst.session) ?? "";
 
+    await fetchClassTeacherFilter(); // 🆕 teacher ke allowed classes/sections check ke liye — sabse pehle
     await fetchSections();
     await fetchClasses();
     await fetchAllNotifications();
@@ -113,6 +122,64 @@ class NotificationController extends GetxController {
   }
 
   Future<void> fetchSections() async {
+    // 🆕 Agar class teacher login hai, to sections SectionTeacher API
+    // (jo Attendance wale me lagi hui hai) se fetch honge
+    if (isClassTeacherLogin.value) {
+      try {
+        isLoading(true);
+
+        final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+        final url = Uri.parse(
+          '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
+              '?schoolId=${Uri.encodeComponent(schoolId)}'
+              '&Session=${Uri.encodeComponent(session)}'
+              '&userId=${Uri.encodeComponent(userId ?? '')}',
+        );
+
+        final response = await http.get(
+          url,
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        debugPrint('SectionTeacher status: ${response.statusCode}');
+        debugPrint('SectionTeacher body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final decoded = json.decode(response.body);
+          final model = SectionForAttendanceModel.fromJson(decoded);
+
+          // ✅ existing stListData type me hi map kar rahe hai taaki screen untouched rahe
+          sectionList.value = (model.data ?? []).map((e) {
+            return stListData.fromJson({
+              'sectionId': e.sectionId,
+              'section': e.section,
+              'action': e.action,
+              'createDate': e.createDate,
+              'updateDate': e.updateDate,
+              'createBy': e.createBy,
+              'updateBy': e.updateBy,
+              'schoolId': e.schoolId,
+            });
+          }).toList();
+
+          selectedSection.value = null;
+          section.value = '';
+        } else {
+          Get.snackbar('Error', 'Failed to load sections');
+        }
+      } catch (e) {
+        Get.snackbar('Error', 'Failed to load sections');
+      } finally {
+        isLoading(false);
+      }
+      return;
+    }
+
+    // 🔁 Otherwise — normal teacher — jo API pehle se lagi hui hai wahi chalegi
     try {
       isLoading(true);
 
@@ -175,7 +242,76 @@ class NotificationController extends GetxController {
         .join(',');
   }
 
+  // 🆕 Logged-in teacher ke assigned classes fetch karo (access filter ke liye)
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      if (userId == null || userId.trim().isEmpty) {
+        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+        return;
+      }
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session)}'
+            '&userId=${Uri.encodeComponent(userId)}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('ClassTeacher status: ${response.statusCode}');
+      debugPrint('ClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+
+        // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      }
+    } catch (e) {
+      debugPrint("Error loading ClassTeacher filter: $e");
+    }
+  }
+
   Future<void> fetchClasses() async {
+    // 🆕 Agar class teacher login hai, to class dropdown ClassTeacher API ke
+    // data se hi banao — GetClassTeacher API call hi nahi lagegi
+    if (isClassTeacherLogin.value) {
+      classes.value = classTeacherList.map((e) {
+        return ClassData.fromJson({
+          'classId': e.classId,
+          'class': e.className,
+          'studentClassId': e.studentClassId,
+          'action': e.action,
+          'createDate': e.createDate,
+          'updateDate': e.updateDate,
+          'createBy': e.createBy,
+          'updateBy': e.updateBy,
+          'schoolId': e.schoolId,
+          'sqno': e.sqno,
+        });
+      }).toList();
+
+      if (classes.isNotEmpty) {
+        selectedClass.value = classes.first;
+      } else {
+        selectedClass.value = null;
+      }
+      return;
+    }
+
+    // 🔁 Otherwise — normal teacher — jo API pehle se lagi hui hai wahi chalegi
     try {
       isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);

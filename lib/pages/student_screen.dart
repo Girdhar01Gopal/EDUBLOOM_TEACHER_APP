@@ -936,69 +936,95 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                   SizedBox(height: 8.h),
 
                   // ── Status + View button ─────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () async =>
-                            controller.toggleStudentStatus(s),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isActive
-                                    ? Icons.check_circle_outline
-                                    : Icons.cancel_outlined,
-                                color: isActive
-                                    ? const Color(0xFF43A047)
-                                    : Colors.red.shade400,
-                                size: 14,
-                              ),
-                              SizedBox(width: 4.w),
-                              Text(
-                                isActive ? 'Active' : 'Inactive',
-                                style: TextStyle(
-                                  color: isActive
-                                      ? const Color(0xFF43A047)
-                                      : Colors.red.shade400,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11.sp,
-                                ),
-                              ),
-                            ],
-                          ),
+                  // ── Status button hidden (commented out) ──
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  //   children: [
+                  //     GestureDetector(
+                  //       onTap: () async =>
+                  //           controller.toggleStudentStatus(s),
+                  //       child: Container(
+                  //         padding: EdgeInsets.symmetric(
+                  //             horizontal: 10.w, vertical: 4.h),
+                  //         decoration: BoxDecoration(
+                  //           color: isActive
+                  //               ? Colors.green.withOpacity(0.1)
+                  //               : Colors.red.withOpacity(0.1),
+                  //           borderRadius: BorderRadius.circular(20.r),
+                  //         ),
+                  //         child: Row(
+                  //           mainAxisSize: MainAxisSize.min,
+                  //           children: [
+                  //             Icon(
+                  //               isActive
+                  //                   ? Icons.check_circle_outline
+                  //                   : Icons.cancel_outlined,
+                  //               color: isActive
+                  //                   ? const Color(0xFF43A047)
+                  //                   : Colors.red.shade400,
+                  //               size: 14,
+                  //             ),
+                  //             SizedBox(width: 4.w),
+                  //             Text(
+                  //               isActive ? 'Active' : 'Inactive',
+                  //               style: TextStyle(
+                  //                 color: isActive
+                  //                     ? const Color(0xFF43A047)
+                  //                     : Colors.red.shade400,
+                  //                 fontWeight: FontWeight.w600,
+                  //                 fontSize: 11.sp,
+                  //               ),
+                  //             ),
+                  //           ],
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     GestureDetector(
+                  //       onTap: () => Get.to(
+                  //               () => StudentDetailScreen(student: s)),
+                  //       child: Container(
+                  //         padding: EdgeInsets.symmetric(
+                  //             horizontal: 14.w, vertical: 6.h),
+                  //         decoration: BoxDecoration(
+                  //           gradient: const LinearGradient(
+                  //               colors: [_tealLight, _teal]),
+                  //           borderRadius: BorderRadius.circular(20.r),
+                  //         ),
+                  //         child: Text(
+                  //           'View Details',
+                  //           style: TextStyle(
+                  //               color: Colors.white,
+                  //               fontWeight: FontWeight.w600,
+                  //               fontSize: 11.sp),
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
+
+                  // ── View Details button (status badge removed) ──
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () => Get.to(
+                              () => StudentDetailScreen(student: s)),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 14.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                              colors: [_tealLight, _teal]),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                          'View Details',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11.sp),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => Get.to(
-                                () => StudentDetailScreen(student: s)),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 14.w, vertical: 6.h),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [_tealLight, _teal]),
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Text(
-                            'View Details',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11.sp),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
 
                   // ── 🆕 Print ID Card Button ──────────
