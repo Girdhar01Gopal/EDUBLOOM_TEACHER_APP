@@ -53,6 +53,12 @@ class FeesController extends GetxController {
   // After submit -> always show the submitted (filtered) list, even if empty.
   var hasSubmitted = false.obs;
 
+  // 🆕 Class Teacher filter (jo classes teacher ko assigned hain)
+  var allowedClassNames = <String>[].obs;
+
+  // 🆕 Section filter (jo sections teacher ko assigned hain) — GetSectionTeacher se hi milta hai
+  var allowedSectionNames = <String>[].obs;
+
   @override
   void onInit() async {
     // TODO: implement onInit
@@ -60,8 +66,8 @@ class FeesController extends GetxController {
     userId = await PrefManager().readValue(key: PrefConst.Userid);
 
     await fetchSessions();
-    fetchClasses();
-    fetchSections();
+    await fetchClasses();   // 🆕 await lagaya — allowedClassNames time pe milega
+    await fetchSections();  // 🆕 await lagaya — allowedSectionNames time pe milega
     fetchAllStudentsAuto(); // 🆕 auto load ALL students on screen open
     // fetchStudentFeeData();
     super.onInit();
@@ -138,6 +144,12 @@ class FeesController extends GetxController {
         // update observable list
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
 
+        // 🆕 teacher ko jo sections assigned hain unke naam nikal lo (student filter ke liye)
+        allowedSectionNames.value = sectionList
+            .map((e) => (e.section ?? '').trim().toLowerCase())
+            .where((s) => s.isNotEmpty)
+            .toList();
+
         // ❌ STOP auto-selecting first section
         // selectedSection.value = sectionList.first;
 
@@ -180,6 +192,12 @@ class FeesController extends GetxController {
         final parsed = ClassListModel.fromJson(jsonDecode(res.body));
 
         listDataa.value = parsed.listData;
+
+        // 🆕 teacher ko jo classes assigned hain unke naam nikal lo (student filter ke liye)
+        allowedClassNames.value = listDataa
+            .map((e) => (e.className).trim().toLowerCase())
+            .where((s) => s.isNotEmpty)
+            .toList();
 
         // Set empty selection so dropdown shows "Select Class"
         selectedClass.value = null;
@@ -333,7 +351,7 @@ class FeesController extends GetxController {
         List<dynamic> data =
             jsonResponse['data'] ?? jsonResponse['listData'] ?? [];
 
-        allStudents.value = data.map((e) {
+        final allFetchedStudents = data.map((e) {
           return sdataData(
             studentID: e['studentID'],
             studentName: e['studentName'],
@@ -354,6 +372,35 @@ class FeesController extends GetxController {
             playAmount: e['playAmount'],
           );
         }).toList();
+
+        // 🆕 sirf teacher ke assigned class AND section ke students dikhao
+        if (allowedClassNames.isEmpty && allowedSectionNames.isEmpty) {
+          // ❌ Teacher ko koi class ya section hi assign nahi hai — koi student mat dikhao
+          allStudents.value = [];
+
+          // ── 🗑️ PURANA FALLBACK LOGIC (comment kar diya) ──────────────
+          // Pehle jab allowedClassNames aur allowedSectionNames dono empty
+          // hote the, to saare students dikha diye jaate the (fallback).
+          // Ab requirement change ho gayi hai — is condition me ab koi
+          // student nahi dikhana, isliye neeche wala purana code comment
+          // kar diya hai (future reference ke liye rakha hai):
+          //
+          // allStudents.value = allFetchedStudents;
+        } else {
+          final filtered = allFetchedStudents.where((s) {
+            final cName = (s.className ?? '').trim().toLowerCase();
+            final sName = (s.sectionName ?? '').trim().toLowerCase();
+
+            final classMatch =
+                allowedClassNames.isEmpty || allowedClassNames.contains(cName);
+            final sectionMatch = allowedSectionNames.isEmpty ||
+                allowedSectionNames.contains(sName);
+
+            return classMatch && sectionMatch;
+          }).toList();
+
+          allStudents.value = filtered;
+        }
 
         print("✅ [Fees] Auto-loaded students: ${allStudents.length}");
       } else {

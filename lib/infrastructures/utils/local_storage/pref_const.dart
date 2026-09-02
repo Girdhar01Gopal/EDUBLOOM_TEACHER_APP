@@ -32,4 +32,5 @@ class PrefConst {
 
     static String RName= "RName";
     static String moduleAccess = "moduleAccess";
+  static String roleId = "roleId";
 }

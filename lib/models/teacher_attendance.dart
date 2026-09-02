@@ -38,6 +38,13 @@ class TeacherUser {
 
   final AdditionalDetail? additionalDetail;
 
+  // ✅ NEW: top-level fields (new API sends these directly, not nested)
+  final String? registrationNo;
+  final String? inTime;
+  final String? outTime;
+  final String? inAddress;
+  final String? outAddress;
+
   TeacherUser({
     this.userId,
     this.firstName,
@@ -55,6 +62,11 @@ class TeacherUser {
     this.teacherAttendance,
     this.adDate,
     this.additionalDetail,
+    this.registrationNo,
+    this.inTime,
+    this.outTime,
+    this.inAddress,
+    this.outAddress,
   });
 
   factory TeacherUser.fromJson(Map<String, dynamic> json) {
@@ -81,6 +93,13 @@ class TeacherUser {
       additionalDetail: json['additionalDetail'] is Map<String, dynamic>
           ? AdditionalDetail.fromJson(json['additionalDetail'] as Map<String, dynamic>)
           : null,
+
+      // ✅ NEW: read directly from top-level json
+      registrationNo: _asString(json['registrationNo']),
+      inTime: _asString(json['inTime']),
+      outTime: _asString(json['outTime']),
+      inAddress: _asString(json['inAddress']),
+      outAddress: _asString(json['outAddress']),
     );
   }
 
@@ -101,6 +120,11 @@ class TeacherUser {
     'teacherAttendance': teacherAttendance?.toJson(),
     'adDate': adDate?.toIso8601String(),
     'additionalDetail': additionalDetail?.toJson(),
+    'registrationNo': registrationNo,
+    'inTime': inTime,
+    'outTime': outTime,
+    'inAddress': inAddress,
+    'outAddress': outAddress,
   };
 }
 

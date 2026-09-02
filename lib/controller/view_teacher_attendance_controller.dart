@@ -14,6 +14,7 @@ class ViewTeacherAttendanceController extends GetxController {
   String schoolId = "";
   String token    = "";
   String session  = "";
+  String userId   = ""; // ✅ NEW: logged-in user's id (dynamic)
 
   // ── UI flag ───────────────────────────────────────────────────────────────
   final isLoading = false.obs;
@@ -32,7 +33,7 @@ class ViewTeacherAttendanceController extends GetxController {
 
   // ── API ───────────────────────────────────────────────────────────────────
   final String _api =
-      "https://playschool.edubloom.in/api/TeacherApp/ViewTeacherAttendanceDetailsApp";
+      "https://playschool.edubloom.in/api/TeacherApp/TeacherAttendanceDetailsUserIdApp";
 
   int get monthIndex        => months.indexOf(selectedMonth.value) + 1;
   int get daysInSelectedMonth =>
@@ -46,6 +47,7 @@ class ViewTeacherAttendanceController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token    = await PrefManager().readValue(key: PrefConst.token)    ?? "";
     session  = await PrefManager().readValue(key: PrefConst.session)  ?? "";
+    userId   = await PrefManager().readValue(key: PrefConst.Userid)   ?? "";
 
     if (schoolId.trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -53,6 +55,10 @@ class ViewTeacherAttendanceController extends GetxController {
     }
     if (session.trim().isEmpty) {
       Get.snackbar("Error", "Session not found");
+      return;
+    }
+    if (userId.trim().isEmpty) {
+      Get.snackbar("Error", "UserId not found");
       return;
     }
 
@@ -88,6 +94,7 @@ class ViewTeacherAttendanceController extends GetxController {
           "month"   : monthIndex,
           "schoolId": schoolId,
           "session" : session,
+          "userId"  : int.tryParse(userId) ?? 0, // ✅ NEW: dynamic
         }),
       );
 
@@ -124,22 +131,6 @@ class ViewTeacherAttendanceController extends GetxController {
     }
   }
 
-  // ── Merge ─────────────────────────────────────────────────────────────────
-  /// The API sends multiple records per teacher — one per "batch save".
-  /// Each record has its OWN inTime / outTime and covers specific days.
-  ///
-  /// Goal: for every day that has a status, store the inTime/outTime from
-  ///       THE SAME record that provided that day's status.
-  ///
-  /// Example from real API response:
-  ///   Record-A  inTime:"11:21"  outTime:"11:56"  → day1,day2,day3,day6,day15
-  ///   Record-B  inTime:"10:35"  outTime:"10:36"  → day28
-  ///   Record-C  inTime:"12:06"  outTime:null     → day19
-  ///
-  /// Result after merge:
-  ///   day1  → in:11:21  out:11:56
-  ///   day28 → in:10:35  out:10:36   ← exact time user saved for that day
-  ///   day19 → in:12:06  out:null
   List<ViewTeacherAttendanceItem> _mergeByReg(
       List<ViewTeacherAttendanceItem> raw) {
 
@@ -166,13 +157,15 @@ class ViewTeacherAttendanceController extends GetxController {
       final String? thisInTime  = item.inTime;
       final String? thisOutTime = item.outTime;
 
-      // Walk every possible day; if THIS record has a status → record its time
+
       for (int d = 1; d <= 31; d++) {
         final status = item.dayStatus(d);
         if (status != null && status.trim().isNotEmpty) {
-          statusAcc [key]![d] = status.trim();
-          inTimeAcc [key]![d] = thisInTime;   // ✅ time from THIS record only
-          outTimeAcc[key]![d] = thisOutTime;  // ✅ time from THIS record only
+          if (!statusAcc[key]!.containsKey(d)) {
+            statusAcc [key]![d] = status.trim();
+            inTimeAcc [key]![d] = thisInTime;
+            outTimeAcc[key]![d] = thisOutTime;
+          }
         }
       }
     }

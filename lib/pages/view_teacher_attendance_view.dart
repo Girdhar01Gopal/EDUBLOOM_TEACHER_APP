@@ -54,6 +54,14 @@ class ViewTeacherAttendanceScreen
     return "";
   }
 
+  String _fullStatus(String? s) {
+    final v = (s ?? "").toLowerCase().trim();
+    if (v == "present") return "Present";
+    if (v == "absent") return "Absent";
+    if (v == "holiday") return "Holiday";
+    return "Not Available";
+  }
+
   Color _statusColor(String? s) {
     final v = (s ?? "").toLowerCase().trim();
     if (v == "present") return Colors.green;
@@ -74,6 +82,15 @@ class ViewTeacherAttendanceScreen
       "december": 12, "dec": 12,
     };
     return map[v] ?? DateTime.now().month;
+  }
+
+  // ── Weekday full name ─────────────────────────────────────────────────────
+  String _weekdayName(int weekday) {
+    const names = [
+      "Monday", "Tuesday", "Wednesday", "Thursday",
+      "Friday", "Saturday", "Sunday",
+    ];
+    return names[weekday - 1];
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -330,7 +347,7 @@ class ViewTeacherAttendanceScreen
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: _buildCalendarGrid(
-                                t, days, startOffset),
+                                context, t, days, startOffset, year, month),
                           ),
                         ],
                       ),
@@ -393,7 +410,7 @@ class ViewTeacherAttendanceScreen
             ),
           )
               : const Text(
-            "View Teacher Attendance",
+            "View Attendance",
             style: TextStyle(
                 color: Colors.white, fontWeight: FontWeight.w600),
           ),
@@ -414,9 +431,120 @@ class ViewTeacherAttendanceScreen
     );
   }
 
+  // ── Day detail dialog ─────────────────────────────────────────────────────
+  void _showDayDetailDialog(
+      BuildContext context,
+      ViewTeacherAttendanceItem t,
+      int day,
+      int year,
+      int month,
+      String? rawStatus,
+      String? inT,
+      String? outT,
+      ) {
+    final DateTime date = DateTime(year, month, day);
+    final String weekday = _weekdayName(date.weekday);
+    final String statusLabel = _fullStatus(rawStatus);
+    final Color statusColor = _statusColor(rawStatus);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
+          title: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: statusColor.withOpacity(0.15),
+                child: Icon(Icons.event, color: statusColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "$weekday, $day ${_monthNameFromNumber(month)} $year",
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.name ?? "No Name",
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              _dialogRow("Status", statusLabel, valueColor: statusColor),
+              const SizedBox(height: 8),
+              _dialogRow("In Time",
+                  (inT != null && inT.isNotEmpty) ? inT : "--"),
+              const SizedBox(height: 8),
+              _dialogRow("Out Time",
+                  (outT != null && outT.isNotEmpty) ? outT : "--"),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text(
+                "Close",
+                style: TextStyle(color: Color(0xFF97144D)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _dialogRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _monthNameFromNumber(int m) {
+    const names = [
+      "January","February","March","April","May","June",
+      "July","August","September","October","November","December",
+    ];
+    if (m < 1 || m > 12) return "";
+    return names[m - 1];
+  }
+
   // ── Calendar grid ─────────────────────────────────────────────────────────
   Widget _buildCalendarGrid(
-      ViewTeacherAttendanceItem t, int daysInMonth, int startOffset) {
+      BuildContext context,
+      ViewTeacherAttendanceItem t,
+      int daysInMonth,
+      int startOffset,
+      int year,
+      int month,
+      ) {
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return Column(
@@ -473,65 +601,69 @@ class ViewTeacherAttendanceScreen
                 (inT != null && inT.isNotEmpty) ||
                     (outT != null && outT.isNotEmpty);
 
-            return Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: isEmpty
-                    ? null
-                    : [
-                  BoxShadow(
-                    color: color.withOpacity(0.4),
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Day number
-                  Text(
-                    "$day",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isEmpty ? Colors.black38 : Colors.white,
-                    ),
-                  ),
-                  // Status code
-                  if (code.isNotEmpty)
-                    Text(
-                      code,
-                      style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
-                    ),
-                  // In time
-                  if (hasTime && inT != null && inT.isNotEmpty) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      inT,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 6,
-                          color: Colors.white,
-                          height: 1.1),
+            return GestureDetector(
+              onTap: () => _showDayDetailDialog(
+                  context, t, day, year, month, rawStatus, inT, outT),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isEmpty
+                      ? null
+                      : [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 3,
+                      offset: const Offset(0, 2),
                     ),
                   ],
-                  // Out time
-                  if (hasTime && outT != null && outT.isNotEmpty)
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Day number
                     Text(
-                      outT,
-                      textAlign: TextAlign.center,
+                      "$day",
                       style: TextStyle(
-                          fontSize: 6,
-                          color: Colors.white.withOpacity(0.85),
-                          height: 1.1),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isEmpty ? Colors.black38 : Colors.white,
+                      ),
                     ),
-                ],
+                    // Status code
+                    if (code.isNotEmpty)
+                      Text(
+                        code,
+                        style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    // In time
+                    if (hasTime && inT != null && inT.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        inT,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 6,
+                            color: Colors.white,
+                            height: 1.1),
+                      ),
+                    ],
+                    // Out time
+                    if (hasTime && outT != null && outT.isNotEmpty)
+                      Text(
+                        outT,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 6,
+                            color: Colors.white.withOpacity(0.85),
+                            height: 1.1),
+                      ),
+                  ],
+                ),
               ),
             );
           },

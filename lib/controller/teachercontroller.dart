@@ -31,7 +31,7 @@ const List<_TileSpec> _tileSpecs = [
       Color(0xFFE8EAF6), RouteName.addteachers, ['AddTeacher', 'AllTeacher']),
   _TileSpec("Teacher Designation", Icons.badge_rounded, Color(0xFF8E24AA),
       Color(0xFFF3E5F5), RouteName.teacherdesignation, ['TeacherDesignation']),
-  _TileSpec("Teacher Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
+  _TileSpec("Take Attendance", Icons.how_to_reg_rounded, Color(0xFF2E7D32),
       Color(0xFFE8F5E9), RouteName.teacherattendance, ['TeacherAttendance']),
   _TileSpec("View Attendance", Icons.bar_chart_rounded, Color(0xFF00897B),
       Color(0xFFE0F2F1), RouteName.viewteacherattendance, ['ViewTeacherAttendance']),

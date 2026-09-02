@@ -31,8 +31,11 @@ class LoginViewModel with ChangeNotifier {
           title: "Please login through web ! You are not authorized to login through app",
         );
         isLoading.value = false;
-      } else if (data.data!.role?.roleName?.trim().toLowerCase() != 'teacher') {
-        // Sirf 'Teacher' allow — Admin/Staff/kisi aur role ko block kar dega
+      } else if (![
+        'teacher',
+        'schoolstaff'
+      ].contains(data.data!.role?.roleName?.trim().toLowerCase())) {
+        // Sirf 'Teacher' aur 'SchoolStaff' allow — Admin/kisi aur role ko block kar dega
         ShortMessage.toast(
           title: "You are not authorized to login through Teacher app",
         );
@@ -63,6 +66,9 @@ class LoginViewModel with ChangeNotifier {
         PrefManager().writeValue(
             key: PrefConst.RName,
             value: data.data?.role?.roleName.toString());
+        PrefManager().writeValue(
+            key: PrefConst.roleId,
+            value: data.data?.role?.roleId.toString());
         PrefManager().writeValue(
             key: PrefConst.session,
             value: data.data!.currentSession.toString());

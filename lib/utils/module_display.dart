@@ -35,7 +35,7 @@ const Map<String, ModuleDisplayMeta> moduleDisplayMeta = {
       emoji: '🎓', route: RouteName.addstudentmaster, label: "Student's"),
   'Teachers': ModuleDisplayMeta(
       icon: Icons.person_pin_rounded, color: Color(0xFF43A047), bgColor: Color(0xFFE8F5E9),
-      emoji: '👩‍🏫', route: RouteName.teacher, label: "Teacher's"),
+      emoji: '👩‍🏫', route: RouteName.teacher, label: "Attendance Mangt"),
   'Staff': ModuleDisplayMeta(
       icon: Icons.people_alt_rounded, color: Color(0xFF6D4C41), bgColor: Color(0xFFEFEBE9),
       emoji: '🪪', route: RouteName.staffView, label: "Staff"),
