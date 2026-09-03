@@ -4,10 +4,8 @@ import 'package:get/get.dart';
 
 import '../controller/staffattendancecontroller.dart';
 import '../models/session_model.dart' as session_model;
+import '../models/staff attend load model.dart';
 import '../models/teacher_attendance.dart';
-
-// Axis Bank brand color (maroon) — replaces teal everywhere in this file
-const Color kAxisMaroon = Color(0xFF97144D);
 
 class Staffattendanceview extends StatelessWidget {
   const Staffattendanceview({super.key});
@@ -20,10 +18,10 @@ class Staffattendanceview extends StatelessWidget {
       return Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: kAxisMaroon,
+          backgroundColor: const Color(0xFFA6093D),
           iconTheme: const IconThemeData(color: Colors.white),
           title: Text(
-            "✅ Staff Attendance",
+            "Staff Attendance",
             style: TextStyle(
               color: Colors.white,
               fontSize: 20.sp,
@@ -193,12 +191,12 @@ class _ListSection extends StatelessWidget {
   final Staffattendancecontroller controller;
   const _ListSection({required this.controller});
 
-  String _safeName(TeacherUser t) {
+  String _safeName(StaffUser t) {
     final n = "${t.firstName ?? ""} ${t.lastName ?? ""}".trim();
     return n.isEmpty ? "-" : n;
   }
 
-  String _safeReg(TeacherUser t) {
+  String _safeReg(StaffUser t) {
     return t.additionalDetail?.registrationNo?.trim().isNotEmpty == true
         ? t.additionalDetail!.registrationNo!.trim()
         : "-";
@@ -288,12 +286,12 @@ class _ListSection extends StatelessWidget {
                       final _ = controller.mapVersion.value;
 
                       return DataTable(
-                        headingRowColor: MaterialStateProperty.all(
-                            kAxisMaroon.withOpacity(0.08)),
+                        headingRowColor: WidgetStateProperty.all(
+                            Colors.teal.shade50),
                         headingTextStyle: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w700,
-                          color: kAxisMaroon,
+                          color: Colors.teal.shade800,
                         ),
                         dataTextStyle: TextStyle(
                           fontSize: 13.sp,
@@ -334,11 +332,12 @@ class _ListSection extends StatelessWidget {
                                 // Status
                                 DataCell(
                                   SizedBox(
-                                    width: 130.w,
+                                    width: 150.w, // ✅ FIX: 130.w se 150.w kiya, taaki "Present/Absent/Holiday" text cut na ho
                                     child: userId == null
                                         ? const Text("-")
                                         : DropdownButtonFormField<String>(
-                                      value: controller.statusForUser(t),
+                                      value: controller.statusForUser(
+                                          userId, t.status),
                                       isExpanded: true,
                                       items: const [
                                         DropdownMenuItem(
@@ -348,7 +347,7 @@ class _ListSection extends StatelessWidget {
                                             value: "ABSENT",
                                             child: Text("Absent")),
                                         DropdownMenuItem(
-                                            value: "HOLD",
+                                            value: "HOLIDAY", // ✅ FIX: "HOLD" se "HOLIDAY" kiya (controller ke statusHold se match, isi se holiday save hota hai)
                                             child: Text("Holiday")),
                                       ],
                                       onChanged: (v) {
@@ -363,82 +362,99 @@ class _ListSection extends StatelessWidget {
                                         isDense: true,
                                         contentPadding:
                                         EdgeInsets.symmetric(
-                                            horizontal: 10,
+                                            horizontal: 8, // ✅ thoda kam kiya extra space ke liye
                                             vertical: 10),
                                       ),
                                     ),
                                   ),
                                 ),
 
-                                // In/Out — dropdown + In time btn + Out time btn
+                                // In/Out — In time btn + Out time btn
+                                // (IN/OUT selector dropdown UI se hidden hai, sirf comment me hai neeche)
                                 DataCell(
-                                  userId == null
-                                      ? const Text("-")
-                                      : SizedBox(
-                                    width: 270.w,
-                                    child: Row(
-                                      children: [
-                                        // IN / OUT dropdown
-                                        SizedBox(
-                                          width: 78.w,
-                                          child:
-                                          DropdownButtonFormField
-                                          <String>(
-                                            value: controller
-                                                .inOutForUser(userId),
-                                            isExpanded: true,
-                                            items: const [
-                                              DropdownMenuItem(
-                                                  value: "IN",
-                                                  child: Text("IN")),
-                                              DropdownMenuItem(
-                                                  value: "OUT",
-                                                  child: Text("OUT")),
-                                            ],
-                                            onChanged: (v) {
-                                              if (v == null) return;
-                                              controller
-                                                  .setInOutForUser(
-                                                  userId, v);
-                                            },
-                                            decoration:
-                                            const InputDecoration(
-                                              border:
-                                              OutlineInputBorder(),
-                                              isDense: true,
-                                              contentPadding:
-                                              EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 10),
+                                  Builder(
+                                    builder: (_) {
+                                      if (userId == null) {
+                                        return const Text("-");
+                                      }
+
+                                      final currentStatus = controller
+                                          .statusForUser(userId, t.status);
+
+                                      // Sirf Present hone par hi In/Out time buttons dikhao
+                                      if (currentStatus !=
+                                          Staffattendancecontroller
+                                              .statusPresent) {
+                                        return const Text("-");
+                                      }
+
+                                      return SizedBox(
+                                        width: 180.w, // ✅ dropdown hatne ki wajah se width kam ki (270.w se 180.w)
+                                        child: Row(
+                                          children: [
+                                            // 🔒 HIDDEN AS PER REQUEST: IN/OUT selector dropdown
+                                            // Logic controller me (inOutForUser/setInOutForUser) waisa hi hai,
+                                            // sirf UI se hataya hai — save me default "IN" hi jayega.
+                                            // SizedBox(
+                                            //   width: 78.w,
+                                            //   child: DropdownButtonFormField<
+                                            //       String>(
+                                            //     value: controller
+                                            //         .inOutForUser(userId),
+                                            //     isExpanded: true,
+                                            //     items: const [
+                                            //       DropdownMenuItem(
+                                            //           value: "IN",
+                                            //           child: Text("IN")),
+                                            //       DropdownMenuItem(
+                                            //           value: "OUT",
+                                            //           child: Text("OUT")),
+                                            //     ],
+                                            //     onChanged: (v) {
+                                            //       if (v == null) return;
+                                            //       controller
+                                            //           .setInOutForUser(
+                                            //           userId, v);
+                                            //     },
+                                            //     decoration:
+                                            //     const InputDecoration(
+                                            //       border:
+                                            //       OutlineInputBorder(),
+                                            //       isDense: true,
+                                            //       contentPadding:
+                                            //       EdgeInsets.symmetric(
+                                            //           horizontal: 8,
+                                            //           vertical: 10),
+                                            //     ),
+                                            //   ),
+                                            // ),
+                                            // SizedBox(width: 6.w),
+
+                                            // Check-IN time button
+                                            _TimeButton(
+                                              label: "In",
+                                              time: controller
+                                                  .inTimeForUser(userId),
+                                              color: Colors.teal.shade700,
+                                              onTap: () => controller
+                                                  .pickInTimeForUser(userId),
                                             ),
-                                          ),
+
+                                            SizedBox(width: 5.w),
+
+                                            // Check-OUT time button
+                                            _TimeButton(
+                                              label: "Out",
+                                              time: controller
+                                                  .outTimeForUser(userId),
+                                              color: Colors.red.shade700,
+                                              onTap: () => controller
+                                                  .pickOutTimeForUser(userId),
+                                            ),
+                                          ],
                                         ),
-
-                                        SizedBox(width: 6.w),
-
-                                        // Check-IN time button
-                                        _TimeButton(
-                                          label: "In",
-                                          time: controller
-                                              .inTimeForUser(userId),
-                                          color: kAxisMaroon,
-                                          onTap: () => controller
-                                              .pickInTimeForUser(userId),
-                                        ),
-
-                                        SizedBox(width: 5.w),
-
-                                        // Check-OUT time button
-                                        _TimeButton(
-                                          label: "Out",
-                                          time: controller
-                                              .outTimeForUser(userId),
-                                          color: Colors.red.shade700,
-                                          onTap: () => controller
-                                              .pickOutTimeForUser(userId),
-                                        ),
-                                      ],
-                                    ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ],

@@ -33,8 +33,8 @@ const List<_TileSpec> _tileSpecs = [
       RouteName.staffattendance, ['StaffAttendance']),
   _TileSpec("View Attendance", Icons.fact_check_rounded, Color.fromARGB(255, 17, 5, 58),
       RouteName.viewstaffattendance, ['ViewAttendance']),
-  _TileSpec("Staff Details", Icons.manage_accounts_rounded, Color.fromARGB(255, 143, 243, 30),
-      RouteName.staffdetails, ['StaffDetails']),
+  // _TileSpec("Staff Details", Icons.manage_accounts_rounded, Color.fromARGB(255, 143, 243, 30),
+  //     RouteName.staffdetails, ['StaffDetails']),
 ];
 
 class Staffcontroller extends GetxController {
