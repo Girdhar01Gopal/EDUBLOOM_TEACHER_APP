@@ -42,28 +42,31 @@ class Data {
   String? session;
   String? createDate;
   String? createBy;
-  Null? updateDate;
-  Null? updateBy;
+
+
+  String? updateDate;
+  String? updateBy;
+
   String? action;
   String? notificationfile;
   String? schoolId;
 
   Data(
       {this.notificationID,
-      this.tittle,
-      this.message,
-      this.classId,
-      this.sectionId,
-      this.className,
-      this.sectionName,
-      this.session,
-      this.createDate,
-      this.createBy,
-      this.updateDate,
-      this.updateBy,
-      this.action,
-      this.notificationfile,
-      this.schoolId});
+        this.tittle,
+        this.message,
+        this.classId,
+        this.sectionId,
+        this.className,
+        this.sectionName,
+        this.session,
+        this.createDate,
+        this.createBy,
+        this.updateDate,
+        this.updateBy,
+        this.action,
+        this.notificationfile,
+        this.schoolId});
 
   Data.fromJson(Map<String, dynamic> json) {
     notificationID = json['notificationID'];
@@ -76,8 +79,10 @@ class Data {
     session = json['session'];
     createDate = json['createDate'];
     createBy = json['createBy'];
-    updateDate = json['updateDate'];
-    updateBy = json['updateBy'];
+    // .toString() safety-net kept intentionally in case backend ever sends
+    // a non-string (e.g. int/DateTime-like) value for these fields again.
+    updateDate = json['updateDate']?.toString();
+    updateBy = json['updateBy']?.toString();
     action = json['action'];
     notificationfile = json['notificationfile'];
     schoolId = json['schoolId'];
