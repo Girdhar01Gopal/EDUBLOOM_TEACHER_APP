@@ -8,8 +8,13 @@ import 'package:get/get.dart';
 import '../controller/view_staff_attendance_controller.dart';
 import '../models/view staff attendance details.dart';
 
-// Axis Bank brand color (maroon) — replaces teal everywhere in this file
-const Color kAxisMaroon = Color(0xFF97144D);
+// ── Maroon swatch (replaces Colors.teal everywhere in this file) ───────────
+const MaterialColor maroon = MaterialColor(0xFF800000, <int, Color>{
+  600: Color(0xFF97144D),
+  700: Color(0xFFC2185B),
+  800: Color(0xFF97144D),
+  900: Color(0xFFC2185B),
+});
 
 class ViewStaffAttendanceScreen
     extends GetView<ViewStaffAttendanceController> {
@@ -53,6 +58,7 @@ class ViewStaffAttendanceScreen
     final v = (s ?? "").toLowerCase().trim();
     if (v == "present") return "P";
     if (v == "absent") return "A";
+    if (v == "holiday" || v == "hold") return "H";
     return "";
   }
 
@@ -60,7 +66,27 @@ class ViewStaffAttendanceScreen
     final v = (s ?? "").toLowerCase().trim();
     if (v == "present") return Colors.green;
     if (v == "absent") return Colors.red;
+    if (v == "holiday" || v == "hold") return Colors.orange;
     return Colors.grey.shade300;
+  }
+
+  // ── Month number → full name ──────────────────────────────────────────────
+  String _monthName(int m) {
+    const names = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return (m >= 1 && m <= 12) ? names[m - 1] : "";
+  }
+
+  // ── Weekday name for a given date ─────────────────────────────────────────
+  String _weekdayName(int year, int month, int day) {
+    const names = [
+      "Monday", "Tuesday", "Wednesday", "Thursday",
+      "Friday", "Saturday", "Sunday"
+    ];
+    final weekday = DateTime(year, month, day).weekday; // 1 = Monday
+    return names[weekday - 1];
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -110,7 +136,7 @@ class ViewStaffAttendanceScreen
                           ? null
                           : controller.fetchReport,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: kAxisMaroon,
+                        backgroundColor: maroon.shade800,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
@@ -229,8 +255,8 @@ class ViewStaffAttendanceScreen
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  kAxisMaroon,
-                                  kAxisMaroon,
+                                  maroon.shade600,
+                                  maroon.shade900,
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -291,6 +317,7 @@ class ViewStaffAttendanceScreen
                           ),
 
                           // ── Stats ────────────────────────────────────────
+                          // ✅ NEW: Present / Absent / Holiday — same as teacher card
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 10),
@@ -302,6 +329,8 @@ class ViewStaffAttendanceScreen
                                     Colors.green),
                                 _statChip("Absent", staff.absentCount,
                                     Colors.red),
+                                _statChip("Holiday", staff.holidayCount,
+                                    Colors.orange),
                               ],
                             ),
                           ),
@@ -315,7 +344,7 @@ class ViewStaffAttendanceScreen
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: _buildCalendarGrid(
-                                staff, days, startOffset),
+                                context, staff, days, startOffset, year, month),
                           ),
                         ],
                       ),
@@ -337,7 +366,7 @@ class ViewStaffAttendanceScreen
       child: Obx(() {
         final searching = _isSearching.value;
         return AppBar(
-          backgroundColor: kAxisMaroon,
+          backgroundColor: maroon.shade800,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
@@ -400,8 +429,8 @@ class ViewStaffAttendanceScreen
   }
 
   // ── Calendar grid ─────────────────────────────────────────────────────────
-  Widget _buildCalendarGrid(
-      StaffAttendanceView staff, int daysInMonth, int startOffset) {
+  Widget _buildCalendarGrid(BuildContext context, StaffAttendanceView staff,
+      int daysInMonth, int startOffset, int year, int month) {
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return Column(
@@ -419,7 +448,7 @@ class ViewStaffAttendanceScreen
                     fontWeight: FontWeight.bold,
                     color: (i == 0 || i == 6)
                         ? Colors.red.shade400
-                        : kAxisMaroon,
+                        : maroon.shade700,
                   ),
                 ),
               ),
@@ -435,7 +464,7 @@ class ViewStaffAttendanceScreen
             crossAxisCount: 7,
             crossAxisSpacing: 3,
             mainAxisSpacing: 3,
-            // Taller to fit day + P/A + in/out time
+            // Taller to fit day + P/A/H + in/out time
             childAspectRatio: 0.58,
           ),
           itemCount: startOffset + daysInMonth,
@@ -448,75 +477,215 @@ class ViewStaffAttendanceScreen
             final color = _statusColor(rawStatus);
             final code = isEmpty ? "" : _shortStatus(rawStatus);
 
-            // Per-day in/out (only for days with attendance)
-            final inT = isEmpty ? null : _formatTime(staff.dayIn(day));
-            final outT = isEmpty ? null : _formatTime(staff.dayOut(day));
-            final hasTime = (inT != null && inT.isNotEmpty) ||
-                (outT != null && outT.isNotEmpty);
+            // Time sirf Present status pe dikhega, Absent/Holiday me time hide rahega
+            final statusLower = rawStatus.toLowerCase().trim();
+            final isPresent = statusLower == "present";
 
-            return Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: isEmpty
-                    ? null
-                    : [
-                  BoxShadow(
-                    color: color.withOpacity(0.4),
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+            final inT = isPresent ? _formatTime(staff.dayIn(day)) : null;
+            final outT = isPresent ? _formatTime(staff.dayOut(day)) : null;
+            final hasTime = isPresent &&
+                ((inT != null && inT.isNotEmpty) ||
+                    (outT != null && outT.isNotEmpty));
+
+            return GestureDetector(
+              onTap: () => _showDayDetailDialog(
+                context: context,
+                staffName: staff.name,
+                day: day,
+                month: month,
+                year: year,
+                status: rawStatus,
+                inTime: inT,
+                outTime: outT,
               ),
-              padding:
-              const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Day number
-                  Text(
-                    "$day",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isEmpty ? Colors.black38 : Colors.white,
-                    ),
-                  ),
-                  // Status code P / A
-                  if (code.isNotEmpty)
-                    Text(
-                      code,
-                      style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white),
-                    ),
-                  // In time
-                  if (hasTime && inT != null && inT.isNotEmpty) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      inT,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 6,
-                          color: Colors.white,
-                          height: 1.1),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: isEmpty
+                      ? null
+                      : [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 3,
+                      offset: const Offset(0, 2),
                     ),
                   ],
-                  // Out time
-                  if (hasTime && outT != null && outT.isNotEmpty)
+                ),
+                padding:
+                const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Day number
                     Text(
-                      outT,
-                      textAlign: TextAlign.center,
+                      "$day",
                       style: TextStyle(
-                          fontSize: 6,
-                          color: Colors.white.withOpacity(0.85),
-                          height: 1.1),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isEmpty ? Colors.black38 : Colors.white,
+                      ),
                     ),
-                ],
+                    // Status code P / A / H
+                    if (code.isNotEmpty)
+                      Text(
+                        code,
+                        style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    // In time
+                    if (hasTime && inT != null && inT.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        inT,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 6,
+                            color: Colors.white,
+                            height: 1.1),
+                      ),
+                    ],
+                    // Out time
+                    if (hasTime && outT != null && outT.isNotEmpty)
+                      Text(
+                        outT,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 6,
+                            color: Colors.white.withOpacity(0.85),
+                            height: 1.1),
+                      ),
+                  ],
+                ),
               ),
             );
           },
+        ),
+      ],
+    );
+  }
+
+  // ── Day detail dialog ─────────────────────────────────────────────────────
+  void _showDayDetailDialog({
+    required BuildContext context,
+    required String? staffName,
+    required int day,
+    required int month,
+    required int year,
+    required String? status,
+    required String? inTime,
+    required String? outTime,
+  }) {
+    final statusText = (status == null || status.trim().isEmpty)
+        ? "N/A"
+        : "${status.trim()[0].toUpperCase()}${status.trim().substring(1).toLowerCase()}";
+    final color = _statusColor(status);
+    final weekday = _weekdayName(year, month, day);
+    final monthName = _monthName(month);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Icon + full date ─────────────────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.calendar_today_rounded,
+                      color: Colors.green, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    "$weekday, $day $monthName $year",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            if ((staffName ?? "").isNotEmpty) ...[
+              Text(
+                staffName!.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            _dialogRow("Status", statusText, valueColor: color, bold: true),
+            const SizedBox(height: 12),
+            _dialogRow("In Time",
+                (inTime == null || inTime.isEmpty) ? "--" : inTime),
+            const SizedBox(height: 12),
+            _dialogRow("Out Time",
+                (outTime == null || outTime.isEmpty) ? "--" : outTime),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(0, 0, 16, 10),
+        actionsAlignment: MainAxisAlignment.end,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: maroon.shade900,
+            ),
+            child: const Text(
+              "Close",
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialogRow(String label, String value,
+      {Color? valueColor, bool bold = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(
+            label,
+            style: const TextStyle(
+                fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              color: valueColor ?? Colors.black87,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w600,
+            ),
+          ),
         ),
       ],
     );
@@ -530,6 +699,8 @@ class ViewStaffAttendanceScreen
         _legendDot(Colors.green, "Present"),
         const SizedBox(width: 12),
         _legendDot(Colors.red, "Absent"),
+        const SizedBox(width: 12),
+        _legendDot(Colors.orange, "Holiday"),
         const SizedBox(width: 12),
         _legendDot(Colors.grey.shade300, "N/A"),
       ],
@@ -557,7 +728,7 @@ class ViewStaffAttendanceScreen
       children: [
         Container(
           padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
             color: color.withOpacity(0.12),
             borderRadius: BorderRadius.circular(20),
@@ -566,7 +737,7 @@ class ViewStaffAttendanceScreen
           child: Text(
             "$count",
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: color,
             ),

@@ -4,15 +4,18 @@
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/view staff attendance details.dart';
 
 class ViewStaffAttendanceController extends GetxController {
-  // ── School ─────────────────────────────────────────────────────────────────
+  // ── School / user context ────────────────────────────────────────────────
   String schoolId = "";
   String token = "";
   String session = "";
+  String roleName = "";
+  int userId = 0;
 
   // ── UI ──────────────────────────────────────────────────────────────────────
   final isLoading = false.obs;
@@ -44,6 +47,11 @@ class ViewStaffAttendanceController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
     session = await PrefManager().readValue(key: PrefConst.session) ?? "";
+    roleName =
+        await PrefManager().readValue(key: PrefConst.RName) ?? "";
+
+    final userIdRaw = await PrefManager().readValue(key: PrefConst.Userid);
+    userId = int.tryParse(userIdRaw?.toString() ?? "") ?? 0;
 
     if (schoolId.trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -76,6 +84,8 @@ class ViewStaffAttendanceController extends GetxController {
         "month": monthIndex,
         "schoolId": schoolId,
         "session": session,
+        "roleName": roleName,
+        "userId": userId,
       };
 
       final headers = <String, String>{
@@ -140,9 +150,6 @@ class ViewStaffAttendanceController extends GetxController {
   }
 
   // ── Merge records with same staffReg + name ─────────────────────────────────
-  /// Each raw record may cover only some days + carries its own inTime/outTime.
-  /// We merge all records into one item, assigning each day's in/out from
-  /// whichever raw record contained that day's attendance.
   List<StaffAttendanceView> _mergeByReg(List<StaffAttendanceView> raw) {
     final Map<String, StaffAttendanceView> map = {};
 
@@ -151,19 +158,8 @@ class ViewStaffAttendanceController extends GetxController {
           '${item.staffReg.trim()}_${item.name.trim().toLowerCase()}';
 
       if (!map.containsKey(key)) {
-        // First record: build initial per-day in/out maps
-        final inT = <int, String?>{};
-        final outT = <int, String?>{};
-
-        for (int d = 1; d <= 31; d++) {
-          final status = item.attendanceDays['day$d'];
-          if (status != null && status.isNotEmpty) {
-            inT[d] = item.inTime;
-            outT[d] = item.outTime;
-          }
-        }
-
-        map[key] = item.copyWith(dayInTimes: inT, dayOutTimes: outT);
+        // ✅ First record already has correct dayInTimes/dayOutTimes from fromJson
+        map[key] = item;
       } else {
         // Subsequent record: merge days + per-day times
         final existing = map[key]!;
@@ -175,8 +171,8 @@ class ViewStaffAttendanceController extends GetxController {
           final status = item.attendanceDays['day$d'];
           if (status != null && status.isNotEmpty) {
             newDays['day$d'] = status;
-            newInT[d] = item.inTime;
-            newOutT[d] = item.outTime;
+            newInT[d] = item.dayIn(d);
+            newOutT[d] = item.dayOut(d);
           }
         }
 

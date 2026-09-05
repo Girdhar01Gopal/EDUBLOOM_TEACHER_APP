@@ -1,65 +1,67 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:geocoding/geocoding.dart' as geocoding;
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/staff attend load model.dart';
-import '../models/teacher_attendance.dart';
 
 class Staffattendancecontroller extends GetxController {
   static const String statusPresent = "PRESENT";
-  static const String statusAbsent  = "ABSENT";
-  static const String statusHold    = "HOLIDAY"; // ✅ FIX: was "HOLD" — backend expects "HOLIDAY", isi wajah se holiday save nahi ho raha tha
+  static const String statusAbsent = "ABSENT";
+  static const String statusHold = "HOLIDAY";
 
   // ========= UI FLAGS =========
   final isPageLoading = false.obs;
-  final isSaving      = false.obs;
+  final isSaving = false.obs;
   final isViewLoading = false.obs;
-  final isViewSaving  = false.obs;
+  final isViewSaving = false.obs;
 
-  // ========= CHECK-IN / CHECK-OUT (background GPS logic) =========
-  final isChecking      = false.obs;
-  final checkInTime     = Rxn<DateTime>();
-  final checkOutTime    = Rxn<DateTime>();
-  final checkInLat      = RxnDouble();
-  final checkInLng      = RxnDouble();
-  final checkOutLat     = RxnDouble();
-  final checkOutLng     = RxnDouble();
-  final checkInAddress  = "".obs;
-  final checkOutAddress = "".obs;
-  final isCheckInFlag   = false.obs;
+  // ========= CHECK-IN / CHECK-OUT FLAGS =========
+  final isCheckedIn = false.obs;
+  final isCheckedOutToday = false.obs;
+  final isCheckInOutSaving = false.obs;
 
-  bool get isCheckedIn  => checkInTime.value != null && checkOutTime.value == null;
-  bool get isCheckedOut => checkInTime.value != null && checkOutTime.value != null;
+  // ========= GLOBAL IN/OUT TIME (header card) =========
+  final todayInTime = Rx<DateTime?>(null);
+  final todayOutTime = Rx<DateTime?>(null);
+
+  // ========= MIDNIGHT ROLLOVER TIMER =========
+  Timer? _midnightTimer;
 
   // ========= STORAGE =========
   String schoolId = "";
-  String token    = "";
+  String token = "";
+  String userId = "";
+  String roleName = "";
 
   // ========= SESSION =========
-  final sessionList     = <session_model.sListDdata>[].obs;
+  final sessionList = <session_model.sListDdata>[].obs;
   final selectedSession = Rx<session_model.sListDdata?>(null);
 
-  // ========= DATE =========
-  final selectedDate = DateTime.now().obs;
+  // ========= DATE (locked to today) =========
+  final selectedDate = Rx<DateTime>(DateTime.now());
   String get displayDate => _formatDateUI(selectedDate.value);
+  String get displayDateLong => _formatDateLong(selectedDate.value);
 
   // ========= STAFF LIST =========
-  final teacherUsers = <StaffUser>[].obs;
+  final teacherUsers = <StaffUser>[].obs; // naam wahi rakha taaki view me change min ho
 
-  // =========================================================
-  // PER-STAFF DATA MAPS
-  // =========================================================
-  final Map<int, String>   _statusMap  = {};
-  final Map<int, String>   _inOutMap   = {};
-  final Map<int, DateTime> _inTimeMap  = {};
+  // ========= PER-STAFF DATA (Persistent Maps) =========
+  final Map<int, String> _statusMap = {};
+  final Map<int, String> _inOutMap = {};
+  final Map<int, DateTime> _inTimeMap = {};
   final Map<int, DateTime> _outTimeMap = {};
+  final Map<int, String> _inAddressMap = {};
+  final Map<int, String> _outAddressMap = {};
 
   final mapVersion = 0.obs;
   void _bump() => mapVersion.value++;
@@ -72,132 +74,384 @@ class Staffattendancecontroller extends GetxController {
   final String sessionApiBase =
       "https://playschool.edubloom.in/api/MasterApp/ViewSessionApp/";
 
-  // ========= INIT =========
+  static const int _autoAbsentLookbackDays = 14;
+
   @override
   void onInit() async {
     super.onInit();
-    schoolId = (await PrefManager().readValue(key: PrefConst.schollId) ?? "").toString();
-    token    = (await PrefManager().readValue(key: PrefConst.token)    ?? "").toString();
+    schoolId =
+        (await PrefManager().readValue(key: PrefConst.schollId) ?? "").toString();
+    token = (await PrefManager().readValue(key: PrefConst.token) ?? "").toString();
+    userId = (await PrefManager().readValue(key: PrefConst.Userid) ?? "").toString();
+    roleName = (await PrefManager().readValue(key: PrefConst.RName) ?? "").toString();
+
     if (schoolId.trim().isEmpty) {
       _showError("SchoolId not found. Please login again.");
       return;
     }
-    await _loadCheckInState();
+
+    selectedDate.value = DateTime.now();
+
+    await _loadCheckFlags();
     await fetchSessions();
+
+    if (!_sessionMissing()) {
+      await fetchStaffAttendanceList();
+    } else {
+      unawaited(_retrySessionLoadThenFetchList());
+    }
+
+    unawaited(_autoMarkAbsentForMissedDays());
+    _scheduleMidnightRollover();
+  }
+
+  @override
+  void onClose() {
+    _midnightTimer?.cancel();
+    super.onClose();
+  }
+
+  // =========================================================
+  // MIDNIGHT ROLLOVER
+  // =========================================================
+  void _scheduleMidnightRollover() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    final duration = nextMidnight.difference(now);
+    debugPrint("[ATT-DEBUG] Scheduling midnight rollover in $duration");
+    _midnightTimer = Timer(duration, () async {
+      await _handleMidnightRollover();
+      _scheduleMidnightRollover();
+    });
+  }
+
+  Future<void> _handleMidnightRollover() async {
+    debugPrint("[ATT-DEBUG] Midnight rollover triggered — resetting check-in/out cycle for new day");
+
+    final justEndedDay = DateTime.now().subtract(const Duration(minutes: 1));
+    if (justEndedDay.weekday != DateTime.sunday) {
+      final dateKey =
+          "${justEndedDay.year.toString().padLeft(4, '0')}-${justEndedDay.month.toString().padLeft(2, '0')}-${justEndedDay.day.toString().padLeft(2, '0')}";
+      final checkInKey = "staff_att_checkin_${userId}_$dateKey";
+      final autoAbsentDoneKey = "staff_att_autoabsent_done_${userId}_$dateKey";
+
+      final alreadyHandled =
+          (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() == "1";
+      if (!alreadyHandled) {
+        final wasCheckedIn =
+            (await PrefManager().readValue(key: checkInKey))?.toString() == "1";
+        if (!wasCheckedIn) {
+          debugPrint("[ATT-DEBUG] MIDNIGHT-AUTO-ABSENT: marking $dateKey as absent");
+          await _markDayAbsentOnServer(justEndedDay);
+        }
+        await PrefManager().writeValue(key: autoAbsentDoneKey, value: "1");
+      }
+    }
+
+    await _loadCheckFlags();
   }
 
   // =========================================================
   // FORMATTERS
   // =========================================================
-  String _formatDateApi(DateTime d) =>
-      "${d.year.toString().padLeft(4, '0')}-"
-          "${d.month.toString().padLeft(2, '0')}-"
-          "${d.day.toString().padLeft(2, '0')}";
+  String _formatDateApi(DateTime d) {
+    return "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+  }
 
-  String _formatDateTimeApi(DateTime d) =>
-      "${_formatDateApi(d)} "
-          "${d.hour.toString().padLeft(2, '0')}:"
-          "${d.minute.toString().padLeft(2, '0')}:"
-          "${d.second.toString().padLeft(2, '0')}";
+  String _formatDateTimeApi(DateTime d) {
+    return "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')}";
+  }
 
-  String _formatDateUI(DateTime d) =>
-      "${d.day.toString().padLeft(2, '0')}/"
-          "${d.month.toString().padLeft(2, '0')}/"
-          "${d.year}";
+  String _formatDateUI(DateTime d) {
+    return "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}";
+  }
 
-  String fmtTime(DateTime dt) =>
-      "${dt.hour.toString().padLeft(2, '0')}:"
-          "${dt.minute.toString().padLeft(2, '0')}";
+  static const List<String> _monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+
+  String _formatDateLong(DateTime d) {
+    return "${d.day.toString().padLeft(2, '0')} ${_monthNames[d.month - 1]} ${d.year}";
+  }
+
+  String fmtTime(DateTime dt) {
+    return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+  }
 
   String _normalizeStatus(String? status) {
     if (status == null) return statusPresent;
     final s = status.trim().toUpperCase();
-    if (s == statusAbsent || s == "A") return statusAbsent;
-    if (s == statusHold   || s == "HOLIDAY" || s == "HOLD" || s == "H") return statusHold;
+    if (s.isEmpty) return statusPresent;
+    if (s == statusAbsent || s == "A" || s.contains("ABS")) return statusAbsent;
+    if (s == statusHold || s == "HOLIDAY" || s == "H" || s.contains("HOL")) return statusHold;
     return statusPresent;
   }
 
-  // =========================================================
-  // CHECK-IN STATE PERSISTENCE
-  // =========================================================
-  DateTime? _readDateTimePref(dynamic v) {
-    if (v == null) return null;
-    if (v is DateTime) return v;
-    final s = v.toString().trim();
-    if (s.isEmpty) return null;
-    return DateTime.tryParse(s);
-  }
+  /// Centralized success detector for the Save API.
+  /// The backend is inconsistent: it sometimes sends isSuccess:false /
+  /// statusCode:0 even when the save actually worked, but always sends
+  /// data:"SUCCESS" and/or a "success" wording inside messages when it did.
+  /// This checks all signals so we never show a red "failed" snackbar for
+  /// a save that actually succeeded.
+  bool _isSaveSuccessful(Map<String, dynamic> respBody) {
+    final bool isSuccessFlag = respBody['isSuccess'] == true;
+    final bool statusOk = respBody['statusCode'] == 200;
+    final String dataStr = (respBody['data'] ?? "").toString().trim().toUpperCase();
+    final String msgStr = (respBody['messages'] ?? "").toString().trim().toLowerCase();
 
-  Future<void> _loadCheckInState() async {
-    await _loadCheckInFlag();
-    final inTimeRaw  = await PrefManager().readValue(key: PrefConst.staffCheckinTime)
-        ?? await PrefManager().readValue(key: PrefConst.checkinTime);
-    final outTimeRaw = await PrefManager().readValue(key: PrefConst.staffCheckoutTime)
-        ?? await PrefManager().readValue(key: PrefConst.checkoutTime);
-    checkInTime.value  = _readDateTimePref(inTimeRaw);
-    checkOutTime.value = _readDateTimePref(outTimeRaw);
-    if (checkInTime.value != null && checkOutTime.value == null) isCheckInFlag.value = true;
-    if (checkOutTime.value != null) isCheckInFlag.value = false;
-  }
+    final bool dataSaysSuccess = dataStr == "SUCCESS";
+    final bool msgSaysSuccess = msgStr.contains("success") && !msgStr.contains("fail");
 
-  Future<void> _loadCheckInFlag() async {
-    final v = await PrefManager().readValue(key: PrefConst.staffCheckinFlag)
-        ?? await PrefManager().readValue(key: PrefConst.checkin);
-    if (v == null) { isCheckInFlag.value = false; return; }
-    if (v is bool) { isCheckInFlag.value = v;     return; }
-    final s = v.toString().trim();
-    isCheckInFlag.value = s == "1" || s.toLowerCase() == "true";
-  }
-
-  Future<void> _saveCheckInFlag(bool value) async {
-    isCheckInFlag.value = value;
-    await PrefManager().writeValue(key: PrefConst.staffCheckinFlag, value: value ? 1 : 0);
-  }
-
-  Future<void> _saveCheckInTime(DateTime? value) async {
-    checkInTime.value = value;
-    await PrefManager().writeValue(key: PrefConst.staffCheckinTime, value: value?.toIso8601String());
-  }
-
-  Future<void> _saveCheckOutTime(DateTime? value) async {
-    checkOutTime.value = value;
-    await PrefManager().writeValue(key: PrefConst.staffCheckoutTime, value: value?.toIso8601String());
-  }
-
-  Future<void> resetCheckInOut() async {
-    await _saveCheckInTime(null);
-    await _saveCheckOutTime(null);
-    checkInLat.value  = null;
-    checkInLng.value  = null;
-    checkOutLat.value = null;
-    checkOutLng.value = null;
-    checkInAddress.value  = "";
-    checkOutAddress.value = "";
-    await _saveCheckInFlag(false);
+    return isSuccessFlag || statusOk || dataSaysSuccess || msgSaysSuccess;
   }
 
   // =========================================================
-  // DATE PICKER
+  // LOCATION
   // =========================================================
-  Future<void> pickDate() async {
-    final picked = await showDatePicker(
-      context: Get.context!,
-      initialDate: selectedDate.value,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-      initialEntryMode: DatePickerEntryMode.calendarOnly,
-    );
-    if (picked != null) selectedDate.value = picked;
+  Future<String> _getCurrentAddress() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showError("Please turn on location services to record your address");
+        return "";
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showError("Location permission denied");
+          return "";
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showError("Location permission permanently denied. Enable it from app settings.");
+        return "";
+      }
+
+      // Medium accuracy + timeout => much faster fix than "high" with no limit.
+      Position position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 6),
+        );
+      } on TimeoutException {
+        // Fall back to last known position if a fresh fix takes too long.
+        final last = await Geolocator.getLastKnownPosition();
+        if (last == null) {
+          _showError("Could not get your location quickly. Please try again.");
+          return "";
+        }
+        position = last;
+      }
+
+      try {
+        final placemarks = await geocoding.placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        if (placemarks.isNotEmpty) {
+          final p = placemarks.first;
+          final parts = [
+            p.name,
+            p.street,
+            p.subLocality,
+            p.locality,
+            p.administrativeArea,
+            p.postalCode,
+            p.country,
+          ]
+              .where((e) => e != null && e.trim().isNotEmpty)
+              .map((e) => e!.trim())
+              .toSet()
+              .toList();
+          final addr = parts.join(", ");
+          if (addr.trim().isNotEmpty) return addr;
+        }
+      } catch (_) {}
+
+      return "${position.latitude}, ${position.longitude}";
+    } catch (e) {
+      _showError("Could not fetch location: $e");
+      return "";
+    }
   }
 
-  Map<String, String> _headers() => {
-    "Content-Type": "application/json",
-    if (token.trim().isNotEmpty) "Authorization": "Bearer $token",
-  };
+  // =========================================================
+  // CHECK-IN / CHECK-OUT
+  // =========================================================
+  String _todayDateKeyPart() {
+    final d = DateTime.now();
+    return "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+  }
+
+  String get checkInPrefKey => "staff_att_checkin${userId}_${_todayDateKeyPart()}";
+  String get checkOutPrefKey => "staff_att_checkout${userId}_${_todayDateKeyPart()}";
+  String get globalInTimeKey => "staff_att_global_intime${userId}_${_todayDateKeyPart()}";
+  String get globalOutTimeKey => "staff_att_global_outtime${userId}_${_todayDateKeyPart()}";
+
+  String _inTimeKey(int staffId) =>
+      "staff_att_intime_${staffId}_${_todayDateKeyPart()}";
+  String _inAddrKey(int staffId) =>
+      "staff_att_inaddr_${staffId}_${_todayDateKeyPart()}";
+  String _outTimeKey(int staffId) =>
+      "staff_att_outtime_${staffId}_${_todayDateKeyPart()}";
+  String _outAddrKey(int staffId) =>
+      "staff_att_outaddr_${staffId}_${_todayDateKeyPart()}";
+
+  Future<void> _persistInData(int staffId, DateTime time, String address) async {
+    await PrefManager().writeValue(key: _inTimeKey(staffId), value: _formatDateTimeApi(time));
+    await PrefManager().writeValue(key: _inAddrKey(staffId), value: address);
+    debugPrint("[ATT-DEBUG] persisted IN for staff=$staffId time=${_formatDateTimeApi(time)} addr=$address");
+  }
+
+  Future<void> _persistOutData(int staffId, DateTime time, String address) async {
+    await PrefManager().writeValue(key: _outTimeKey(staffId), value: _formatDateTimeApi(time));
+    await PrefManager().writeValue(key: _outAddrKey(staffId), value: address);
+    debugPrint("[ATT-DEBUG] persisted OUT for staff=$staffId time=${_formatDateTimeApi(time)} addr=$address");
+  }
+
+  Future<DateTime?> _readPersistedTime(String key) async {
+    final v = await PrefManager().readValue(key: key);
+    if (v == null || v.toString().trim().isEmpty) return null;
+    return DateTime.tryParse(v.toString());
+  }
+
+  Future<String?> _readPersistedAddr(String key) async {
+    final v = await PrefManager().readValue(key: key);
+    if (v == null || v.toString().trim().isEmpty) return null;
+    return v.toString();
+  }
+
+  Future<void> _loadCheckFlags() async {
+    try {
+      final inVal = await PrefManager().readValue(key: checkInPrefKey);
+      final outVal = await PrefManager().readValue(key: checkOutPrefKey);
+      isCheckedIn.value = (inVal?.toString() ?? "0") == "1";
+      isCheckedOutToday.value = (outVal?.toString() ?? "0") == "1";
+
+      todayInTime.value = await _readPersistedTime(globalInTimeKey);
+      todayOutTime.value = await _readPersistedTime(globalOutTimeKey);
+    } catch (_) {
+      isCheckedIn.value = false;
+      isCheckedOutToday.value = false;
+    }
+  }
+
+  Future<void> _persistFlag(String key, bool value) async {
+    await PrefManager().writeValue(key: key, value: value ? "1" : "0");
+  }
+
+  static const int _minGapBeforeCheckOutMinutes = 30;
+
+  bool _handlingCheckInOut = false;
+
+  /// FAST PATH: only saves the logged-in user's own attendance record
+  /// (no full staff-list save loop, no redundant re-fetch of the whole list).
+  Future<void> handleCheckInOut() async {
+    if (_handlingCheckInOut) return;
+    _handlingCheckInOut = true;
+    try {
+      if (_sessionMissing()) {
+        final loaded = await _ensureSessionLoaded();
+        if (!loaded) {
+          _showError("Could not load session. Please check your internet and try again.");
+          return;
+        }
+      }
+      if (isCheckedOutToday.value) return;
+
+      if (teacherUsers.isEmpty) {
+        _showError("Load the attendance list first");
+        return;
+      }
+
+      if (isCheckedIn.value && todayInTime.value != null) {
+        final elapsed = DateTime.now().difference(todayInTime.value!);
+        if (elapsed < const Duration(minutes: _minGapBeforeCheckOutMinutes)) {
+          final remaining = const Duration(minutes: _minGapBeforeCheckOutMinutes) - elapsed;
+          final remainingMinutes = remaining.inSeconds <= 0
+              ? 1
+              : (remaining.inSeconds / 60).ceil();
+          _showError(
+            "You can check out after $remainingMinutes more minute${remainingMinutes == 1 ? '' : 's'} "
+                "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
+          );
+          return;
+        }
+      }
+
+      final currentStaff = teacherUsers.firstWhereOrNull(
+            (t) => t.userId == int.tryParse(userId),
+      );
+
+      if (currentStaff == null) {
+        _showError("Your attendance record not found in today's list.");
+        return;
+      }
+
+      final id = currentStaff.userId!;
+
+      try {
+        isCheckInOutSaving(true);
+        final now = DateTime.now();
+        final address = await _getCurrentAddress();
+
+        if (!isCheckedIn.value) {
+          if (statusForUser(id, currentStaff.status) == statusPresent) {
+            _inTimeMap[id] = now;
+            _inOutMap[id] = "IN";
+            _inAddressMap[id] = address;
+            await _persistInData(id, now, address);
+            _bump();
+          }
+
+          todayInTime.value = now;
+          await PrefManager().writeValue(key: globalInTimeKey, value: _formatDateTimeApi(now));
+
+          await _saveSingleStaffAttendance(currentStaff);
+
+          isCheckedIn.value = true;
+          await _persistFlag(checkInPrefKey, true);
+        } else {
+          if (statusForUser(id, currentStaff.status) == statusPresent) {
+            _outTimeMap[id] = now;
+            _inOutMap[id] = "OUT";
+            _outAddressMap[id] = address;
+            await _persistOutData(id, now, address);
+            _bump();
+          }
+
+          todayOutTime.value = now;
+          await PrefManager().writeValue(key: globalOutTimeKey, value: _formatDateTimeApi(now));
+
+          await _saveSingleStaffAttendance(currentStaff);
+
+          isCheckedIn.value = false;
+          isCheckedOutToday.value = true;
+          await _persistFlag(checkInPrefKey, false);
+          await _persistFlag(checkOutPrefKey, true);
+        }
+      } finally {
+        isCheckInOutSaving(false);
+      }
+    } finally {
+      _handlingCheckInOut = false;
+    }
+  }
+
+  Map<String, String> _headers() {
+    final h = <String, String>{"Content-Type": "application/json"};
+    if (token.trim().isNotEmpty) h["Authorization"] = "Bearer $token";
+    return h;
+  }
 
   bool _sessionMissing() =>
-      selectedSession.value == null ||
-          (selectedSession.value!.session ?? "").trim().isEmpty;
+      selectedSession.value == null || (selectedSession.value!.session ?? "").trim().isEmpty;
 
   // =========================================================
   // SESSIONS
@@ -205,28 +459,22 @@ class Staffattendancecontroller extends GetxController {
   Future<void> fetchSessions() async {
     try {
       isPageLoading(true);
-      final response = await http.get(
-        Uri.parse("$sessionApiBase$schoolId"),
-        headers: {'Content-Type': 'application/json'},
-      );
-      if (response.statusCode != 200) {
-        _showError("Session API failed: ${response.statusCode}");
-        return;
-      }
+      final response = await http.get(Uri.parse("$sessionApiBase$schoolId"),
+          headers: {'Content-Type': 'application/json'});
+      if (response.statusCode != 200) return;
       final jsonData = jsonDecode(response.body);
       sessionList.clear();
       if (jsonData is Map && jsonData['currentSession'] != null) {
         final cs = jsonData['currentSession'];
         final obj = session_model.sListDdata(
           sessionId: cs['currentSessionId'],
-          session:   cs['currentSession'],
-          action:    cs['action'],
-          schoolId:  cs['schoolId'],
+          session: cs['currentSession'],
+          action: cs['action'],
+          schoolId: cs['schoolId'],
         );
         sessionList.add(obj);
         selectedSession.value = obj;
       }
-      if (sessionList.isEmpty) _showInfo("No session found");
     } catch (e) {
       _showError("Failed to load sessions: $e");
     } finally {
@@ -236,8 +484,58 @@ class Staffattendancecontroller extends GetxController {
 
   void setSession(session_model.sListDdata? s) => selectedSession.value = s;
 
+  Future<void> _retrySessionLoadThenFetchList() async {
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!_sessionMissing()) break;
+      debugPrint("[ATT-DEBUG] Session missing, retry #$attempt");
+      await fetchSessions();
+    }
+    if (!_sessionMissing()) {
+      await fetchStaffAttendanceList();
+    } else {
+      debugPrint("[ATT-DEBUG] Session still missing after retries");
+    }
+  }
+
+  Future<bool> _ensureSessionLoaded() async {
+    if (!_sessionMissing()) return true;
+    await fetchSessions();
+    return !_sessionMissing();
+  }
+
   // =========================================================
-  // PER-STAFF GETTERS & SETTERS
+  // CURRENT STAFF DISPLAY HELPERS
+  // =========================================================
+  StaffUser? get _currentStaff {
+    if (teacherUsers.isEmpty) return null;
+    final uid = int.tryParse(userId);
+    if (uid != null) {
+      for (final t in teacherUsers) {
+        if (t.userId == uid) return t;
+      }
+    }
+    return teacherUsers.first;
+  }
+
+  String get currentStaffName {
+    final t = _currentStaff;
+    if (t == null) return "-";
+    final n = "${t.firstName ?? ""} ${t.lastName ?? ""}".trim();
+    return n.isEmpty ? "-" : n;
+  }
+
+  String get currentStaffId {
+    final t = _currentStaff;
+    if (t == null) return "-";
+    final reg = (t.registrationNo?.trim().isNotEmpty == true)
+        ? t.registrationNo!.trim()
+        : t.additionalDetail?.registrationNo?.trim();
+    return (reg != null && reg.isNotEmpty) ? reg : "-";
+  }
+
+  // =========================================================
+  // PER-STAFF STATUS
   // =========================================================
   String statusForUser(int userId, String? rawStatus) =>
       _statusMap[userId] ?? _normalizeStatus(rawStatus);
@@ -247,380 +545,468 @@ class Staffattendancecontroller extends GetxController {
     _bump();
   }
 
-  String inOutForUser(int userId) => _inOutMap[userId] ?? "IN";
-
-  void setInOutForUser(int userId, String val) {
-    _inOutMap[userId] = val;
-    _bump();
-  }
-
-  DateTime? inTimeForUser(int userId)  => _inTimeMap[userId];
-  DateTime? outTimeForUser(int userId) => _outTimeMap[userId];
-
-  // =========================================================
-  // PER-STAFF TIME PICKERS
-  // =========================================================
-  Future<void> pickInTimeForUser(int userId) async {
-    final existing = _inTimeMap[userId];
-    final initial  = existing != null
-        ? TimeOfDay(hour: existing.hour, minute: existing.minute)
-        : TimeOfDay.now();
-    final picked = await showTimePicker(context: Get.context!, initialTime: initial);
-    if (picked == null) return;
-    final d = selectedDate.value;
-    _inTimeMap[userId] = DateTime(d.year, d.month, d.day, picked.hour, picked.minute, 0);
-    _bump();
-  }
-
-  Future<void> pickOutTimeForUser(int userId) async {
-    final existing = _outTimeMap[userId];
-    final initial  = existing != null
-        ? TimeOfDay(hour: existing.hour, minute: existing.minute)
-        : TimeOfDay.now();
-    final picked = await showTimePicker(context: Get.context!, initialTime: initial);
-    if (picked == null) return;
-    final d = selectedDate.value;
-    _outTimeMap[userId] = DateTime(d.year, d.month, d.day, picked.hour, picked.minute, 0);
-    _bump();
-  }
-
-  // =========================================================
-  // GPS CHECK-IN / CHECK-OUT
-  // =========================================================
-  Future<Position?> _getPosition() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) { Get.snackbar("Location", "Please enable Location services"); return null; }
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      Get.snackbar("Location", "Location permission denied");
-      return null;
-    }
-    return Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-      timeLimit: const Duration(seconds: 12),
-    );
-  }
-
-  Future<String> _reverseGeocode(double lat, double lng) async {
-    try {
-      final placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isEmpty) return "Address not found";
-      final p = placemarks.first;
-      final parts = <String>[
-        if ((p.name               ?? "").trim().isNotEmpty) p.name!.trim(),
-        if ((p.street             ?? "").trim().isNotEmpty) p.street!.trim(),
-        if ((p.subLocality        ?? "").trim().isNotEmpty) p.subLocality!.trim(),
-        if ((p.locality           ?? "").trim().isNotEmpty) p.locality!.trim(),
-        if ((p.administrativeArea ?? "").trim().isNotEmpty) p.administrativeArea!.trim(),
-        if ((p.postalCode         ?? "").trim().isNotEmpty) p.postalCode!.trim(),
-      ];
-      return parts.isEmpty ? "Address not found" : parts.join(", ");
-    } catch (_) {
-      return "Address not available";
-    }
-  }
-
-  Future<void> doCheckIn() async {
-    if (_sessionMissing()) { Get.snackbar("Validation", "Select session first"); return; }
-    if (isCheckedIn)  { Get.snackbar("Info", "Already checked in");  return; }
-    if (isCheckedOut) { Get.snackbar("Info", "Already checked out"); return; }
-    try {
-      isChecking(true);
-      final pos = await _getPosition();
-      if (pos == null) return;
-      final now = DateTime.now();
-      await _saveCheckOutTime(null);
-      await _saveCheckInTime(now);
-      checkInLat.value = pos.latitude;
-      checkInLng.value = pos.longitude;
-      final addr = await _reverseGeocode(pos.latitude, pos.longitude);
-      checkInAddress.value = addr;
-      await _saveCheckInFlag(true);
-      Get.snackbar("Success", "Checked in at ${fmtTime(now)}\n$addr",
-          duration: const Duration(seconds: 6));
-    } catch (e) {
-      Get.snackbar("Error", "Check-in failed: $e");
-    } finally {
-      isChecking(false);
-    }
-  }
-
-  Future<void> doCheckOut() async {
-    if (_sessionMissing()) { Get.snackbar("Validation", "Select session first"); return; }
-    if (checkOutTime.value != null) { Get.snackbar("Info", "Already checked out"); return; }
-    try {
-      isChecking(true);
-      final pos = await _getPosition();
-      if (pos == null) return;
-      final now = DateTime.now();
-      await _saveCheckOutTime(now);
-      checkOutLat.value = pos.latitude;
-      checkOutLng.value = pos.longitude;
-      final addr = await _reverseGeocode(pos.latitude, pos.longitude);
-      checkOutAddress.value = addr;
-      await _saveCheckInFlag(false);
-      Get.snackbar("Success", "Checked out at ${fmtTime(now)}\n$addr",
-          duration: const Duration(seconds: 6));
-    } catch (e) {
-      Get.snackbar("Error", "Check-out failed: $e");
-    } finally {
-      isChecking(false);
-    }
-  }
-
-  // =========================================================
-  // ORANGE BUTTON — no check-in required
-  // =========================================================
   Future<void> loadAttendanceFromAddTab() async {
-    if (_sessionMissing()) {
-      _showError("Please select a session first");
+    final loaded = await _ensureSessionLoaded();
+    if (!loaded) {
+      _showError("Could not load session. Please check your internet and try again.");
       return;
     }
     try {
       isSaving(true);
-      await fetchTeacherAttendanceList();
-    } catch (e) {
-      _showError("Error loading attendance: $e");
+      await fetchStaffAttendanceList();
     } finally {
       isSaving(false);
     }
   }
 
   Future<void> refreshListTab() async {
-    if (_sessionMissing()) {
-      _showError("Select session first");
+    final loaded = await _ensureSessionLoaded();
+    if (!loaded) {
+      _showError("Could not load session. Please check your internet and try again.");
       return;
     }
-    await fetchTeacherAttendanceList();
+    await fetchStaffAttendanceList();
   }
 
   // =========================================================
-  // VIEW API
+  // VIEW & SAVE
   // =========================================================
-  Future<void> fetchTeacherAttendanceList() async {
+  Future<void> fetchStaffAttendanceList() async {
     try {
       isViewLoading(true);
-
       final res = await http.post(
         Uri.parse(viewApi),
         headers: _headers(),
         body: jsonEncode({
-          "date":     _formatDateApi(selectedDate.value),
-          "session":  selectedSession.value!.session,
+          "date": _formatDateApi(selectedDate.value),
+          "session": selectedSession.value!.session,
           "schoolId": schoolId,
+          "roleName": roleName,
+          "userId": int.tryParse(userId) ?? 0,
         }),
       );
 
-      if (res.statusCode != 200) {
-        _showError("View API failed: ${res.statusCode}\n${res.body}");
-        return;
-      }
+      if (res.statusCode != 200) return;
 
       final parsed = StaffListResponse.fromJson(jsonDecode(res.body));
       teacherUsers.assignAll(parsed.listData);
+
+      final Map<int, String> oldStatusMap = Map.of(_statusMap);
+      final Map<int, String> oldInOutMap = Map.of(_inOutMap);
+      final Map<int, DateTime> oldInTimeMap = Map.of(_inTimeMap);
+      final Map<int, DateTime> oldOutTimeMap = Map.of(_outTimeMap);
+      final Map<int, String> oldInAddressMap = Map.of(_inAddressMap);
+      final Map<int, String> oldOutAddressMap = Map.of(_outAddressMap);
 
       _statusMap.clear();
       _inOutMap.clear();
       _inTimeMap.clear();
       _outTimeMap.clear();
+      _inAddressMap.clear();
+      _outAddressMap.clear();
+
+      DateTime? parseTime(String? val) {
+        if (val == null || val.trim().isEmpty) return null;
+        final d = DateTime.tryParse(val);
+        if (d != null) return d;
+        try {
+          return DateTime.tryParse("${_formatDateApi(selectedDate.value)} $val");
+        } catch (_) {}
+        return null;
+      }
 
       for (final t in teacherUsers) {
         final id = t.userId;
         if (id == null) continue;
 
-        final existing = t.staffAttendance;
-        if (existing != null && existing.attendanceStatus != null) {
-          _statusMap[id] = _normalizeStatus(existing.attendanceStatus);
-          if (existing.inTime != null && existing.inTime!.isNotEmpty) {
-            _inTimeMap[id] = _parseTimeStr(existing.inTime!)!;
-          }
-          if (existing.outTime != null && existing.outTime!.isNotEmpty) {
-            _outTimeMap[id] = _parseTimeStr(existing.outTime!)!;
-          }
-        } else {
-          _statusMap[id] = _normalizeStatus(t.status);
+        final rawStatus = t.status ?? t.staffAttendance?.attendanceStatus;
+
+        final rawIn = t.inTime ??
+            t.staffAttendance?.inTime ??
+            t.staffAttendance?.extra?['inTime']?.toString();
+
+        final rawOut = t.outTime ??
+            t.staffAttendance?.outTime ??
+            t.staffAttendance?.extra?['outTime']?.toString();
+
+        final rawInAddress =
+        t.staffAttendance?.extra?['inAddress']?.toString();
+        final rawOutAddress =
+        t.staffAttendance?.extra?['outAddress']?.toString();
+
+        debugPrint("[ATT-DEBUG] FETCH staff=$id rawStatus=$rawStatus rawIn=$rawIn rawOut=$rawOut "
+            "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress");
+
+        _statusMap[id] = _normalizeStatus(
+          rawStatus.isNotEmptyOrNull ? rawStatus : oldStatusMap[id],
+        );
+
+        final pIn = parseTime(rawIn);
+        final pOut = parseTime(rawOut);
+        final DateTime? persistedIn = pIn == null && oldInTimeMap[id] == null
+            ? await _readPersistedTime(_inTimeKey(id))
+            : null;
+        final DateTime? persistedOut = pOut == null && oldOutTimeMap[id] == null
+            ? await _readPersistedTime(_outTimeKey(id))
+            : null;
+        final DateTime? finalIn = pIn ?? oldInTimeMap[id] ?? persistedIn;
+        final DateTime? finalOut = pOut ?? oldOutTimeMap[id] ?? persistedOut;
+        if (finalIn != null) _inTimeMap[id] = finalIn;
+        if (finalOut != null) _outTimeMap[id] = finalOut;
+
+        final String? persistedInAddr = (rawInAddress == null || rawInAddress.trim().isEmpty) &&
+            (oldInAddressMap[id] == null || oldInAddressMap[id]!.trim().isEmpty)
+            ? await _readPersistedAddr(_inAddrKey(id))
+            : null;
+        final String? persistedOutAddr = (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
+            (oldOutAddressMap[id] == null || oldOutAddressMap[id]!.trim().isEmpty)
+            ? await _readPersistedAddr(_outAddrKey(id))
+            : null;
+
+        final String? finalInAddress =
+        (rawInAddress != null && rawInAddress.trim().isNotEmpty)
+            ? rawInAddress
+            : (oldInAddressMap[id] ?? persistedInAddr);
+        final String? finalOutAddress =
+        (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
+            ? rawOutAddress
+            : (oldOutAddressMap[id] ?? persistedOutAddr);
+        if (finalInAddress != null && finalInAddress.trim().isNotEmpty) {
+          _inAddressMap[id] = finalInAddress;
+        }
+        if (finalOutAddress != null && finalOutAddress.trim().isNotEmpty) {
+          _outAddressMap[id] = finalOutAddress;
         }
 
-        _inOutMap[id] = "IN";
-      }
+        _inOutMap[id] = (rawOut != null && rawOut.isNotEmpty)
+            ? "OUT"
+            : (oldInOutMap[id] ?? "IN");
 
+        debugPrint("[ATT-DEBUG] FETCH-RESULT staff=$id finalIn=${_inTimeMap[id]} finalOut=${_outTimeMap[id]} "
+            "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}");
+      }
       _bump();
 
-      if (teacherUsers.isEmpty) {
-        _showInfo("No staff found for selected date/session");
-      } else {
-        _showSuccess("${teacherUsers.length} staff loaded successfully");
-      }
+      await _reconcileCheckFlagsFromServer();
     } catch (e) {
-      _showError("View API error: $e");
+      _showError("Error loading: $e");
     } finally {
       isViewLoading(false);
     }
   }
 
-  /// Parse time strings from database (HH:mm or ISO)
-  DateTime? _parseTimeStr(String s) {
-    try {
-      final dt = DateTime.tryParse(s);
-      if (dt != null) return dt;
-      final parts = s.split(":");
-      if (parts.length >= 2) {
-        final h = int.parse(parts[0].trim());
-        final m = int.parse(parts[1].trim());
-        final d = selectedDate.value;
-        return DateTime(d.year, d.month, d.day, h, m);
+  // =========================================================
+  // RECONCILE CHECK-IN/OUT FLAGS WITH SERVER
+  // =========================================================
+  Future<void> _reconcileCheckFlagsFromServer() async {
+    final uid = int.tryParse(userId);
+    if (uid == null) return;
+
+    final serverIn = _inTimeMap[uid];
+    final serverOut = _outTimeMap[uid];
+
+    if (serverOut != null) {
+      if (!isCheckedOutToday.value) {
+        isCheckedOutToday.value = true;
+        await _persistFlag(checkOutPrefKey, true);
       }
-    } catch (_) {}
-    return null;
+      if (isCheckedIn.value) {
+        isCheckedIn.value = false;
+        await _persistFlag(checkInPrefKey, false);
+      }
+      todayOutTime.value = serverOut;
+      await PrefManager().writeValue(key: globalOutTimeKey, value: _formatDateTimeApi(serverOut));
+      if (serverIn != null) {
+        todayInTime.value = serverIn;
+        await PrefManager().writeValue(key: globalInTimeKey, value: _formatDateTimeApi(serverIn));
+      }
+    } else if (serverIn != null) {
+      if (!isCheckedIn.value) {
+        isCheckedIn.value = true;
+        await _persistFlag(checkInPrefKey, true);
+      }
+      todayInTime.value = serverIn;
+      await PrefManager().writeValue(key: globalInTimeKey, value: _formatDateTimeApi(serverIn));
+    }
   }
 
-  // =========================================================
-  // SAVE — GREEN BUTTON
-  // =========================================================
-  Future<void> saveAttendanceFromView() async {
-    if (_sessionMissing()) {
-      _showError("Session missing. Please select a session first.");
+  /// FAST PATH save: saves attendance for ONE staff member only.
+  /// Used by handleCheckInOut() so check-in/out doesn't wait on the
+  /// entire staff list being posted one-by-one.
+  Future<void> _saveSingleStaffAttendance(StaffUser t) async {
+    final int? uId = t.userId;
+    final String reg =
+    (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "").trim();
+    if (uId == null || reg.isEmpty) {
+      _showError("Missing registration number for your record.");
       return;
     }
-    if (teacherUsers.isEmpty) {
-      _showError("No data to save. Click 'Manage Attendance' first.");
-      return;
+
+    DateTime? fallbackTime(String? raw) {
+      if (raw == null || raw.trim().isEmpty) return null;
+      final d = DateTime.tryParse(raw);
+      if (d != null) return d;
+      try {
+        return DateTime.tryParse("${_formatDateApi(selectedDate.value)} $raw");
+      } catch (_) {}
+      return null;
+    }
+
+    final DateTime? inT = _inTimeMap[uId] ??
+        await _readPersistedTime(_inTimeKey(uId)) ??
+        fallbackTime(
+          t.inTime ??
+              t.staffAttendance?.inTime ??
+              t.staffAttendance?.extra?['inTime']?.toString(),
+        );
+
+    final DateTime? outT = _outTimeMap[uId] ??
+        await _readPersistedTime(_outTimeKey(uId)) ??
+        fallbackTime(
+          t.outTime ??
+              t.staffAttendance?.outTime ??
+              t.staffAttendance?.extra?['outTime']?.toString(),
+        );
+
+    final String inAddr = _inAddressMap[uId] ??
+        (await _readPersistedAddr(_inAddrKey(uId))) ??
+        t.staffAttendance?.extra?['inAddress']?.toString() ??
+        "";
+    final String outAddr = _outAddressMap[uId] ??
+        (await _readPersistedAddr(_outAddrKey(uId))) ??
+        t.staffAttendance?.extra?['outAddress']?.toString() ??
+        "";
+
+    final body = {
+      "sadid": t.staffAttendance?.attendanceId ?? 0,
+      "staffReg": reg,
+      "status": _statusMap[uId] ?? _normalizeStatus(t.status),
+      "months": selectedDate.value.month,
+      "session": selectedSession.value!.session,
+      "day": selectedDate.value.day.toString(),
+      "adate": _formatDateApi(selectedDate.value),
+      "userAttendance": "admin",
+      "schoolId": schoolId,
+      "inTime": inT != null ? _formatDateTimeApi(inT) : (t.inTime ?? t.staffAttendance?.inTime ?? ""),
+      "outTime": outT != null ? _formatDateTimeApi(outT) : "",
+      "inOut": _inOutMap[uId] ?? "IN",
+      "inAddress": inAddr,
+      "outAddress": outAddr,
+    };
+
+    debugPrint("[ATT-DEBUG] SINGLE-SAVE-BODY staff=$uId body=$body");
+
+    try {
+      isViewSaving(true);
+      final res = await http.post(Uri.parse(saveApi), headers: _headers(), body: jsonEncode(body));
+      if (res.statusCode == 200) {
+        final respBody = jsonDecode(res.body) as Map<String, dynamic>;
+        debugPrint("[ATT-DEBUG] SINGLE-SAVE-RESPONSE staff=$uId response=$respBody");
+        if (_isSaveSuccessful(respBody)) {
+          _showSuccess("Attendance updated");
+        } else {
+          _showError("Save failed: ${respBody['messages'] ?? 'Unknown error'}");
+        }
+      } else {
+        debugPrint("[ATT-DEBUG] SINGLE-SAVE-FAILED staff=$uId statusCode=${res.statusCode} body=${res.body}");
+        _showError("Save failed (${res.statusCode})");
+      }
+    } catch (e) {
+      _showError("Save error: $e");
+    } finally {
+      isViewSaving(false);
+    }
+  }
+
+  /// Full-list save — kept for other flows (e.g. admin bulk-editing the
+  /// whole staff list from the Add/Edit tab). NOT used by handleCheckInOut()
+  /// anymore since that only needs to save the current user's record.
+  Future<void> saveAttendanceFromView() async {
+    if (_sessionMissing() || teacherUsers.isEmpty) return;
+
+    DateTime? _fallbackTime(String? raw) {
+      if (raw == null || raw.trim().isEmpty) return null;
+      final d = DateTime.tryParse(raw);
+      if (d != null) return d;
+      try {
+        return DateTime.tryParse("${_formatDateApi(selectedDate.value)} $raw");
+      } catch (_) {}
+      return null;
     }
 
     try {
       isViewSaving(true);
-
-      int    ok   = 0;
-      int    fail = 0;
-      String? firstFailReason;
-
+      int ok = 0;
       for (final t in teacherUsers) {
-        final int?   userId   = t.userId;
-        final String staffReg = (t.additionalDetail?.registrationNo ?? "").trim();
+        final int? uId = t.userId;
+        final String reg =
+        (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "").trim();
+        if (uId == null || reg.isEmpty) continue;
 
-        if (userId == null || staffReg.isEmpty) {
-          fail++;
-          firstFailReason ??= "save attendance successfully";
-          continue;
-        }
+        final DateTime? inT = _inTimeMap[uId] ??
+            await _readPersistedTime(_inTimeKey(uId)) ??
+            _fallbackTime(
+              t.inTime ??
+                  t.staffAttendance?.inTime ??
+                  t.staffAttendance?.extra?['inTime']?.toString(),
+            );
 
-        // ✅ Read status from map
-        final String status = _statusMap[userId] ?? _normalizeStatus(t.status);
+        final DateTime? outT = _outTimeMap[uId] ??
+            await _readPersistedTime(_outTimeKey(uId)) ??
+            _fallbackTime(
+              t.outTime ??
+                  t.staffAttendance?.outTime ??
+                  t.staffAttendance?.extra?['outTime']?.toString(),
+            );
 
-        // ✅ FIX: If status is ABSENT or HOLIDAY, we should send NULL times
-        final DateTime? inTime  = (status == statusAbsent || status == statusHold) ? null : _inTimeMap[userId];
-        final DateTime? outTime = (status == statusAbsent || status == statusHold) ? null : _outTimeMap[userId];
+        final String inAddr = _inAddressMap[uId] ??
+            (await _readPersistedAddr(_inAddrKey(uId))) ??
+            t.staffAttendance?.extra?['inAddress']?.toString() ??
+            "";
+        final String outAddr = _outAddressMap[uId] ??
+            (await _readPersistedAddr(_outAddrKey(uId))) ??
+            t.staffAttendance?.extra?['outAddress']?.toString() ??
+            "";
+
+        debugPrint("[ATT-DEBUG] SAVE staff=$uId inT=$inT outT=$outT inAddr=$inAddr outAddr=$outAddr");
 
         final body = {
-          "sadid":          0,
-          "staffReg":       staffReg,
-          "status":         status,
-          "months":         selectedDate.value.month,
-          "session":        selectedSession.value!.session,
-          "day":            selectedDate.value.day.toString(),
-          "adate":          _formatDateApi(selectedDate.value),
+          "sadid": t.staffAttendance?.attendanceId ?? 0,
+          "staffReg": reg,
+          "status": _statusMap[uId] ?? _normalizeStatus(t.status),
+          "months": selectedDate.value.month,
+          "session": selectedSession.value!.session,
+          "day": selectedDate.value.day.toString(),
+          "adate": _formatDateApi(selectedDate.value),
           "userAttendance": "admin",
-          "schoolId":       schoolId,
-          "inTime":         inTime  != null ? _formatDateTimeApi(inTime)  : null,
-          "outTime":        outTime != null ? _formatDateTimeApi(outTime) : null,
-          "inOut":          _inOutMap[userId] ?? "IN",
-          "inAddress":      "", // ✅ MATCH TEACHER: Send empty address when admin is marking
-          "outAddress":     "",
+          "schoolId": schoolId,
+          "inTime": inT != null ? _formatDateTimeApi(inT) : (t.inTime ?? t.staffAttendance?.inTime ?? ""),
+          "outTime": outT != null ? _formatDateTimeApi(outT) : "",
+          "inOut": _inOutMap[uId] ?? "IN",
+          "inAddress": inAddr,
+          "outAddress": outAddr,
         };
 
-        try {
-          final res = await http.post(
-            Uri.parse(saveApi),
-            headers: _headers(),
-            body: jsonEncode(body),
-          );
+        debugPrint("[ATT-DEBUG] SAVE-BODY staff=$uId body=$body");
 
-          if (res.statusCode != 200) {
-            fail++;
-            firstFailReason ??= "HTTP ${res.statusCode}";
-            continue;
-          }
-
-          final Map<String, dynamic> jsonRes = jsonDecode(res.body);
-          final bool isSuccess =
-              (jsonRes["isSuccess"] == true) || (jsonRes["statusCode"] == 200);
-
-          if (isSuccess) {
+        final res = await http.post(Uri.parse(saveApi), headers: _headers(), body: jsonEncode(body));
+        if (res.statusCode == 200) {
+          final respBody = jsonDecode(res.body) as Map<String, dynamic>;
+          debugPrint("[ATT-DEBUG] SAVE-RESPONSE staff=$uId response=$respBody");
+          if (_isSaveSuccessful(respBody)) {
             ok++;
-          } else {
-            fail++;
-            firstFailReason ??= jsonRes["messages"]?.toString() ?? "Unknown error";
           }
-        } catch (e) {
-          fail++;
-          firstFailReason ??= "Request error: $e";
+        } else {
+          debugPrint("[ATT-DEBUG] SAVE-FAILED staff=$uId statusCode=${res.statusCode} body=${res.body}");
         }
       }
-
-      if (fail == 0) {
-        _showSuccess("Attendance saved successfully for $ok staff");
-      } else if (ok > 0) {
-        Get.snackbar(
-          "Partially Saved",
-          "Saved: $ok  |  Failed: $fail\n${firstFailReason ?? ""}",
-          backgroundColor: Colors.orange.shade800,
-          colorText: Colors.white,
-          icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-          duration: const Duration(seconds: 5),
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(12),
-          borderRadius: 10,
-        );
-      } else {
-        _showError(firstFailReason ?? "Please try again.");
-      }
+      _showSuccess("Attendance updated for staff");
+      await fetchStaffAttendanceList();
     } catch (e) {
-      _showError("Unexpected error: $e");
+      _showError("Save error: $e");
     } finally {
       isViewSaving(false);
     }
   }
 
   // =========================================================
-  // SNACKBARS
+  // AUTO-ABSENT FOR MISSED DAYS
   // =========================================================
+  Future<void> _autoMarkAbsentForMissedDays() async {
+    if (_sessionMissing()) return;
+
+    final today = DateTime.now();
+    for (int i = 1; i <= _autoAbsentLookbackDays; i++) {
+      final day = today.subtract(Duration(days: i));
+
+      if (day.weekday == DateTime.sunday) continue;
+
+      final dateKey =
+          "${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+      final checkInKey = "staff_att_checkin_${userId}_$dateKey";
+      final autoAbsentDoneKey = "staff_att_autoabsent_done_${userId}_$dateKey";
+
+      final alreadyHandled =
+          (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() == "1";
+      if (alreadyHandled) continue;
+
+      final wasCheckedIn =
+          (await PrefManager().readValue(key: checkInKey))?.toString() == "1";
+      if (wasCheckedIn) {
+        await PrefManager().writeValue(key: autoAbsentDoneKey, value: "1");
+        continue;
+      }
+
+      debugPrint("[ATT-DEBUG] AUTO-ABSENT: marking $dateKey as absent");
+      await _markDayAbsentOnServer(day);
+      await PrefManager().writeValue(key: autoAbsentDoneKey, value: "1");
+    }
+  }
+
+  Future<void> _markDayAbsentOnServer(DateTime day) async {
+    try {
+      final res = await http.post(
+        Uri.parse(viewApi),
+        headers: _headers(),
+        body: jsonEncode({
+          "date": _formatDateApi(day),
+          "session": selectedSession.value!.session,
+          "schoolId": schoolId,
+          "roleName": roleName,
+          "userId": int.tryParse(userId) ?? 0,
+        }),
+      );
+      if (res.statusCode != 200) return;
+
+      final parsed = StaffListResponse.fromJson(jsonDecode(res.body));
+      for (final t in parsed.listData) {
+        final reg = (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "").trim();
+        if (reg.isEmpty) continue;
+
+        final existingStatus = t.status ?? t.staffAttendance?.attendanceStatus;
+        if (existingStatus != null && existingStatus.trim().isNotEmpty) continue;
+
+        final body = {
+          "sadid": t.staffAttendance?.attendanceId ?? 0,
+          "staffReg": reg,
+          "status": statusAbsent,
+          "months": day.month,
+          "session": selectedSession.value!.session,
+          "day": day.day.toString(),
+          "adate": _formatDateApi(day),
+          "userAttendance": "admin",
+          "schoolId": schoolId,
+          "inTime": "",
+          "outTime": "",
+          "inOut": "OUT",
+          "inAddress": "",
+          "outAddress": "",
+        };
+
+        final saveRes = await http.post(Uri.parse(saveApi), headers: _headers(), body: jsonEncode(body));
+        debugPrint("[ATT-DEBUG] AUTO-ABSENT save staff=$reg date=${_formatDateApi(day)} statusCode=${saveRes.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("[ATT-DEBUG] AUTO-ABSENT error for ${_formatDateApi(day)}: $e");
+    }
+  }
+
   void _showSuccess(String msg) {
-    Get.snackbar(
-      "Success", msg,
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-      duration: const Duration(seconds: 3),
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      borderRadius: 10,
-    );
+    Get.snackbar("Success", msg,
+        backgroundColor: Colors.green, colorText: Colors.white, snackPosition: SnackPosition.TOP);
   }
 
   void _showError(String msg) {
-    Get.snackbar(
-      "", msg,
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      //icon: const Icon(Icons.error_outline_rounded, color: Colors.white),
-      duration: const Duration(seconds: 4),
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      borderRadius: 10,
-    );
+    Get.snackbar("Error", msg,
+        backgroundColor: Colors.red, colorText: Colors.white, snackPosition: SnackPosition.TOP);
   }
 
   void _showInfo(String msg) {
-    Get.snackbar(
-      "Info", msg,
-      backgroundColor: Colors.blue.shade700,
-      colorText: Colors.white,
-      icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
-      duration: const Duration(seconds: 3),
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      borderRadius: 10,
-    );
+    Get.snackbar("Info", msg,
+        backgroundColor: Colors.blue, colorText: Colors.white, snackPosition: SnackPosition.TOP);
   }
+}
+
+extension _NullableStringCheck on String? {
+  bool get isNotEmptyOrNull => this != null && this!.trim().isNotEmpty;
 }

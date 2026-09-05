@@ -41,10 +41,17 @@ class StaffAttendanceView {
   // ── FROM JSON ──────────────────────────────────────────────────────────────
   factory StaffAttendanceView.fromJson(Map<String, dynamic> json) {
     final Map<String, String?> days = {};
+    final Map<int, String?> inTimes = {};
+    final Map<int, String?> outTimes = {};
+
     for (int i = 1; i <= 31; i++) {
       final key = 'day$i';
       final v = json[key]?.toString();
       days[key] = (v == null || v.trim().isEmpty) ? null : v.trim();
+
+      // ✅ NEW: actual in/out time read karo JSON se
+      inTimes[i] = _clean(json['day${i}InTime']);
+      outTimes[i] = _clean(json['day${i}OutTime']);
     }
 
     return StaffAttendanceView(
@@ -63,7 +70,8 @@ class StaffAttendanceView {
       inAddress: _clean(json['inAddress']),
       outAddress: _clean(json['outAddress']),
       attendanceDays: days,
-      // dayInTimes / dayOutTimes populated during controller merge
+      dayInTimes: inTimes,   // ✅ NEW
+      dayOutTimes: outTimes, // ✅ NEW
     );
   }
 
@@ -130,6 +138,11 @@ class StaffAttendanceView {
 
   int get absentCount => attendanceDays.values
       .where((v) => (v ?? '').toLowerCase().trim() == 'absent')
+      .length;
+
+  int get holidayCount => attendanceDays.values
+      .where((v) => (v ?? '').toLowerCase().trim() == 'holiday' ||
+      (v ?? '').toLowerCase().trim() == 'hold')
       .length;
 }
 

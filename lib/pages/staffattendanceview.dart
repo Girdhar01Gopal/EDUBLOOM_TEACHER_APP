@@ -1,11 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../controller/staffattendancecontroller.dart';
-import '../models/session_model.dart' as session_model;
 import '../models/staff attend load model.dart';
-import '../models/teacher_attendance.dart';
+
+// ======================== PREMIUM PALETTE ========================
+const Color kPrimary = Color(0xFF97144D);
+const Color kPrimaryDark = Color(0xFF6E0E39);
+const Color kPrimaryLight = Color(0xFFC13B72);
+const Color kBg = Color(0xFFF5F3F7);
+const Color kSurface = Colors.white;
+const Color kSuccess = Color(0xFF1E8E5A);
+const Color kDanger = Color(0xFFD64545);
+const Color kWarning = Color(0xFFE0A100);
+
+const Color kScreenBg = Colors.white;
+
+const Color kCheckInGreen = Color(0xFF1E8E5A);
+const Color kCheckInGreenLight = Color(0xFF43B983);
+const Color kCheckOutRed = Color(0xFFB23A3A);
+const Color kCheckOutRedDark = Color(0xFF7A1414);
 
 class Staffattendanceview extends StatelessWidget {
   const Staffattendanceview({super.key});
@@ -16,575 +33,365 @@ class Staffattendanceview extends StatelessWidget {
 
     return Obx(() {
       return Scaffold(
-        backgroundColor: Colors.grey[100],
-        appBar: AppBar(
-          backgroundColor: const Color(0xFFA6093D),
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(
-            "Staff Attendance",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          centerTitle: true,
-        ),
-        body: Stack(
-          children: [
-            Column(
-              children: [
-                _AddSection(controller: controller),
-                Expanded(child: _ListSection(controller: controller)),
-              ],
-            ),
-            if (controller.isPageLoading.value)
-              const Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                child: LinearProgressIndicator(),
+        backgroundColor: kScreenBg,
+        extendBodyBehindAppBar: false,
+        body: RefreshIndicator(
+          color: kPrimary,
+          onRefresh: () => controller.refreshListTab(),
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _HeaderCard(controller: controller),
+                  ],
+                ),
               ),
-          ],
+              if (controller.isPageLoading.value)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  child: LinearProgressIndicator(
+                    backgroundColor: kPrimary.withOpacity(0.15),
+                    valueColor: const AlwaysStoppedAnimation<Color>(kPrimary),
+                    minHeight: 3,
+                  ),
+                ),
+            ],
+          ),
         ),
       );
     });
   }
 }
 
-// ======================== ADD SECTION ========================
-class _AddSection extends StatelessWidget {
+// ======================== HEADER CARD ========================
+class _HeaderCard extends StatefulWidget {
   final Staffattendancecontroller controller;
-  const _AddSection({required this.controller});
+  const _HeaderCard({required this.controller});
 
-  InputDecoration _dec(String label) => InputDecoration(
-    labelText: label,
-    border: const OutlineInputBorder(),
-    filled: true,
-    fillColor: Colors.white,
-    isDense: true,
-    contentPadding:
-    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-  );
+  @override
+  State<_HeaderCard> createState() => _HeaderCardState();
+}
+
+class _HeaderCardState extends State<_HeaderCard> {
+  late final Timer _clockTimer;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _clockTimer.cancel();
+    super.dispose();
+  }
+
+  String _fmtClock(DateTime d) {
+    final h24 = d.hour;
+    final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
+    final ampm = h24 >= 12 ? "PM" : "AM";
+    return "${h12.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')} $ampm";
+  }
+
+  String _fmtTime(DateTime? d) {
+    if (d == null) return "--:--";
+    final h24 = d.hour;
+    final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
+    final ampm = h24 >= 12 ? "PM" : "AM";
+    return "${h12.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} $ampm";
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 8.w),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10.r),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-              color: Colors.black.withOpacity(.06),
-            ),
-          ],
+    final controller = widget.controller;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [kPrimary, kPrimaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Session + Date Row
-            Row(
-              children: [
-                Expanded(
-                  child: Obx(() {
-                    return SizedBox(
-                      height: 52.h,
-                      child: DropdownButtonFormField<session_model.sListDdata>(
-                        value: controller.selectedSession.value,
-                        hint: const Text("Select Session"),
-                        isExpanded: true,
-                        items: controller.sessionList.map((s) {
-                          return DropdownMenuItem(
-                            value: s,
-                            child: Text(
-                              s.session ?? "No session",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: controller.setSession,
-                        decoration: _dec("Session *"),
-                      ),
-                    );
-                  }),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32.r),
+          bottomRight: Radius.circular(32.r),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: kPrimary.withOpacity(0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 4.h,
+        left: 16.w,
+        right: 16.w,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Back button row
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Get.back(),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+            ],
+          ),
+
+          // Logo circle
+          Container(
+            width: 84.w,
+            height: 84.w,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.fact_check_rounded, color: Colors.white, size: 42.sp),
+          ),
+
+          SizedBox(height: 14.h),
+
+          Text(
+            "Take Attendance",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 21.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+            ),
+          ),
+
+          SizedBox(height: 14.h),
+
+          Text(
+            controller.displayDateLong,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          SizedBox(height: 4.h),
+
+          Text(
+            _fmtClock(_now),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 27.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+
+          SizedBox(height: 18.h),
+
+          // Staff Name / Staff Id + In/Out Time + Check In/Out button
+          Container(
+            width: double.infinity,
+            margin: EdgeInsets.only(bottom: 18.h),
+            padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
+            decoration: BoxDecoration(
+              color: kSurface,
+              borderRadius: BorderRadius.circular(18.r),
+              boxShadow: [
+                BoxShadow(
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                  color: Colors.black.withOpacity(.08),
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: controller.pickDate,
-                    child: AbsorbPointer(
-                      child: Obx(() {
-                        return SizedBox(
-                          height: 52.h,
-                          child: TextFormField(
-                            readOnly: true,
-                            controller: TextEditingController(
-                                text: controller.displayDate),
-                            textAlignVertical: TextAlignVertical.center,
-                            style: TextStyle(fontSize: 14.sp),
-                            decoration: _dec("Date *").copyWith(
-                              suffixIcon:
-                              const Icon(Icons.calendar_today, size: 18),
+              ],
+            ),
+            child: Obx(() {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("User Name",
+                                style: TextStyle(
+                                    color: Colors.grey.shade500, fontSize: 11.sp)),
+                            SizedBox(height: 2.h),
+                            Text(
+                              controller.currentStaffName,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey.shade900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text("User Id",
+                                style: TextStyle(
+                                    color: Colors.grey.shade500, fontSize: 11.sp)),
+                            SizedBox(height: 2.h),
+                            Text(
+                              controller.currentStaffId,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey.shade900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 14.h),
+                  Container(height: 1, color: Colors.grey.shade200),
+                  SizedBox(height: 14.h),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Column(
+                        children: [
+                          Text("In Time",
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp)),
+                          SizedBox(height: 4.h),
+                          Text(
+                            _fmtTime(controller.todayInTime.value),
+                            style: TextStyle(
+                                fontSize: 18.sp, fontWeight: FontWeight.w700, color: kPrimary),
+                          ),
+                        ],
+                      ),
+                      Container(width: 1, height: 36.h, color: Colors.grey.shade300),
+                      Column(
+                        children: [
+                          Text("Out Time",
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp)),
+                          SizedBox(height: 4.h),
+                          Text(
+                            _fmtTime(controller.todayOutTime.value),
+                            style: TextStyle(
+                                fontSize: 18.sp, fontWeight: FontWeight.w700, color: kPrimary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16.h),
+
+                  if (!controller.isCheckedOutToday.value)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48.h,
+                      child: Builder(builder: (context) {
+                        final checkedIn = controller.isCheckedIn.value;
+                        final saving = controller.isCheckInOutSaving.value;
+                        return Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.r),
+                            gradient: saving
+                                ? LinearGradient(
+                                colors: [Colors.grey.shade300, Colors.grey.shade300])
+                                : LinearGradient(
+                              colors: checkedIn
+                                  ? [kCheckOutRed, kCheckOutRedDark]
+                                  : [kCheckInGreenLight, kCheckInGreen],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            boxShadow: saving
+                                ? []
+                                : [
+                              BoxShadow(
+                                color: (checkedIn ? kCheckOutRedDark : kCheckInGreen)
+                                    .withOpacity(0.35),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12.r),
+                              onTap: saving ? null : controller.handleCheckInOut,
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    saving
+                                        ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
+                                    )
+                                        : Icon(
+                                      checkedIn ? Icons.logout_rounded : Icons.login_rounded,
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      saving
+                                          ? "Please wait..."
+                                          : (checkedIn ? "Check Out" : "Check In"),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         );
                       }),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 14.h),
-
-            // Manage Attendance Button
-            SizedBox(
-              width: double.infinity,
-              height: 46.h,
-              child: Obx(() {
-                return ElevatedButton.icon(
-                  onPressed: controller.isSaving.value
-                      ? null
-                      : controller.loadAttendanceFromAddTab,
-                  icon: controller.isSaving.value
-                      ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                      : const Icon(Icons.manage_accounts,
-                      size: 20, color: Colors.white),
-                  label: Text(
-                    controller.isSaving.value ? "Loading..." : "Manage Attendance",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    disabledBackgroundColor: Colors.orange.shade200,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ======================== LIST SECTION ========================
-class _ListSection extends StatelessWidget {
-  final Staffattendancecontroller controller;
-  const _ListSection({required this.controller});
-
-  String _safeName(StaffUser t) {
-    final n = "${t.firstName ?? ""} ${t.lastName ?? ""}".trim();
-    return n.isEmpty ? "-" : n;
-  }
-
-  String _safeReg(StaffUser t) {
-    return t.additionalDetail?.registrationNo?.trim().isNotEmpty == true
-        ? t.additionalDetail!.registrationNo!.trim()
-        : "-";
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 16.w),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10.r),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-              color: Colors.black.withOpacity(.06),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    "Attendance List",
-                    style: TextStyle(
-                        fontSize: 18.sp, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                Obx(() {
-                  return IconButton(
-                    tooltip: "Refresh",
-                    onPressed: controller.isViewLoading.value
-                        ? null
-                        : controller.refreshListTab,
-                    icon: controller.isViewLoading.value
-                        ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                        : const Icon(Icons.refresh),
-                  );
-                }),
-              ],
-            ),
-
-            SizedBox(height: 8.h),
-
-            // Table
-            Expanded(
-              child: Obx(() {
-                if (controller.isViewLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (controller.teacherUsers.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.list_alt,
-                            size: 48, color: Colors.grey.shade300),
-                        SizedBox(height: 8.h),
-                        Text(
-                          "Click 'Manage Attendance' to load",
-                          style: TextStyle(
-                              color: Colors.grey.shade500, fontSize: 14.sp),
-                        ),
-                      ],
+                  else
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6.h),
+                      child: Text(
+                        "Attendance completed for today",
+                        style: TextStyle(
+                            color: kSuccess, fontSize: 13.sp, fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  );
-                }
-
-                return SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Obx(() {
-                      // ignore: unused_local_variable
-                      final _ = controller.mapVersion.value;
-
-                      return DataTable(
-                        headingRowColor: WidgetStateProperty.all(
-                            Colors.teal.shade50),
-                        headingTextStyle: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.teal.shade800,
-                        ),
-                        dataTextStyle: TextStyle(
-                          fontSize: 13.sp,
-                          color: Colors.black87,
-                        ),
-                        columnSpacing: 14,
-                        columns: const [
-                          DataColumn(label: Text("S.no")),
-                          DataColumn(label: Text("Staff Id")),
-                          DataColumn(label: Text("Staff Name")),
-                          DataColumn(label: Text("Date")),
-                          DataColumn(label: Text("Status")),
-                          DataColumn(label: Text("In/Out")),
-                        ],
-                        rows: List.generate(
-                          controller.teacherUsers.length,
-                              (i) {
-                            final t = controller.teacherUsers[i];
-                            final userId = t.userId;
-
-                            return DataRow(
-                              cells: [
-                                // S.no
-                                DataCell(Text("${i + 1}")),
-
-                                // Staff Id
-                                DataCell(Text(_safeReg(t))),
-
-                                // Staff Name
-                                DataCell(Text(_safeName(t))),
-
-                                // Date
-                                DataCell(Text(
-                                  controller.displayDate
-                                      .replaceAll("/", "-"),
-                                )),
-
-                                // Status
-                                DataCell(
-                                  SizedBox(
-                                    width: 150.w, // ✅ FIX: 130.w se 150.w kiya, taaki "Present/Absent/Holiday" text cut na ho
-                                    child: userId == null
-                                        ? const Text("-")
-                                        : DropdownButtonFormField<String>(
-                                      value: controller.statusForUser(
-                                          userId, t.status),
-                                      isExpanded: true,
-                                      items: const [
-                                        DropdownMenuItem(
-                                            value: "PRESENT",
-                                            child: Text("Present")),
-                                        DropdownMenuItem(
-                                            value: "ABSENT",
-                                            child: Text("Absent")),
-                                        DropdownMenuItem(
-                                            value: "HOLIDAY", // ✅ FIX: "HOLD" se "HOLIDAY" kiya (controller ke statusHold se match, isi se holiday save hota hai)
-                                            child: Text("Holiday")),
-                                      ],
-                                      onChanged: (v) {
-                                        if (v == null || userId == null)
-                                          return;
-                                        controller.setStatusForUser(
-                                            userId, v);
-                                      },
-                                      decoration:
-                                      const InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        isDense: true,
-                                        contentPadding:
-                                        EdgeInsets.symmetric(
-                                            horizontal: 8, // ✅ thoda kam kiya extra space ke liye
-                                            vertical: 10),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                // In/Out — In time btn + Out time btn
-                                // (IN/OUT selector dropdown UI se hidden hai, sirf comment me hai neeche)
-                                DataCell(
-                                  Builder(
-                                    builder: (_) {
-                                      if (userId == null) {
-                                        return const Text("-");
-                                      }
-
-                                      final currentStatus = controller
-                                          .statusForUser(userId, t.status);
-
-                                      // Sirf Present hone par hi In/Out time buttons dikhao
-                                      if (currentStatus !=
-                                          Staffattendancecontroller
-                                              .statusPresent) {
-                                        return const Text("-");
-                                      }
-
-                                      return SizedBox(
-                                        width: 180.w, // ✅ dropdown hatne ki wajah se width kam ki (270.w se 180.w)
-                                        child: Row(
-                                          children: [
-                                            // 🔒 HIDDEN AS PER REQUEST: IN/OUT selector dropdown
-                                            // Logic controller me (inOutForUser/setInOutForUser) waisa hi hai,
-                                            // sirf UI se hataya hai — save me default "IN" hi jayega.
-                                            // SizedBox(
-                                            //   width: 78.w,
-                                            //   child: DropdownButtonFormField<
-                                            //       String>(
-                                            //     value: controller
-                                            //         .inOutForUser(userId),
-                                            //     isExpanded: true,
-                                            //     items: const [
-                                            //       DropdownMenuItem(
-                                            //           value: "IN",
-                                            //           child: Text("IN")),
-                                            //       DropdownMenuItem(
-                                            //           value: "OUT",
-                                            //           child: Text("OUT")),
-                                            //     ],
-                                            //     onChanged: (v) {
-                                            //       if (v == null) return;
-                                            //       controller
-                                            //           .setInOutForUser(
-                                            //           userId, v);
-                                            //     },
-                                            //     decoration:
-                                            //     const InputDecoration(
-                                            //       border:
-                                            //       OutlineInputBorder(),
-                                            //       isDense: true,
-                                            //       contentPadding:
-                                            //       EdgeInsets.symmetric(
-                                            //           horizontal: 8,
-                                            //           vertical: 10),
-                                            //     ),
-                                            //   ),
-                                            // ),
-                                            // SizedBox(width: 6.w),
-
-                                            // Check-IN time button
-                                            _TimeButton(
-                                              label: "In",
-                                              time: controller
-                                                  .inTimeForUser(userId),
-                                              color: Colors.teal.shade700,
-                                              onTap: () => controller
-                                                  .pickInTimeForUser(userId),
-                                            ),
-
-                                            SizedBox(width: 5.w),
-
-                                            // Check-OUT time button
-                                            _TimeButton(
-                                              label: "Out",
-                                              time: controller
-                                                  .outTimeForUser(userId),
-                                              color: Colors.red.shade700,
-                                              onTap: () => controller
-                                                  .pickOutTimeForUser(userId),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      );
-                    }),
-                  ),
-                );
-              }),
-            ),
-
-            SizedBox(height: 12.h),
-
-            // Save Attendance Button
-            SizedBox(
-              width: double.infinity,
-              height: 46.h,
-              child: Obx(() {
-                return ElevatedButton.icon(
-                  onPressed: controller.isViewSaving.value
-                      ? null
-                      : controller.saveAttendanceFromView,
-                  icon: controller.isViewSaving.value
-                      ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                      : const Icon(Icons.save_alt,
-                      size: 20, color: Colors.white),
-                  label: Text(
-                    controller.isViewSaving.value
-                        ? "Saving..."
-                        : "Save Attendance",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    disabledBackgroundColor: Colors.green.shade200,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ======================== TIME BUTTON ========================
-class _TimeButton extends StatelessWidget {
-  final String label;
-  final DateTime? time;
-  final VoidCallback onTap;
-  final Color color;
-
-  const _TimeButton({
-    required this.label,
-    required this.time,
-    required this.onTap,
-    required this.color,
-  });
-
-  String _fmt(DateTime? dt) {
-    if (dt == null) return "--:--";
-    return "${dt.hour.toString().padLeft(2, '0')}:"
-        "${dt.minute.toString().padLeft(2, '0')}";
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool hasTime = time != null;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: hasTime ? color.withOpacity(0.1) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(6.r),
-          border: Border.all(
-            color: hasTime ? color : Colors.grey.shade300,
-            width: 1,
+                ],
+              );
+            }),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.sp,
-                color: hasTime ? color : Colors.grey.shade500,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 2.h),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  size: 12,
-                  color: hasTime ? color : Colors.grey.shade400,
-                ),
-                SizedBox(width: 3.w),
-                Text(
-                  _fmt(time),
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight:
-                    hasTime ? FontWeight.w700 : FontWeight.normal,
-                    color: hasTime ? color : Colors.grey.shade500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
