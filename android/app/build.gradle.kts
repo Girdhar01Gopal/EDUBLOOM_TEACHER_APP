@@ -25,7 +25,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.monteage.teacher_app_edubloom"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -41,10 +41,10 @@ android {
 
     defaultConfig {
         applicationId = "com.monteage.teacher_app_edubloom"
-        minSdk = flutter.minSdkVersion
-        targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.3"
+        minSdk = 26
+        targetSdk = 37
+        versionCode = 7
+        versionName = "1.0.7"
         multiDexEnabled = true
     }
 
