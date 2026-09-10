@@ -292,9 +292,9 @@ class SubjectClassAssignController extends GetxController {
 
       final body = {
         "id": 0,
-        "classId": selectedClass.value?.classId ?? 0,
-        "subjectId": selectedSubject.value?.subjectId ?? 0,
-        "sectionId": selectedSection.value?.sectionId ?? 0,
+        "classId": [selectedClass.value?.classId ?? 0],
+        "subjectId": [selectedSubject.value?.subjectId ?? 0],
+        "sectionId": [selectedSection.value?.sectionId ?? 0],
         "action": "1",
         "createDate": nowIso,
         "updateDate": nowIso,

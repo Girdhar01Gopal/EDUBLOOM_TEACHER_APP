@@ -383,6 +383,7 @@ class EventController extends GetxController {
       request.fields['EventPlace'] = eventPlace.trim();
       request.fields['Descripation'] = description.trim();
       request.fields['Session'] = session.value;
+      request.fields['SchoolId'] = schoolId;
       request.fields['schoolId'] = schoolId;
       request.fields['CreateBy'] = cb;
       request.fields['Class'] = eventClass.toString();

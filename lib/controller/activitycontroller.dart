@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 
-
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/Daycaremodel.dart';
@@ -12,7 +11,6 @@ import '../models/activitystudentmodel.dart';
 import '../models/viewactivitymodel.dart';
 
 class Activitycontroller extends GetxController {
-
   // -----------------------
   // OBSERVABLE STATE
   // -----------------------
@@ -26,6 +24,8 @@ class Activitycontroller extends GetxController {
 
   RxString fromTime = "".obs;
   RxString toTime = "".obs;
+  Rx<DateTime?> fromDateTime = Rx<DateTime?>(null);
+  Rx<DateTime?> toDateTime = Rx<DateTime?>(null);
 
   var schoolId = "".obs;
   var session = "".obs;
@@ -40,8 +40,9 @@ class Activitycontroller extends GetxController {
   @override
   void onInit() async {
     super.onInit();
-    schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
-    session.value  = await PrefManager().readValue(key: PrefConst.session)  ?? "";
+    schoolId.value =
+        await PrefManager().readValue(key: PrefConst.schollId) ?? "";
+    session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
     fetchActivityList();
   }
 
@@ -62,8 +63,7 @@ class Activitycontroller extends GetxController {
 
   // ✅ Day Care — DaycareStudentModel (ListdData) use karo
   Future<void> _fetchDaycareStudents() async {
-    const apiPath =
-        "api/DaycareFeePaymentApp/ViewDaycareFeeStudentApp";
+    const apiPath = "api/DaycareFeePaymentApp/ViewDaycareFeeStudentApp";
     final url = Uri.parse("https://playschool.edubloom.in/$apiPath");
 
     final body = jsonEncode({
@@ -92,19 +92,24 @@ class Activitycontroller extends GetxController {
         // ✅ ListdData.studentID → Data.studentId (capital ID fix)
         studentList.value = list.map((s) {
           return Data(
-            studentId: s.studentID ?? 0,       // ← capital ID
+            studentId: s.studentID ?? 0, // ← capital ID
             studentName: s.studentName ?? "Unknown",
           );
         }).toList();
 
         debugPrint("✅ Day Care students loaded: ${studentList.length}");
 
-        final zeroIds = studentList.where((s) => (s.studentId ?? 0) == 0).length;
+        final zeroIds = studentList
+            .where((s) => (s.studentId ?? 0) == 0)
+            .length;
         if (zeroIds > 0) {
           debugPrint("⚠️ $zeroIds students have studentId=0");
         }
       } else {
-        Get.snackbar("Error", "Unable to load Day Care students: ${res.statusCode}");
+        Get.snackbar(
+          "Error",
+          "Unable to load Day Care students: ${res.statusCode}",
+        );
       }
     } catch (e) {
       debugPrint("❌ Day Care fetch error => $e");
@@ -125,11 +130,15 @@ class Activitycontroller extends GetxController {
 
       if (res.statusCode == 200) {
         final jsonBody = jsonDecode(res.body);
-        studentList.value =
-            (jsonBody["data"] as List).map((e) => Data.fromJson(e)).toList();
+        studentList.value = (jsonBody["data"] as List)
+            .map((e) => Data.fromJson(e))
+            .toList();
         debugPrint("✅ Pre School students loaded: ${studentList.length}");
       } else {
-        Get.snackbar("Error", "Unable to load Pre School students: ${res.statusCode}");
+        Get.snackbar(
+          "Error",
+          "Unable to load Pre School students: ${res.statusCode}",
+        );
       }
     } catch (e) {
       debugPrint("❌ Pre School fetch error => $e");
@@ -150,8 +159,9 @@ class Activitycontroller extends GetxController {
       if (res.statusCode == 200) {
         final jsonBody = jsonDecode(res.body);
         if (jsonBody["data"] != null) {
-          activityList.value =
-              (jsonBody["data"] as List).map((e) => vData.fromJson(e)).toList();
+          activityList.value = (jsonBody["data"] as List)
+              .map((e) => vData.fromJson(e))
+              .toList();
         }
       }
     } catch (e) {
@@ -162,23 +172,32 @@ class Activitycontroller extends GetxController {
   // -----------------------
   // PICK TIME
   // -----------------------
-  Future<void> pickTime(RxString target) async {
+  Future<void> pickTime(RxString target, Rx<DateTime?> dateTimeTarget) async {
     final picked = await showTimePicker(
       context: Get.context!,
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
-      target.value = DateFormat("hh:mm a")
-          .format(DateTime(2025, 1, 1, picked.hour, picked.minute));
+      final now = DateTime.now();
+      target.value = DateFormat(
+        "hh:mm a",
+      ).format(DateTime(2025, 1, 1, picked.hour, picked.minute));
+      dateTimeTarget.value = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        picked.hour,
+        picked.minute,
+      );
     }
   }
 
   // -----------------------
-  // ✅ POST ACTIVITY
+  // ✅ POST ACTIVITY (batched — all selected students in one call)
   // -----------------------
-  Future<bool> postActivityToApi(int studentId) async {
-    if (studentId == 0) {
-      debugPrint("❌ studentId = 0. Aborting.");
+  Future<bool> postActivityToApi() async {
+    if (selectedStudentIds.isEmpty) {
+      debugPrint("❌ No students selected. Aborting.");
       Get.snackbar(
         "Error",
         "Invalid student selected. Please re-select the student.",
@@ -201,18 +220,19 @@ class Activitycontroller extends GetxController {
     const url =
         "https://playschool.edubloom.in/api/DailyActiviesApp/PostActivitiesApp";
 
+    final nowIso = DateTime.now().toIso8601String();
     final body = {
       "activityId": 0,
       "activity": activityController.text.trim(),
-      "fromTime": fromTime.value,
-      "toTime": toTime.value,
+      "fromTime": fromDateTime.value?.toIso8601String() ?? fromTime.value,
+      "toTime": toDateTime.value?.toIso8601String() ?? toTime.value,
       "action": "1",
-      "createDate": DateTime.now().toIso8601String(),
-      "updateDate": DateTime.now().toIso8601String(),
+      "createDate": nowIso,
+      "updateDate": nowIso,
       "createBy": "admin",
       "updateBy": "admin",
       "schoolId": schoolId.value,
-      "studentId": studentId,
+      "studentId": selectedStudentIds.toList(),
       "startTime": fromTime.value,
       "endTime": toTime.value,
       "session": session.value,
@@ -236,6 +256,8 @@ class Activitycontroller extends GetxController {
         activityController.clear();
         fromTime.value = "";
         toTime.value = "";
+        fromDateTime.value = null;
+        toDateTime.value = null;
         selectedStudent.clear();
         selectedStudentIds.clear();
         return true;

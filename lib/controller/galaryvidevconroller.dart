@@ -266,8 +266,8 @@ class Galaryvidevconroller extends GetxController {
 
     final body = {
       "videoId": 0,
-      "class": selectedClassId.value,
-      "section": selectedSectionId.value,
+      "class": [selectedClassId.value],
+      "section": [selectedSectionId.value],
       "videoUrl": videoUrlController.text.trim(),
       "action": "1",
       "createBy": "Admin",

@@ -345,8 +345,8 @@ class AddFeeHeadController extends GetxController {
         final body = {
           "feeHeadId": 0,
           "session": selectedSession.value!.session,
-          "classId": classId,
-          "sectionId": sectionId,
+          "classId": [classId],
+          "sectionId": [sectionId],
           "feesDurationId": durationId,
           "feeTypeID": feeTypeId,
           "amount": amount, // ✅ STRING

@@ -682,13 +682,13 @@ Widget _timeRow(Mealcontroller controller) {
     children: [
       Expanded(
         child: _timeBox("From Time", controller.fromTime, () {
-          controller.pickTime(controller.fromTime);
+          controller.pickTime(controller.fromTime, controller.fromDateTime);
         }),
       ),
       const SizedBox(width: 12),
       Expanded(
         child: _timeBox("To Time", controller.toTime, () {
-          controller.pickTime(controller.toTime);
+          controller.pickTime(controller.toTime, controller.toDateTime);
         }),
       ),
     ],

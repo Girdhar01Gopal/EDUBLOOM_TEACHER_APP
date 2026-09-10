@@ -32,6 +32,8 @@ class Mealcontroller extends GetxController {
 
   RxString fromTime = "".obs;
   RxString toTime = "".obs;
+  Rx<DateTime?> fromDateTime = Rx<DateTime?>(null);
+  Rx<DateTime?> toDateTime = Rx<DateTime?>(null);
   var isLoading = true.obs;
   var schoolId = "".obs;
   var session = "".obs;
@@ -206,7 +208,7 @@ class Mealcontroller extends GetxController {
   // -----------------------
   // PICK TIME
   // -----------------------
-  Future<void> pickTime(RxString target) async {
+  Future<void> pickTime(RxString target, Rx<DateTime?> dateTimeTarget) async {
     TimeOfDay? picked = await showTimePicker(
       context: Get.context!,
       initialTime: TimeOfDay.now(),
@@ -217,57 +219,60 @@ class Mealcontroller extends GetxController {
           .format(DateTime(2025, 1, 1, picked.hour, picked.minute));
 
       target.value = formattedTime;
+
+      final now = DateTime.now();
+      dateTimeTarget.value =
+          DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
     }
   }
 
   // -----------------------
 
 // ==========================
-// SEND ACTIVITY TO API (Multiple Student IDs)
+// SEND ACTIVITY TO API (single batched call, all selected students)
 // ==========================
   Future<bool> postActivityToApi(List<int> studentIds) async {
     const url = "https://playschool.edubloom.in/api/DailyActiviesApp/PostMealApp";
 
-    bool allSuccess = true;  // Track if all requests are successful
+    final nowIso = DateTime.now().toIso8601String();
+    final fromIso = fromDateTime.value?.toIso8601String() ?? fromTime.value;
+    final toIso = toDateTime.value?.toIso8601String() ?? toTime.value;
 
-    for (int studentId in studentIds) {
-      final body = {
-        "mealId": 0,
-        "meal": activityController.text,
-        "fromTime": fromTime.value,
-        "toTime": toTime.value,
-        "action": "1",
-        "createDate": DateTime.now().toIso8601String(),
-        "updateDate": DateTime.now().toIso8601String(),
-        "createBy": "admin",
-        "updateBy": "admin",
-        "schoolId": schoolId.value,
-        "studentId": studentId,
-        "startTime": fromTime.value,
-        "endTime": toTime.value,
-        "session": session.value
-      };
+    final body = {
+      "mealId": 0,
+      "meal": activityController.text.trim(),
+      "fromTime": fromIso,
+      "toTime": toIso,
+      "action": "1",
+      "createDate": nowIso,
+      "updateDate": nowIso,
+      "createBy": "admin",
+      "updateBy": "admin",
+      "schoolId": schoolId.value,
+      "studentId": studentIds,
+      "startTime": fromTime.value,
+      "endTime": toTime.value,
+      "session": session.value
+    };
 
-      try {
-        final res = await http.post(
-          Uri.parse(url),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(body),
-        );
+    try {
+      final res = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
 
-        if (res.statusCode == 200) {
-          print("✔ Meal Activity posted for student $studentId");
-          Get.back();
-        } else {
-          print("❌ Failed for student $studentId → ${res.body}");
-          allSuccess = false;  // Set false if any request fails
-        }
-      } catch (e) {
-        print("❌ Exception while posting for student $studentId → $e");
-        allSuccess = false;  // Set false if any request fails
+      if (res.statusCode == 200) {
+        print("✔ Meal Activity posted for students $studentIds");
+        Get.back();
+        return true;
+      } else {
+        print("❌ Failed for students $studentIds → ${res.body}");
+        return false;
       }
+    } catch (e) {
+      print("❌ Exception while posting for students $studentIds → $e");
+      return false;
     }
-
-    return allSuccess;  // Return true if all requests were successful
   }
 }

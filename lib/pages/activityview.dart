@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/activitycontroller.dart';
-import '../models/activitystudentmodel.dart';
 
 class Activityview extends GetView<Activitycontroller> {
   @override
@@ -143,7 +142,7 @@ class PostActivity extends GetView<Activitycontroller> {
                 SizedBox(height: 16.h),
                 _sectionLabel("Select Student", Icons.person_rounded),
                 SizedBox(height: 8.h),
-                _studentDropdown(controller),
+                _studentSelector(controller),
 
                 SizedBox(height: 16.h),
                 _sectionLabel("Activity Description", Icons.edit_note_rounded),
@@ -503,13 +502,13 @@ Widget _timeRow(Activitycontroller controller) {
     children: [
       Expanded(
         child: _timeBox("From Time", controller.fromTime, () {
-          controller.pickTime(controller.fromTime);
+          controller.pickTime(controller.fromTime, controller.fromDateTime);
         }),
       ),
       const SizedBox(width: 12),
       Expanded(
         child: _timeBox("To Time", controller.toTime, () {
-          controller.pickTime(controller.toTime);
+          controller.pickTime(controller.toTime, controller.toDateTime);
         }),
       ),
     ],
@@ -536,10 +535,8 @@ Widget _submitButton(Activitycontroller controller) {
           return;
         }
 
-        final studentId = controller.selectedStudentIds.first;
-
         // ✅ studentId = 0 hone par bhi block karo
-        if (studentId == 0) {
+        if (controller.selectedStudentIds.any((id) => id == 0)) {
           Get.snackbar(
             "Error",
             "Student ID is invalid. Please re-select the student.",
@@ -550,7 +547,7 @@ Widget _submitButton(Activitycontroller controller) {
           return;
         }
 
-        final success = await controller.postActivityToApi(studentId);
+        final success = await controller.postActivityToApi();
 
         if (success) {
           Get.snackbar(
@@ -655,51 +652,129 @@ Widget _activityField(Activitycontroller controller) {
   );
 }
 
-Widget _studentDropdown(Activitycontroller controller) {
+Widget _studentSelector(Activitycontroller controller) {
   return Obx(() {
-    return DropdownButtonFormField<Data>(
-      decoration: InputDecoration(
-        hintText: "Choose a student",
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
+    return InkWell(
+      onTap: () => _openStudentSelector(controller),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                controller.selectedStudent.isEmpty
+                    ? "Choose students"
+                    : controller.selectedStudent
+                    .map((e) => e.studentName)
+                    .join(", "),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: controller.selectedStudent.isEmpty
+                      ? Colors.grey.shade500
+                      : Colors.black87,
+                  fontWeight: controller.selectedStudent.isEmpty
+                      ? FontWeight.normal
+                      : FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(Icons.people_rounded, size: 18, color: const Color(0xFF97144D)),
+          ],
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
-        ),
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       ),
-      value: controller.selectedStudent.isEmpty
-          ? null
-          : controller.selectedStudent.first,
-      items: controller.studentList.map((student) {
-        return DropdownMenuItem<Data>(
-          value: student,
-          child: Text(student.studentName ?? "Unnamed"),
-        );
-      }).toList(),
-      onChanged: (value) {
-        if (value == null) {
-          controller.selectedStudent.clear();
-          controller.selectedStudentIds.clear();
-        } else {
-          controller.selectedStudent.assignAll([value]);
-          controller.selectedStudentIds
-            ..clear()
-            ..add(value.studentId ?? 0);
-        }
-      },
     );
   });
+}
+
+void _openStudentSelector(Activitycontroller controller) {
+  Get.bottomSheet(
+    Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const Text(
+            "Select Students",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Obx(() {
+              return ListView.builder(
+                itemCount: controller.studentList.length,
+                itemBuilder: (_, index) {
+                  final student = controller.studentList[index];
+                  return Obx(() {
+                    final isSelected = controller.selectedStudentIds
+                        .contains(student.studentId);
+                    return CheckboxListTile(
+                      value: isSelected,
+                      activeColor: const Color(0xFF97144D),
+                      title: Text(student.studentName ?? "Unnamed"),
+                      onChanged: (checked) {
+                        if (checked == true) {
+                          if (!controller.selectedStudentIds
+                              .contains(student.studentId)) {
+                            controller.selectedStudent.add(student);
+                            controller.selectedStudentIds
+                                .add(student.studentId ?? 0);
+                          }
+                        } else {
+                          controller.selectedStudent.remove(student);
+                          controller.selectedStudentIds
+                              .remove(student.studentId);
+                        }
+                      },
+                    );
+                  });
+                },
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () => Get.back(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF97144D),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                "Done",
+                style: TextStyle(color: Colors.white, fontSize: 15),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 Widget _typeDropdown(Activitycontroller controller) {

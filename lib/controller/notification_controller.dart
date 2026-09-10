@@ -423,15 +423,22 @@ class NotificationController extends GetxController {
 
       request.fields['Title'] = title.value;
       request.fields['Message'] = message.value;
-      request.fields['SectionId'] = section.value.toString();
       request.fields['SchoolId'] = schoolId.toString();
       request.fields['Session'] = session.toString();
       request.fields['Action'] = "1";
       request.fields['CreateBy'] = "Admin";
 
-      // ✅ FIX: selectedClass.value.classId use karo directly
-      request.fields['ClassIDs'] =
-          selectedClass.value!.classId.toString();
+      // Ek hi class aur ek hi section per request -> count hamesha 1 == 1,
+      // isliye backend ka "count must be same" check kabhi fail nahi hoga.
+      request.files.add(
+        http.MultipartFile.fromString(
+          'ClassIDs',
+          selectedClass.value!.classId.toString(),
+        ),
+      );
+      request.files.add(
+        http.MultipartFile.fromString('SectionId', section.value.toString()),
+      );
 
       if (imageFile.value != null) {
         var file = imageFile.value!;
