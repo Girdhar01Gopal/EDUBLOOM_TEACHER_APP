@@ -185,20 +185,11 @@ class StudentController extends GetxController {
 
         // 🆕 sirf teacher ke assigned class AND section ke students dikhao
         if (allowedClassNames.isEmpty && allowedSectionNames.isEmpty) {
-          // ❌ Teacher ko koi class ya section hi assign nahi hai — koi student mat dikhao
-          listData.value = [];
-          filteredData.value = [];
-
-          // ── 🗑️ PURANA FALLBACK LOGIC (comment kar diya) ──────────────
-          // Pehle jab allowedClassNames aur allowedSectionNames dono empty
-          // hote the, to saare students dikha diye jaate the (fallback).
-          // Ab requirement change ho gayi hai — is condition me ab koi
-          // student nahi dikhana, isliye neeche wala purana code comment
-          // kar diya hai (future reference ke liye rakha hai):
-          //
-          // listData.value = allStudents;
-          // filteredData.value = allStudents;
-        } else {
+          // ✅ Fallback enabled: teacher ko class/section assign nahi hai,
+          // to saare students dikha do
+          listData.value = allStudents;
+          filteredData.value = allStudents;
+        }else {
           final filtered = allStudents.where((s) {
             final cName = (s.className ?? '').trim().toLowerCase();
             final sName = (s.sectionName ?? '').trim().toLowerCase();

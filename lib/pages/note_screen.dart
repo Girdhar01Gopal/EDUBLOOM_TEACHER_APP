@@ -14,6 +14,7 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
 import '../models/viewsectionmodel.dart';
+import '../models/vnote_model.dart'; // ✅ new model imported (VNoteModel / Dataa)
 
 const Color axisMaroon = Color(0xFF97144D);
 const Color axisMaroonShade50 = Color(0xFFF3E0E9);
@@ -61,7 +62,7 @@ class NoteScreen extends GetView<NoteController> {
         body: const TabBarView(
           children: [
             AddNoteTab(),
-            ViewNoteTab(),
+            ViewNoteTab(), // ✅ fixed: was ViewNooteTab() which doesn't exist
           ],
         ),
       ),
@@ -482,14 +483,6 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     }
   }
 
-  ListDaataa? _findSubjectById(dynamic subjectId) {
-    try {
-      return controller.subjectlist.firstWhere((s) => s.subjectId == subjectId);
-    } catch (_) {
-      return null;
-    }
-  }
-
   // ✅ flutter_file_downloader se download — Notification Page jaisa same logic
   Future<void> _downloadAndShare({
     required String url,
@@ -497,7 +490,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     required int index,
     required String className,
     required String sectionName,
-    required String subjectName,
+    required String noteTitle,
     required String remarks,
     required String date,
   }) async {
@@ -535,8 +528,8 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
 
         await Share.shareXFiles(
           [XFile(path)],
-          subject: 'Note – $subjectName',
-          text: '📚 Subject: $subjectName\n'
+          subject: 'Note – $noteTitle',
+          text: '📚 Title: $noteTitle\n'
               '🏫 Class: $className\n'
               '📋 Section: $sectionName\n'
               '📝 Remarks: $remarks\n'
@@ -576,15 +569,14 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
           return ListView.builder(
             itemCount: controller.listData.length,
             itemBuilder: (context, index) {
-              final item = controller.listData[index];
+              final Dataa item = controller.listData[index]; // ✅ typed via new model
 
               final classItem = _findClassById(item.classId);
               final sectionItem = _findSectionById(item.sectionId);
-              final subjectItem = _findSubjectById(item.subjectId);
 
               final className = classItem?.className ?? 'N/A';
               final sectionName = sectionItem?.section ?? 'N/A';
-              final subjectName = subjectItem?.subject ?? 'N/A';
+              final noteMessage = item.message ?? 'No Message';
               final remarks = item.remarks ?? 'No Remarks';
               final date = formatDate(item.createDate ?? '');
 
@@ -632,7 +624,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                           SizedBox(width: 10.w),
                           Expanded(
                             child: Text(
-                              'Note: $subjectName',
+                              'Note: $noteMessage',
                               style: TextStyle(
                                 fontSize: 15.sp,
                                 fontWeight: FontWeight.w800,
@@ -654,15 +646,16 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                       ),
                       SizedBox(height: 8.h),
 
-                      Text(
-                        remarks,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: Colors.grey.shade800,
-                          fontWeight: FontWeight.w700,
-                          height: 1.35,
-                        ),
-                      ),
+                      // // ✅ Remarks (kept exactly as before)
+                      // Text(
+                      //   remarks,
+                      //   style: TextStyle(
+                      //     fontSize: 13.sp,
+                      //     color: Colors.grey.shade800,
+                      //     fontWeight: FontWeight.w700,
+                      //     height: 1.35,
+                      //   ),
+                      // ),
 
                       SizedBox(height: 10.h),
                       Divider(color: Colors.grey.shade300, height: 1),
@@ -733,7 +726,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                                     index: index,
                                     className: className,
                                     sectionName: sectionName,
-                                    subjectName: subjectName,
+                                    noteTitle: noteMessage,
                                     remarks: remarks,
                                     date: date,
                                   );

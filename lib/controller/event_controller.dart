@@ -417,17 +417,25 @@ class EventController extends GetxController {
     }
   }
 
+  // ✅ UPDATED API: TeacherViewEventApp
+  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchVEvents() async {
     try {
       isLoading(true);
 
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
       final uri = Uri.parse(
-        '${AppUrl.base_url}api/CommumicationApp/ViewEventApp/$schoolId',
+        'https://playschool.edubloom.in/api/CommumicationApp/TeacherViewEventApp/$schoolId',
       ).replace(queryParameters: {
         'session': session.value,
+        'UserId': userId ?? '',
       });
 
       final response = await http.get(uri);
+
+      debugPrint('TeacherViewEventApp status: ${response.statusCode}');
+      debugPrint('TeacherViewEventApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);

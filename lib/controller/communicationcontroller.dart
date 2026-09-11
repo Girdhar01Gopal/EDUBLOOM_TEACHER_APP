@@ -27,7 +27,7 @@ class _TileSpec {
 // Matched against the "Communication" module's accessible children (see
 // accessibleChildNames in home_page_controller.dart).
 const List<_TileSpec> _tileSpecs = [
-  _TileSpec("Notifiactions", Icons.notifications_active_rounded, Color(0xFFFFB300),
+  _TileSpec("Notification", Icons.notifications_active_rounded, Color(0xFFFFB300),
       Color(0xFFFFF8E1), RouteName.notification_screen, ['Notifiaction']),
   _TileSpec("Notes", Icons.sticky_note_2_rounded, Color(0xFFF4511E),
       Color(0xFFFBE9E7), RouteName.note_screen, ['Note']),

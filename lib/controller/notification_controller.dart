@@ -100,13 +100,24 @@ class NotificationController extends GetxController {
     }
   }
 
+  // ✅ UPDATED API: TeacherGetAllNotificationAsynsApp
+  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchAllNotifications() async {
     try {
       isLoading(true);
+
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
       final String apiUrl =
-          '${AppUrl.base_url}api/CommumicationApp/GetAllNotificationAsynsApp?schoolId=$schoolId&currentSession=$session';
+          'https://playschool.edubloom.in/api/CommumicationApp/TeacherGetAllNotificationAsynsApp'
+          '?schoolId=${Uri.encodeComponent(schoolId)}'
+          '&currentSession=${Uri.encodeComponent(session)}'
+          '&UserId=${Uri.encodeComponent(userId ?? '')}';
 
       final response = await http.get(Uri.parse(apiUrl));
+
+      debugPrint('TeacherGetAllNotificationAsynsApp status: ${response.statusCode}');
+      debugPrint('TeacherGetAllNotificationAsynsApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);

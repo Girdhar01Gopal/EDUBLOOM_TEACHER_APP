@@ -83,16 +83,25 @@ class SyllabusController extends GetxController {
     }
   }
 
+  // ✅ UPDATED API: TeacherGetSyllabusAsyncApp
+  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchSyllabus() async {
     try {
       isLoading(true);
 
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
       final url = Uri.parse(
-        '${AppUrl.base_url}api/CommumicationApp/GetSyllabusAsyncApp'
-            '?schoolId=$schoolId&currentSession=${session.value}',
+        'https://playschool.edubloom.in/api/CommumicationApp/TeacherGetSyllabusAsyncApp'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&currentSession=${Uri.encodeComponent(session.value)}'
+            '&UserId=${Uri.encodeComponent(userId ?? '')}',
       );
 
       final response = await http.get(url, headers: {'Content-Type': 'application/json'});
+
+      debugPrint('TeacherGetSyllabusAsyncApp status: ${response.statusCode}');
+      debugPrint('TeacherGetSyllabusAsyncApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final model = syllabus_model.SyllabusModel.fromJson(jsonDecode(response.body)); // ✅ fixed

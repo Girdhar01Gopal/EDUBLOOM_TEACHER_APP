@@ -72,11 +72,18 @@ class NoteController extends GetxController {
   }
 
   /// ---------------------- FETCH NOTES ----------------------
+  // ✅ UPDATED API: TeacherViewNoteApp
+  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchVNotes() async {
     try {
       isLoading(true);
+
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
       final uri = Uri.parse(
-        '${AppUrl.base_url}api/CommumicationApp/ViewNoteApp/$schoolId?session=$seassion',
+        'https://playschool.edubloom.in/api/CommumicationApp/TeacherViewNoteApp/$schoolId'
+            '?session=${Uri.encodeComponent(seassion)}'
+            '&UserId=${Uri.encodeComponent(userId ?? '')}',
       );
 
       final headers = <String, String>{

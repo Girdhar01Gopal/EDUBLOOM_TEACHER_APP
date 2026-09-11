@@ -92,19 +92,28 @@ class HomeworkController extends GetxController {
     }
   }
 
+  // ✅ UPDATED API: TeacherGetHomeworkAsyncApp
+  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchHomework() async {
     try {
       isLoading(true);
 
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
       final url = Uri.parse(
-        '${AppUrl.base_url}api/CommumicationApp/GetHomeworkAsyncApp'
-            '?currentSession=${session.value}&schoolId=$schoolId',
+        'https://playschool.edubloom.in/api/CommumicationApp/TeacherGetHomeworkAsyncApp'
+            '?currentSession=${Uri.encodeComponent(session.value)}'
+            '&schoolId=${Uri.encodeComponent(schoolId)}'
+            '&UserId=${Uri.encodeComponent(userId ?? '')}',
       );
       print("Fetching homework from URL: $url");
 
       final response = await http.get(url, headers: {
         'Content-Type': 'application/json',
       });
+
+      debugPrint('TeacherGetHomeworkAsyncApp status: ${response.statusCode}');
+      debugPrint('TeacherGetHomeworkAsyncApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final homeworkModel =
