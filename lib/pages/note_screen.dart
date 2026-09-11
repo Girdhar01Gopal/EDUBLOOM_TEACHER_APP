@@ -467,17 +467,9 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     }
   }
 
-  ListDataa? _findClassById(dynamic classId) {
+  ListDaataa? _findSubjectById(dynamic subjectId) {
     try {
-      return controller.listDataa.firstWhere((c) => c.classId == classId);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  stListData? _findSectionById(dynamic sectionId) {
-    try {
-      return controller.sectionList.firstWhere((s) => s.sectionId == sectionId);
+      return controller.subjectlist.firstWhere((s) => s.subjectId == subjectId);
     } catch (_) {
       return null;
     }
@@ -571,11 +563,12 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
             itemBuilder: (context, index) {
               final Dataa item = controller.listData[index]; // ✅ typed via new model
 
-              final classItem = _findClassById(item.classId);
-              final sectionItem = _findSectionById(item.sectionId);
+              final subjectItem = _findSubjectById(item.subjectId);
 
-              final className = classItem?.className ?? 'N/A';
-              final sectionName = sectionItem?.section ?? 'N/A';
+              // ✅ className & sectionName seedha API response se (no lookup needed)
+              final className = item.className ?? 'N/A';
+              final sectionName = item.sectionName ?? 'N/A';
+              final subjectName = subjectItem?.subject ?? 'N/A';
               final noteMessage = item.message ?? 'No Message';
               final remarks = item.remarks ?? 'No Remarks';
               final date = formatDate(item.createDate ?? '');
@@ -646,9 +639,9 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                       ),
                       SizedBox(height: 8.h),
 
-                      // // ✅ Remarks (kept exactly as before)
+                      // ✅ Subject name shown here now (instead of remarks)
                       // Text(
-                      //   remarks,
+                      //   subjectName,
                       //   style: TextStyle(
                       //     fontSize: 13.sp,
                       //     color: Colors.grey.shade800,
