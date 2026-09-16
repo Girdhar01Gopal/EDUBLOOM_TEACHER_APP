@@ -74,7 +74,7 @@ class ReportCard1Model {
       studentThreshold: json['studentThreshold'] as int?,
       udisenumber: json['udisenumber'] as String?,
       schoolNumber: json['schoolNumber'] as String?,
-      phone1: json['phone1'] as String?,
+      phone1: json['phone1']?.toString(),
       city: json['city'] as String?,
       state: json['state'] as String?,
       shortName: json['shortName'] as String?,

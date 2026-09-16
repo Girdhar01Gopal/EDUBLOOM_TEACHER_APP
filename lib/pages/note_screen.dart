@@ -14,7 +14,8 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
 import '../models/viewsectionmodel.dart';
-import '../models/vnote_model.dart'; // ✅ new model imported (VNoteModel / Dataa)
+import '../models/vnote_model.dart';
+import '../res/app_url.dart'; // ✅ new model imported (VNoteModel / Dataa)
 
 const Color axisMaroon = Color(0xFF97144D);
 const Color axisMaroonShade50 = Color(0xFFF3E0E9);
@@ -955,8 +956,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       final fileUrl =
-                                          "https://playschool.edubloom.in/Upload/Notification/Images/${item.notesFile}";
-                                      final fileName = item.notesFile!
+                                          "${AppUrl.base_url}${AppUrl.notesDownloadUrl}${item.notesFile}";                                      final fileName = item.notesFile!
                                           .toLowerCase()
                                           .endsWith('.pdf')
                                           ? item.notesFile!

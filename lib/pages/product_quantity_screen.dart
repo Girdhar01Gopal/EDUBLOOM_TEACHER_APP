@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../controller/product_quantity_controller.dart';
 import '../models/product_quantity_model.dart';
+import '../wigets/active_inactive_chip.dart';
 
 class ProductQuantityScreen extends StatelessWidget {
   const ProductQuantityScreen({super.key});
@@ -24,7 +25,7 @@ class ProductQuantityScreen extends StatelessWidget {
             ),
           ),
           centerTitle: true,
-          backgroundColor: const Color(0xFF6E0F38),
+          backgroundColor: const Color(0xFF97134D),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -438,25 +439,30 @@ class _ViewProductQuantityTab extends GetView<ProductQuantityController> {
                                         Text(formatDate(item.updateDate)),
                                       ),
                                       DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 5,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: (item.action ?? 0) == 1
-                                                ? Colors.green
-                                                : Colors.red,
-                                            borderRadius:
-                                            BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            (item.action ?? 0) == 1
-                                                ? "Active"
-                                                : "Inactive",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w600,
+                                        GestureDetector(
+                                          onTap: () =>
+                                              showActiveInactiveApiPending(
+                                                  "Product Quantity"),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: (item.action ?? 0) == 1
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              borderRadius:
+                                              BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              (item.action ?? 0) == 1
+                                                  ? "Active"
+                                                  : "Inactive",
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
                                         ),

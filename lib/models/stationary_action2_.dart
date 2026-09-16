@@ -45,6 +45,7 @@ class StationaryAction2ListData {
   int? quantity;
   int? quantity1;
   dynamic amount;
+  int? pAmount;
   String? registrationNo;
   String? studentName;
   String? session;
@@ -73,6 +74,7 @@ class StationaryAction2ListData {
     this.quantity,
     this.quantity1,
     this.amount,
+    this.pAmount, // ← NEW
     this.registrationNo,
     this.studentName,
     this.session,
@@ -103,6 +105,7 @@ class StationaryAction2ListData {
         quantity: json["quantity"],
         quantity1: json["quantity1"],
         amount: json["amount"],
+        pAmount: json["pAmount"], // ← NEW
         registrationNo: json["registrationNo"],
         studentName: json["studentName"],
         session: json["session"],
@@ -132,6 +135,7 @@ class StationaryAction2ListData {
     "quantity": quantity,
     "quantity1": quantity1,
     "amount": amount,
+    "pAmount": pAmount, // ← NEW
     "registrationNo": registrationNo,
     "studentName": studentName,
     "session": session,

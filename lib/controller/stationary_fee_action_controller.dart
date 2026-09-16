@@ -16,6 +16,7 @@ class StationaryItem {
   final String stationaryName;
   final int totalQuantity;
   final int pmasterId;
+  final int unitPrice; // ← NEW: pAmount from API, per-unit price for auto-calc
   final TextEditingController quantityController;
   final TextEditingController payAmountController;
 
@@ -24,6 +25,7 @@ class StationaryItem {
     required this.stationaryName,
     required this.totalQuantity,
     required this.pmasterId,
+    required this.unitPrice, // ← NEW
     required this.quantityController,
     required this.payAmountController,
   });
@@ -220,13 +222,31 @@ class StationaryFeeActionController extends GetxController {
           final items = <StationaryItem>[];
           for (int i = 0; i < model.listData!.length; i++) {
             final apiItem = model.listData![i];
+            final unitPrice = apiItem.pAmount ?? 0; // ← NEW: per-unit price
+
+            final quantityController = TextEditingController();
+            final payAmountController = TextEditingController();
+
+            // ← NEW: auto-calculate Pay Amount = entered quantity * unitPrice
+            quantityController.addListener(() {
+              final enteredQty =
+                  int.tryParse(quantityController.text.trim()) ?? 0;
+              final calculatedAmount = enteredQty > 0
+                  ? (enteredQty * unitPrice).toString()
+                  : '';
+              if (payAmountController.text != calculatedAmount) {
+                payAmountController.text = calculatedAmount;
+              }
+            });
+
             items.add(StationaryItem(
               id: i + 1,
               pmasterId: apiItem.pmasterId ?? 0,
               stationaryName: apiItem.product?.trim() ?? '',
               totalQuantity: apiItem.quantity ?? 0,
-              quantityController: TextEditingController(),
-              payAmountController: TextEditingController(),
+              unitPrice: unitPrice, // ← NEW
+              quantityController: quantityController,
+              payAmountController: payAmountController,
             ));
           }
           stationaryItems.assignAll(items);

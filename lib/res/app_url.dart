@@ -13,12 +13,12 @@ class AppUrl {
   static var loginUrl = "api/Login/Authenticate";
   static var homeworkUrl = "api/ParentApp/ViewHomeworkTop3/";
   static var homeworksearchUrl = "api/ParentApp/SearchDateHomeWork/";
-  static var homeworkDownloadUrl = "upload/HomeworkFile/";
+  //static var homeworkDownloadUrl = "upload/HomeworkFile/";
 
   static var notesUrl = "api/ParentApp/ViewNotesTop3/";
-  static var notesDownloadUrl = "upload/notes/";
+  //static var notesDownloadUrl = "upload/notes/";
   static var syllabusUrl = "api/ParentApp/ViewSyllabusTop3/";
-  static var syllabusDownloadUrl = "upload/SyllabusFile/";
+  //static var syllabusDownloadUrl = "upload/SyllabusFile/";
 
   static var classtypeviewnotificationUrl =
       "api/ParentApp/PViewNotiFicationStudentSearchTop3/";
@@ -73,7 +73,14 @@ class AppUrl {
   static var insertSyllabusApp = "api/CommumicationApp/InsertSyllabusApp";
 
   static var getSyllabusAsyncApp = "api/CommumicationApp/GetSyllabusAsyncApp";
+  static const postProductApp = "api/ProductApp/PostProductApp";
+  static const viewProductApp = "api/ProductApp/ViewProductApp/";
+  static const productActiveandInactive = "api/ProductApp/ProductActiveandInactive";
 
-
+  static var homeworkDownloadUrl = "Upload/Homework/";
+  static var notesDownloadUrl = "Upload/Note/";
+  static var syllabusDownloadUrl = "Upload/Syllabus/";
+  static var notificationDownloadUrl = "Upload/Notification/";
+  static var eventDownloadUrl = "Upload/Event/";
 }
 //

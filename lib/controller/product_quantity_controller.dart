@@ -241,18 +241,22 @@ class ProductQuantityController extends GetxController {
           await fetchProductQuantityList();
           Get.snackbar(
             "Success",
-            decoded["messages"] ?? "Product quantity added successfully",
+            "$productName quantity added successfully",
           );
         } else {
           Get.snackbar(
             "Error",
-            decoded["messages"] ?? "Failed to add product quantity",
+            decoded["messages"]?.toString().trim().isNotEmpty == true
+                ? decoded["messages"]
+                : "Failed to add product quantity",
           );
         }
       } else {
         Get.snackbar(
           "Error",
-          decoded["messages"] ?? "Add failed: ${res.statusCode}",
+          decoded["messages"]?.toString().trim().isNotEmpty == true
+              ? decoded["messages"]
+              : "Add failed: ${res.statusCode}",
         );
       }
     } catch (e) {

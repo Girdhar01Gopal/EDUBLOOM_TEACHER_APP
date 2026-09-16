@@ -12,6 +12,7 @@ import '../controller/notification_controller.dart';
 import '../models/sectionmodel.dart';
 import '../models/class_list_model.dart';
 import '../models/viewsectionmodel.dart';
+import '../res/app_url.dart';
 
 const Color axisMaroon = Color(0xFF97144D);
 const Color axisMaroonShade50 = Color(0xFFF3E0E9);
@@ -937,7 +938,7 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       final fileUrl =
-                                          "https://playschool.edubloom.in/Upload/Notification/Images/${item.notificationfile}";
+                                          "${AppUrl.base_url}${AppUrl.notificationDownloadUrl}${item.notificationfile}";
                                       final fileName =
                                       item.notificationfile!;
                                       _downloadAndShare(

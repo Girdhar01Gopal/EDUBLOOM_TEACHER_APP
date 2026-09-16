@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -8,10 +7,15 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/add_product_model.dart';
 import '../res/app_url.dart';
+import '../data/network/network_api_response.dart'; // Import for NetworkApiServices
 
 class AddProductsController extends GetxController {
+  final NetworkApiServices _api = NetworkApiServices();
+
   final TextEditingController productController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
+  final ScrollController productsScrollController = ScrollController();
 
   final RxBool isPosting = false.obs;
   final RxBool isListLoading = false.obs;
@@ -30,7 +34,8 @@ class AddProductsController extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     session = await PrefManager().readValue(key: PrefConst.session) ?? "";
-    userName = await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
+    userName =
+        await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
 
     if (schoolId.trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -43,7 +48,9 @@ class AddProductsController extends GetxController {
   @override
   void onClose() {
     productController.dispose();
+    amountController.dispose();
     searchController.dispose();
+    productsScrollController.dispose();
     super.onClose();
   }
 
@@ -51,31 +58,19 @@ class AddProductsController extends GetxController {
     try {
       isListLoading(true);
 
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/ProductApp/ViewProductApp/$schoolId',
-      );
+      final result = await _api
+          .getJson('${AppUrl.base_url}${AppUrl.viewProductApp}$schoolId');
 
-      final res = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (res.statusCode == 200) {
-        final decoded = jsonDecode(res.body) as Map<String, dynamic>;
-        final parsed = AddProductsResponse.fromJson(decoded);
+      if (result.isSuccess && result.data != null) {
+        final parsed =
+        AddProductsResponse.fromJson(result.data as Map<String, dynamic>);
 
         productsList.assignAll(parsed.listData);
         filteredList.assignAll(parsed.listData);
       } else {
         productsList.clear();
         filteredList.clear();
-        Get.snackbar(
-          "Error",
-          "GET failed: ${res.statusCode}\n${res.body}",
-        );
+        Get.snackbar("Error", "GET failed: ${result.message}");
       }
     } catch (e) {
       productsList.clear();
@@ -107,18 +102,31 @@ class AddProductsController extends GetxController {
       return;
     }
 
+    final alreadyExists = productsList.any(
+          (item) => item.product.trim().toLowerCase() == text.toLowerCase(),
+    );
+    if (alreadyExists) {
+      Get.snackbar("Duplicate", "This product already exists");
+      return;
+    }
+
+    final amountText = amountController.text.trim();
+    final amount = num.tryParse(amountText);
+    if (amountText.isEmpty || amount == null) {
+      Get.snackbar("Validation", "Enter a valid amount");
+      return;
+    }
+
     try {
       isPosting(true);
-
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/ProductApp/PostProductApp',
-      );
 
       final now = DateTime.now().toUtc().toIso8601String();
 
       final body = {
         "pmasterId": 0,
         "product": text,
+        "pAmount": amount,
+        "amount": amount,
         "createBy": userName,
         "updateBy": userName,
         "schoolId": schoolId,
@@ -128,41 +136,18 @@ class AddProductsController extends GetxController {
         "session": session,
       };
 
-      final res = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
-      );
+      final result = await _api.postJson(
+          '${AppUrl.base_url}${AppUrl.postProductApp}', body);
 
-      final Map<String, dynamic> decoded =
-      res.body.isNotEmpty ? jsonDecode(res.body) : {};
-
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final bool isSuccess = decoded["isSuccess"] == true;
-
-        if (isSuccess) {
-          productController.clear();
-          await fetchProducts();
-          Get.snackbar("Success", decoded["messages"] ?? "Added successfully");
-        } else {
-          Get.snackbar(
-            "Error",
-            decoded["messages"] ?? "Something went wrong",
-          );
-        }
-      } else if (res.statusCode == 409) {
-        Get.snackbar(
-          "Duplicate",
-          decoded["messages"] ?? "Product already exists for this SchoolId.",
-        );
+      if (result.isSuccess) {
+        productController.clear();
+        amountController.clear();
+        await fetchProducts();
+        Get.snackbar("Success", result.message);
+      } else if (result.isDuplicate) {
+        Get.snackbar("Duplicate", result.message);
       } else {
-        Get.snackbar(
-          "Error",
-          decoded["messages"] ?? "POST failed: ${res.statusCode}",
-        );
+        Get.snackbar("Error", result.message);
       }
     } catch (e) {
       Get.snackbar("Error", "Add failed: $e");
@@ -174,6 +159,8 @@ class AddProductsController extends GetxController {
   void openEditProductDialog(AddProductsItem item) {
     final TextEditingController editController =
     TextEditingController(text: item.product);
+    final TextEditingController editAmountController =
+    TextEditingController(text: item.pAmount.toString());
 
     Get.defaultDialog(
       title: "Edit Product",
@@ -187,6 +174,15 @@ class AddProductsController extends GetxController {
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: editAmountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              hintText: "Enter Amount",
+              border: OutlineInputBorder(),
+            ),
+          ),
           const SizedBox(height: 14),
           Obx(() {
             return SizedBox(
@@ -196,6 +192,8 @@ class AddProductsController extends GetxController {
                     ? null
                     : () async {
                   final updatedText = editController.text.trim();
+                  final updatedAmount =
+                  num.tryParse(editAmountController.text.trim());
 
                   if (updatedText.isEmpty) {
                     Get.snackbar(
@@ -204,8 +202,12 @@ class AddProductsController extends GetxController {
                     );
                     return;
                   }
+                  if (updatedAmount == null) {
+                    Get.snackbar("Validation", "Enter a valid amount");
+                    return;
+                  }
 
-                  await updateProduct(item, updatedText);
+                  await updateProduct(item, updatedText, updatedAmount);
                 },
                 child: isPosting.value
                     ? const SizedBox(
@@ -225,17 +227,16 @@ class AddProductsController extends GetxController {
   Future<void> updateProduct(
       AddProductsItem item,
       String updatedText,
+      num updatedAmount,
       ) async {
     try {
       isPosting(true);
 
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/ProductApp/PostProductApp',
-      );
-
       final body = {
         "pmasterId": item.pmasterId,
         "product": updatedText,
+        "pAmount": updatedAmount,
+        "amount": updatedAmount,
         "createBy": item.createBy ?? userName,
         "updateBy": userName,
         "schoolId": item.schoolId.isNotEmpty ? item.schoolId : schoolId,
@@ -246,41 +247,17 @@ class AddProductsController extends GetxController {
         "session": session,
       };
 
-      final res = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
-      );
+      final result = await _api.postJson(
+          '${AppUrl.base_url}${AppUrl.postProductApp}', body);
 
-      final Map<String, dynamic> decoded =
-      res.body.isNotEmpty ? jsonDecode(res.body) : {};
-
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final bool isSuccess = decoded["isSuccess"] == true;
-
-        if (isSuccess) {
-          Get.back();
-          await fetchProducts();
-          Get.snackbar("Success", decoded["messages"] ?? "Updated successfully");
-        } else {
-          Get.snackbar(
-            "Error",
-            decoded["messages"] ?? "Something went wrong",
-          );
-        }
-      } else if (res.statusCode == 409) {
-        Get.snackbar(
-          "Duplicate",
-          decoded["messages"] ?? "Product already exists for this SchoolId.",
-        );
+      if (result.isSuccess) {
+        Get.back();
+        await fetchProducts();
+        Get.snackbar("Success", result.message);
+      } else if (result.isDuplicate) {
+        Get.snackbar("Duplicate", result.message);
       } else {
-        Get.snackbar(
-          "Error",
-          decoded["messages"] ?? "Update failed: ${res.statusCode}",
-        );
+        Get.snackbar("Error", result.message);
       }
     } catch (e) {
       Get.snackbar("Error", "Update failed: $e");
@@ -295,5 +272,34 @@ class AddProductsController extends GetxController {
 
   void resetForm() {
     productController.clear();
+    amountController.clear();
+  }
+
+  // ---------------- Active / Inactive toggle ----------------
+  final RxnInt statusLoadingId = RxnInt();
+
+  Future<void> toggleProductStatus(AddProductsItem row) async {
+    final id = row.pmasterId;
+
+    statusLoadingId.value = id;
+    try {
+      final url =
+          '${AppUrl.base_url}${AppUrl.productActiveandInactive}?SchoolId=$schoolId&Id=$id';
+
+      final result = await _api.postJson(url, null);
+
+      if (result.isSuccess) {
+        final nextAction = row.action == 1 ? 0 : 1;
+        row.action = nextAction;
+        productsList.refresh();
+        filteredList.refresh();
+      } else {
+        Get.snackbar("Error", "Status update failed: ${result.message}");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Status update error: $e");
+    } finally {
+      statusLoadingId.value = null;
+    }
   }
 }

@@ -12,6 +12,7 @@ import '../controller/event_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/viewsectionmodel.dart';
+import '../res/app_url.dart';
 
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -794,8 +795,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                                 borderRadius: BorderRadius.circular(12.r),
                                 child: hasPic
                                     ? Image.network(
-                                  "https://playschool.edubloom.in/Upload/Event/Images/$pic",
-                                  width: 100.w,
+                                  "${AppUrl.base_url}${AppUrl.eventDownloadUrl}$pic",                                  width: 100.w,
                                   height: 100.h,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
@@ -880,7 +880,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       final fileUrl =
-                                          "https://playschool.edubloom.in/Upload/Event/Images/$pic";
+                                          "${AppUrl.base_url}${AppUrl.eventDownloadUrl}$pic";
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: pic,

@@ -31,6 +31,7 @@ class AddProductsResponse {
 class AddProductsItem {
   int pmasterId;
   String product;
+  num pAmount;
   String? createBy;
   String? updateBy;
   String schoolId;
@@ -41,6 +42,7 @@ class AddProductsItem {
   AddProductsItem({
     required this.pmasterId,
     required this.product,
+    this.pAmount = 0,
     this.createBy,
     this.updateBy,
     required this.schoolId,
@@ -50,9 +52,31 @@ class AddProductsItem {
   });
 
   factory AddProductsItem.fromJson(Map<String, dynamic> json) {
+    final amountValues = [
+      json['pAmount'],
+      json['PAmount'],
+      json['amount'],
+      json['Amount'],
+    ];
+    final rawAmount = amountValues.firstWhere(
+          (value) {
+        final parsed = num.tryParse(value?.toString() ?? '');
+        return parsed != null && parsed != 0;
+      },
+      orElse: () => amountValues.firstWhere(
+            (value) => value != null,
+        orElse: () => 0,
+      ),
+    );
+    final rawAction = json['action'] ?? json['Action'] ?? 0;
+    final parsedAction = rawAction is bool
+        ? (rawAction ? 1 : 0)
+        : int.tryParse(rawAction.toString()) ?? 0;
+
     return AddProductsItem(
       pmasterId: json['pmasterId'] ?? 0,
       product: json['product'] ?? '',
+      pAmount: num.tryParse(rawAmount?.toString() ?? '') ?? 0,
       createBy: json['createBy'],
       updateBy: json['updateBy'],
       schoolId: json['schoolId'] ?? '',
@@ -64,7 +88,7 @@ class AddProductsItem {
           json['createDate'].toString().trim().isNotEmpty
           ? DateTime.tryParse(json['createDate'].toString())
           : null,
-      action: json['action'] ?? 0,
+      action: parsedAction,
     );
   }
 
@@ -72,6 +96,7 @@ class AddProductsItem {
     return {
       'pmasterId': pmasterId,
       'product': product,
+      'pAmount': pAmount,
       'createBy': createBy,
       'updateBy': updateBy,
       'schoolId': schoolId,

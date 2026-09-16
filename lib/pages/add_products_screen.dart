@@ -18,7 +18,7 @@ class AddProductsScreen extends GetView<AddProductsController> {
             style: TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: const Color(0xFF97144D),
+          backgroundColor: const Color(0xFF97134D),
           iconTheme: const IconThemeData(color: Colors.white),
           bottom: const TabBar(
             labelColor: Colors.white,
@@ -90,7 +90,38 @@ class _AddTab extends GetView<AddProductsController> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFF97144D)),
+                  borderSide: const BorderSide(color: Color(0xFF97134D)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Amount",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller.amountController,
+              keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: "Enter Amount",
+                filled: true,
+                fillColor: const Color(0xFFF1F1F1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: const BorderSide(color: Color(0xFF97134D)),
                 ),
               ),
             ),
@@ -100,9 +131,8 @@ class _AddTab extends GetView<AddProductsController> {
                 height: 42,
                 width: 110,
                 child: ElevatedButton(
-                  onPressed: controller.isPosting.value
-                      ? null
-                      : controller.addProduct,
+                  onPressed:
+                  controller.isPosting.value ? null : controller.addProduct,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     shape: RoundedRectangleBorder(
@@ -214,8 +244,10 @@ class _ViewTab extends GetView<AddProductsController> {
                           ? constraints.maxHeight - 80
                           : 400,
                       child: Scrollbar(
+                        controller: controller.productsScrollController,
                         thumbVisibility: true,
                         child: SingleChildScrollView(
+                          controller: controller.productsScrollController,
                           scrollDirection: Axis.vertical,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -228,6 +260,7 @@ class _ViewTab extends GetView<AddProductsController> {
                                 columns: const [
                                   DataColumn(label: Text("S.No")),
                                   DataColumn(label: Text("Product")),
+                                  DataColumn(label: Text("Amount")),
                                   DataColumn(label: Text("Update Date")),
                                   DataColumn(label: Text("Create Date")),
                                   DataColumn(label: Text("Status")),
@@ -250,6 +283,7 @@ class _ViewTab extends GetView<AddProductsController> {
                                             ),
                                           ),
                                         ),
+                                        DataCell(Text(item.pAmount.toString())),
                                         DataCell(
                                           Text(formatDate(item.updateDate)),
                                         ),
@@ -257,28 +291,47 @@ class _ViewTab extends GetView<AddProductsController> {
                                           Text(formatDate(item.createDate)),
                                         ),
                                         DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 5,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: item.action == 1
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              borderRadius:
-                                              BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              item.action == 1
-                                                  ? "Active"
-                                                  : "Inactive",
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
+                                          Obx(() {
+                                            final busy = controller
+                                                .statusLoadingId.value ==
+                                                item.pmasterId;
+                                            if (busy) {
+                                              return const SizedBox(
+                                                height: 16,
+                                                width: 16,
+                                                child:
+                                                CircularProgressIndicator(
+                                                    strokeWidth: 2),
+                                              );
+                                            }
+                                            return GestureDetector(
+                                              onTap: () => controller
+                                                  .toggleProductStatus(item),
+                                              child: Container(
+                                                padding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 10,
+                                                  vertical: 5,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: item.action == 1
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                                  borderRadius:
+                                                  BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  item.action == 1
+                                                      ? "Active"
+                                                      : "Inactive",
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                          ),
+                                            );
+                                          }),
                                         ),
                                         DataCell(
                                           IconButton(
