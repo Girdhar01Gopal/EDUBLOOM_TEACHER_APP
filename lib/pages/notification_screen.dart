@@ -90,20 +90,17 @@ class AddNotificationTab extends GetView<NotificationController> {
               maxLines: 3),
           SizedBox(height: 16.h),
 
-          _sectionLabel('Select Class'),
-          SizedBox(height: 6.h),
-          _dropdownClass(),
+          // 🆕 CHANGED: dropdown -> horizontal multi-select chips (Galaryvideo jaisa hi)
+          _classMultiSelect(),
           SizedBox(height: 16.h),
 
-          _sectionLabel('Select Section'),
-          SizedBox(height: 6.h),
-          _dropdownSection(),
+          _sectionMultiSelect(),
           SizedBox(height: 16.h),
 
-          _datePicker(label: 'Create Date', isCreate: true),
-          SizedBox(height: 16.h),
-          _datePicker(label: 'Update Date', isCreate: false),
-          SizedBox(height: 16.h),
+          // _datePicker(label: 'Create Date', isCreate: true),
+          // SizedBox(height: 16.h),
+          // _datePicker(label: 'Update Date', isCreate: false),
+          // SizedBox(height: 16.h),
 
           _sectionLabel('Notification Image'),
           SizedBox(height: 6.h),
@@ -195,114 +192,176 @@ class AddNotificationTab extends GetView<NotificationController> {
     );
   }
 
-  Widget _dropdownClass() {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      return DropdownButtonFormField<ClassData>(
-        value: controller.selectedClass.value,
-        isExpanded: true,
-        hint: Text('Choose a class',
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp)),
-        onChanged: (newVal) {
-          if (newVal == null) {
-            controller.selectedClass.value = null;
-            controller.studentClass.value = '';
-          } else {
-            controller.setSelectedClass(newVal);
-            controller.studentClass.value = newVal.classId.toString();
-          }
-        },
-        items: controller.classes
-            .map(
-              (item) => DropdownMenuItem<ClassData>(
-            value: item,
-            child: Text(item.className,
-                style: TextStyle(fontSize: 14.sp)),
-          ),
-        )
-            .toList(),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-          EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
-          ),
+  // 🆕 NEW: horizontal scrollable multi-select chips for Class (Galaryvideo jaisa hi)
+  Widget _classMultiSelect() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel("Select Class (Multiple)"),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 42.h,
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (controller.classList.isEmpty) {
+              return Text(
+                "No classes found",
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: controller.classList.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final cls = controller.classList[index];
+                return Obx(() {
+                  final isSelected =
+                  controller.selectedClassIds.contains(cls.classId);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (isSelected) {
+                        controller.selectedClassIds.remove(cls.classId);
+                      } else {
+                        controller.selectedClassIds.add(cls.classId!);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? axisMaroon
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? axisMaroon
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_circle,
+                                size: 14.sp, color: Colors.white),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            cls.className ?? "",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
         ),
-        menuMaxHeight: 300,
-        dropdownColor: Colors.white,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            color: Colors.grey.shade500),
-      );
-    });
+      ],
+    );
   }
 
-  Widget _dropdownSection() {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      return DropdownButtonFormField<stListData>(
-        value: controller.selectedSection.value,
-        isExpanded: true,
-        hint: Text('Choose a section',
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp)),
-        onChanged: (newVal) {
-          if (newVal == null || newVal.sectionId == null) {
-            controller.selectedSection.value = null;
-            controller.section.value = '';
-          } else {
-            controller.setSelectedSection(newVal);
-            controller.section.value = newVal.sectionId.toString();
-          }
-        },
-        items: controller.sectionList
-            .map(
-              (item) => DropdownMenuItem<stListData>(
-            value: item,
-            child: Text(item.section ?? '',
-                style: TextStyle(fontSize: 14.sp)),
-          ),
-        )
-            .toList(),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-          EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.r),
-            borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
-          ),
+  // 🆕 NEW: horizontal scrollable multi-select chips for Section (Galaryvideo jaisa hi)
+  Widget _sectionMultiSelect() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel("Select Section (Multiple)"),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 42.h,
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (controller.sectionList.isEmpty) {
+              return Text(
+                "No sections found",
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: controller.sectionList.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final sec = controller.sectionList[index];
+                return Obx(() {
+                  final isSelected =
+                  controller.selectedSectionIds.contains(sec.sectionId);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (isSelected) {
+                        controller.selectedSectionIds.remove(sec.sectionId);
+                      } else {
+                        controller.selectedSectionIds.add(sec.sectionId!);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? axisMaroon
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? axisMaroon
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_circle,
+                                size: 14.sp, color: Colors.white),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            sec.section ?? "",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
         ),
-        menuMaxHeight: 300,
-        dropdownColor: Colors.white,
-        icon: Icon(Icons.keyboard_arrow_down_rounded,
-            color: Colors.grey.shade500),
-      );
-    });
+      ],
+    );
   }
 
   Widget _datePicker({required String label, required bool isCreate}) {
@@ -551,6 +610,16 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
   final Map<int, double> _downloadProgress = {};
   final Map<int, bool> _isDownloading = {};
 
+  // 🆕 ADDED: search bar state (admin project jaisa hi)
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   String _formatDate(String? date) {
     if (date == null || date.isEmpty) return "N/A";
     try {
@@ -632,6 +701,54 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
     );
   }
 
+  // 🆕 ADDED: search bar widget (title / message / class / section pe filter)
+  Widget _buildSearchBar() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim().toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: "Search by title, message, class or section...",
+          hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: axisMaroonShade700),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -641,194 +758,224 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final data = controller.notificationall.value.data;
+        final allData = controller.notificationall.value.data ?? [];
 
-        if (data == null || data.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.notifications_off_outlined,
-                    size: 60, color: Colors.grey.shade300),
-                SizedBox(height: 12.h),
-                Text(
-                  'No notifications found',
-                  style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          );
-        }
+        // 🆕 ADDED: local search filter — title/message/class/section
+        final data = _searchQuery.isEmpty
+            ? allData
+            : allData.where((item) {
+          final title = (item.tittle ?? '').toLowerCase();
+          final message = (item.message ?? '').toLowerCase();
+          final className = (item.className ?? '').toLowerCase();
+          final sectionName = (item.sectionName ?? '').toLowerCase();
+          return title.contains(_searchQuery) ||
+              message.contains(_searchQuery) ||
+              className.contains(_searchQuery) ||
+              sectionName.contains(_searchQuery);
+        }).toList();
 
-        return ListView.builder(
-          itemCount: data.length,
-          itemBuilder: (context, index) {
-            final item = data[index];
-
-            final downloading = _isDownloading[index] ?? false;
-            final progress = _downloadProgress[index] ?? 0.0;
-
-            final titleText = item.tittle ?? 'No Title';
-            final className = item.className ?? 'N/A';
-            final sectionName = item.sectionName ?? 'N/A';
-            final messageText = item.message ?? 'No Message';
-            final date = _formatDate(item.createDate ?? '');
-
-            return Container(
-              margin: EdgeInsets.only(bottom: 14.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(14.r),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSearchBar(),
+            Expanded(
+              child: data.isEmpty
+                  ? Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          height: 34.r,
-                          width: 34.r,
-                          decoration: BoxDecoration(
-                            color: axisMaroonShade50,
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Icon(
-                            Icons.campaign_rounded,
-                            color: axisMaroonShade700,
-                            size: 18.sp,
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Text(
-                            ' $titleText',
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-                        Text(
-                          "Date: $date",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w700,
-                          ),
+                    Icon(
+                      allData.isEmpty
+                          ? Icons.notifications_off_outlined
+                          : Icons.search_off_rounded,
+                      size: 60,
+                      color: Colors.grey.shade300,
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      allData.isEmpty
+                          ? 'No notifications found'
+                          : 'No matching notifications',
+                      style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              )
+                  : ListView.builder(
+                itemCount: data.length,
+                itemBuilder: (context, index) {
+                  final item = data[index];
+
+                  final downloading = _isDownloading[index] ?? false;
+                  final progress = _downloadProgress[index] ?? 0.0;
+
+                  final titleText = item.tittle ?? 'No Title';
+                  final className = item.className ?? 'N/A';
+                  final sectionName = item.sectionName ?? 'N/A';
+                  final messageText = item.message ?? 'No Message';
+                  final date = _formatDate(item.createDate ?? '');
+
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 14.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      messageText,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: Colors.grey.shade800,
-                        fontWeight: FontWeight.w700,
-                        height: 1.35,
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-                    Divider(color: Colors.grey.shade300, height: 1),
-                    SizedBox(height: 10.h),
-                    Text(
-                      'Class: $className',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'Section: $sectionName',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (item.notificationfile?.isNotEmpty ?? false) ...[
-                      SizedBox(height: 12.h),
-                      Divider(color: Colors.grey.shade200, height: 1),
-                      SizedBox(height: 10.h),
-                      if (downloading)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.grey.shade200,
-                              color: axisMaroon,
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              "Downloading ${(progress * 100).toStringAsFixed(0)}%",
-                              style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: axisMaroonShade700),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                final fileUrl =
-                                    "https://playschool.edubloom.in/Upload/Notification/Images/${item.notificationfile}";
-                                final fileName = item.notificationfile!;
-                                _downloadAndShare(
-                                  url: fileUrl,
-                                  fileName: fileName,
-                                  index: index,
-                                  title: titleText,
-                                  className: className,
-                                  sectionName: sectionName,
-                                  message: messageText,
-                                  date: date,
-                                );
-                              },
-                              icon: const Icon(Icons.download, size: 18),
-                              label: const Text("Download & Share"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: axisMaroonShade700,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 14.w, vertical: 10.h),
-                                shape: RoundedRectangleBorder(
+                    child: Padding(
+                      padding: EdgeInsets.all(14.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                height: 34.r,
+                                width: 34.r,
+                                decoration: BoxDecoration(
+                                  color: axisMaroonShade50,
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
-                                textStyle: TextStyle(fontSize: 13.sp),
+                                child: Icon(
+                                  Icons.campaign_rounded,
+                                  color: axisMaroonShade700,
+                                  size: 18.sp,
+                                ),
                               ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  ' $titleText',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Text(
+                                "Date: $date",
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            messageText,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w700,
+                              height: 1.35,
                             ),
+                          ),
+                          SizedBox(height: 10.h),
+                          Divider(color: Colors.grey.shade300, height: 1),
+                          SizedBox(height: 10.h),
+                          Text(
+                            'Class: $className',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'Section: $sectionName',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (item.notificationfile?.isNotEmpty ?? false) ...[
+                            SizedBox(height: 12.h),
+                            Divider(color: Colors.grey.shade200, height: 1),
+                            SizedBox(height: 10.h),
+                            if (downloading)
+                              Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                                children: [
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey.shade200,
+                                    color: axisMaroon,
+                                    minHeight: 6,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    "Downloading ${(progress * 100).toStringAsFixed(0)}%",
+                                    style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: axisMaroonShade700),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final fileUrl =
+                                          "https://playschool.edubloom.in/Upload/Notification/Images/${item.notificationfile}";
+                                      final fileName =
+                                      item.notificationfile!;
+                                      _downloadAndShare(
+                                        url: fileUrl,
+                                        fileName: fileName,
+                                        index: index,
+                                        title: titleText,
+                                        className: className,
+                                        sectionName: sectionName,
+                                        message: messageText,
+                                        date: date,
+                                      );
+                                    },
+                                    icon: const Icon(Icons.download, size: 18),
+                                    label: const Text("Download & Share"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: axisMaroonShade700,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 14.w, vertical: 10.h),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(10.r),
+                                      ),
+                                      textStyle: TextStyle(fontSize: 13.sp),
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
-                        ),
-                    ],
-                  ],
-                ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         );
       }),
     );

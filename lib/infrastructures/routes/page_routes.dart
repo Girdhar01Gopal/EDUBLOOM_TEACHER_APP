@@ -54,6 +54,7 @@ import '../../binding/foundational_skills_binding.dart';
 import '../../binding/galleryvideobinding.dart';
 import '../../binding/grade_master_binding.dart';
 import '../../binding/home_work_binding.dart';
+import '../../binding/leave request binding.dart';
 import '../../binding/login_screen_binding.dart';
 import '../../binding/map_descriptors_binding.dart';
 import '../../binding/map_foundational_skills_binding.dart';
@@ -166,6 +167,7 @@ import '../../pages/galeryvideoview.dart';
 import '../../pages/grade_master_screen.dart';
 import '../../pages/home_work_screen.dart';
 import '../../pages/homepage.dart';
+import '../../pages/leave request screen.dart';
 import '../../pages/logInpage.dart';
 import '../../pages/map_descriptors_master_screen.dart';
 import '../../pages/map_foundational_skills_screen.dart';
@@ -1009,5 +1011,12 @@ GetPage(
       page: () => CurriculumScreen(),
       binding: curriculumBinding(),
     ),
+    GetPage(
+      name: RouteName.leaverequest,
+      page: () => LeaveRequestScreen(),
+      binding: LeaveRequestBinding(),
+      transition: Transition.leftToRight,
+    ),
+
   ];
 }

@@ -62,7 +62,7 @@ class NoteScreen extends GetView<NoteController> {
         body: const TabBarView(
           children: [
             AddNoteTab(),
-            ViewNoteTab(), // ✅ fixed: was ViewNooteTab() which doesn't exist
+            ViewNoteTab(),
           ],
         ),
       ),
@@ -79,81 +79,22 @@ class AddNoteTab extends GetView<NoteController> {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.r),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Class Dropdown
-          Obx(
-                () => DropdownButtonFormField<ListDataa>(
-              value: controller.listDataa
-                  .contains(controller.selectedClass.value)
-                  ? controller.selectedClass.value
-                  : null,
-              items: controller.listDataa
-                  .map(
-                    (item) => DropdownMenuItem<ListDataa>(
-                  value: item,
-                  child: Text(item.className ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: controller.setSelectedClass,
-              decoration: const InputDecoration(
-                labelText: 'Select Class',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          // 🆕 CHANGED: dropdown -> horizontal multi-select chips
+          _sectionLabel("Select Class (Multiple)"),
+          SizedBox(height: 8.h),
+          _classMultiSelect(),
           SizedBox(height: 16.h),
 
-          // Section Dropdown
-          Obx(
-                () => DropdownButtonFormField<stListData>(
-              value: controller.sectionList
-                  .contains(controller.selectedSection.value)
-                  ? controller.selectedSection.value
-                  : null,
-              items: controller.sectionList
-                  .map(
-                    (item) => DropdownMenuItem<stListData>(
-                  value: item,
-                  child: Text(item.section ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: controller.setSelectedSection,
-              decoration: const InputDecoration(
-                labelText: 'Select Section',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          _sectionLabel("Select Section (Multiple)"),
+          SizedBox(height: 8.h),
+          _sectionMultiSelect(),
           SizedBox(height: 16.h),
 
-
-          // Subject Dropdown
-          Obx(
-                () => DropdownButtonFormField<ListDaataa>(
-              value: controller.subjectlist
-                  .contains(controller.selectsubject.value)
-                  ? controller.selectsubject.value
-                  : null,
-              items: controller.subjectlist
-                  .map(
-                    (item) => DropdownMenuItem<ListDaataa>(
-                  value: item,
-                  child: Text(item.subject ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: (val) {
-                controller.setsubject(val);
-                controller.subject.value = val?.subjectId ?? 0;
-              },
-              decoration: const InputDecoration(
-                labelText: 'Select Subject',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          _sectionLabel("Select Subject (Multiple)"),
+          SizedBox(height: 8.h),
+          _subjectMultiSelect(),
           SizedBox(height: 16.h),
 
           // Remarks
@@ -187,12 +128,7 @@ class AddNoteTab extends GetView<NoteController> {
                 'Submit',
                 style: TextStyle(color: Colors.white, fontSize: 15),
               ),
-              onPressed: () => controller.registerNote(
-                controller.selectedClass.value?.classId ?? 0,
-                controller.selectedSection.value?.sectionId ?? 0,
-                controller.selectsubject.value?.subjectId ?? 0,
-                controller.remarks.value,
-              ),
+              onPressed: () => controller.registerNote(controller.remarks.value),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -203,6 +139,239 @@ class AddNoteTab extends GetView<NoteController> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 15.sp,
+      fontWeight: FontWeight.w700,
+      color: Colors.blueGrey.shade800,
+    ),
+  );
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Class
+  // 🔧 FIX: ab controller.isClassLoading check ho raha hai (isLoading nahi),
+  // taaki subject/section fetch chalte waqt yeh widget stuck na dikhe.
+  Widget _classMultiSelect() {
+    return SizedBox(
+      height: 42.h,
+      child: Obx(() {
+        if (controller.isClassLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.listDataa.isEmpty) {
+          return Text(
+            "No classes found",
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+          );
+        }
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: controller.listDataa.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (context, index) {
+            final cls = controller.listDataa[index];
+            return Obx(() {
+              final isSelected =
+              controller.selectedClassIds.contains(cls.classId);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (cls.classId != null) {
+                    controller.toggleClassSelection(cls.classId!);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isSelected ? axisMaroon : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle,
+                            size: 14.sp, color: Colors.white),
+                        SizedBox(width: 4.w),
+                      ],
+                      Text(
+                        cls.className ?? "",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          },
+        );
+      }),
+    );
+  }
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Section
+  // 🔧 FIX: ab controller.isSectionLoading check ho raha hai (isLoading nahi).
+  Widget _sectionMultiSelect() {
+    return SizedBox(
+      height: 42.h,
+      child: Obx(() {
+        if (controller.isSectionLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.sectionList.isEmpty) {
+          return Text(
+            "No sections found",
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+          );
+        }
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: controller.sectionList.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (context, index) {
+            final sec = controller.sectionList[index];
+            return Obx(() {
+              final isSelected =
+              controller.selectedSectionIds.contains(sec.sectionId);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (sec.sectionId != null) {
+                    controller.toggleSectionSelection(sec.sectionId!);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isSelected ? axisMaroon : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle,
+                            size: 14.sp, color: Colors.white),
+                        SizedBox(width: 4.w),
+                      ],
+                      Text(
+                        sec.section ?? "",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          },
+        );
+      }),
+    );
+  }
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Subject
+  // 🔧 FIX (main issue): pehle yahan controller.isLoading check ho raha
+  // tha — jo classes/sections/subjects/notes SABKE liye shared tha.
+  // Staff login mein jab classes+sections+subjects ek saath fetch ho
+  // rahe the, to koi ek jaldi finish hoke isLoading(false) kar deta
+  // tha aur widget "No subjects found" dikha deta tha, chahe subjects
+  // ka data thoda der baad successfully aa bhi jaata. Ab sirf
+  // isSubjectLoading check ho raha hai jo sirf subject-fetch ke saath
+  // hi true/false hota hai.
+  Widget _subjectMultiSelect() {
+    return SizedBox(
+      height: 42.h,
+      child: Obx(() {
+        if (controller.isSubjectLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.subjectlist.isEmpty) {
+          return Text(
+            "No subjects found",
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+          );
+        }
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: controller.subjectlist.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (context, index) {
+            final subj = controller.subjectlist[index];
+            return Obx(() {
+              final isSelected =
+              controller.selectedSubjectIds.contains(subj.subjectId);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (subj.subjectId != null) {
+                    controller.toggleSubjectSelection(subj.subjectId!);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isSelected ? axisMaroon : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle,
+                            size: 14.sp, color: Colors.white),
+                        SizedBox(width: 4.w),
+                      ],
+                      Text(
+                        subj.subject ?? "",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          },
+        );
+      }),
     );
   }
 
@@ -451,10 +620,22 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
   final Map<int, double> _downloadProgress = {};
   final Map<int, bool> _isDownloading = {};
 
+  // 🆕 ADDED: search bar state (Notification jaisa hi)
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
-    controller.fetchVNotes();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchVNotes();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   String formatDate(String? date) {
@@ -548,211 +729,282 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     );
   }
 
+  // 🆕 ADDED: search bar widget (title/message/remarks/class/section pe filter)
+  Widget _buildSearchBar() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim().toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: "Search by message, remarks, class or section...",
+          hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: axisMaroonShade700),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.all(16.r),
+      // 🔧 FIX: yeh tab notes list dikhata hai, isliye ab isNotesLoading
+      // check ho raha hai (isLoading nahi), taaki class/section/subject
+      // fetch chalte waqt yeh tab galat waqt par spinner na dikhaye.
       child: Obx(() {
-        if (controller.isLoading.value) {
+        if (controller.isNotesLoading.value) {
           return const Center(child: CircularProgressIndicator());
-        } else if (controller.listData.isEmpty) {
-          return const Center(child: Text('No notes found'));
-        } else {
-          return ListView.builder(
-            itemCount: controller.listData.length,
-            itemBuilder: (context, index) {
-              final Dataa item = controller.listData[index]; // ✅ typed via new model
+        }
 
-              final subjectItem = _findSubjectById(item.subjectId);
+        final allData = controller.listData;
 
-              // ✅ className & sectionName seedha API response se (no lookup needed)
-              final className = item.className ?? 'N/A';
-              final sectionName = item.sectionName ?? 'N/A';
-              final subjectName = subjectItem?.subject ?? 'N/A';
-              final noteMessage = item.message ?? 'No Message';
-              final remarks = item.remarks ?? 'No Remarks';
-              final date = formatDate(item.createDate ?? '');
+        // 🆕 ADDED: local search filter
+        final data = _searchQuery.isEmpty
+            ? allData
+            : allData.where((item) {
+          final noteMessage = (item.message ?? '').toLowerCase();
+          final remarks = (item.remarks ?? '').toLowerCase();
+          final className = (item.className ?? '').toLowerCase();
+          final sectionName = (item.sectionName ?? '').toLowerCase();
+          return noteMessage.contains(_searchQuery) ||
+              remarks.contains(_searchQuery) ||
+              className.contains(_searchQuery) ||
+              sectionName.contains(_searchQuery);
+        }).toList();
 
-              final downloading = _isDownloading[index] ?? false;
-              final progress = _downloadProgress[index] ?? 0.0;
-
-              final hasFile =
-                  item.notesFile != null && item.notesFile!.isNotEmpty;
-
-              return Container(
-                margin: EdgeInsets.only(bottom: 14.h),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSearchBar(),
+            Expanded(
+              child: data.isEmpty
+                  ? Center(
+                child: Text(
+                  allData.isEmpty
+                      ? 'No notes found'
+                      : 'No matching notes',
+                  style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600),
                 ),
-                child: Padding(
-                  padding: EdgeInsets.all(14.r),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Row
-                      Row(
+              )
+                  : ListView.builder(
+                itemCount: data.length,
+                itemBuilder: (context, index) {
+                  final Dataa item = data[index];
+
+                  final subjectItem = _findSubjectById(item.subjectId);
+
+                  final className = item.className ?? 'N/A';
+                  final sectionName = item.sectionName ?? 'N/A';
+                  final subjectName = subjectItem?.subject ?? 'N/A';
+                  final noteMessage = item.message ?? 'No Message';
+                  final remarks = item.remarks ?? 'No Remarks';
+                  final date = formatDate(item.createDate ?? '');
+
+                  final downloading = _isDownloading[index] ?? false;
+                  final progress = _downloadProgress[index] ?? 0.0;
+
+                  final hasFile =
+                      item.notesFile != null && item.notesFile!.isNotEmpty;
+
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 14.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(14.r),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            height: 34.r,
-                            width: 34.r,
-                            decoration: BoxDecoration(
-                              color: Colors.purple.shade50,
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                            child: Icon(
-                              Icons.menu_book,
-                              color: Colors.purple.shade700,
-                              size: 18.sp,
-                            ),
-                          ),
-                          SizedBox(width: 10.w),
-                          Expanded(
-                            child: Text(
-                              'Note: $noteMessage',
-                              style: TextStyle(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.w800,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                height: 34.r,
+                                width: 34.r,
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade50,
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                child: Icon(
+                                  Icons.menu_book,
+                                  color: Colors.purple.shade700,
+                                  size: 18.sp,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  'Note: $noteMessage',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Text(
+                                "Date: $date",
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 10.w),
+                          SizedBox(height: 8.h),
+                          SizedBox(height: 10.h),
+                          Divider(color: Colors.grey.shade300, height: 1),
+                          SizedBox(height: 10.h),
+
                           Text(
-                            "Date: $date",
+                            'Class: $className',
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: Colors.grey.shade700,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'Section: $sectionName',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+
+                          if (hasFile) ...[
+                            SizedBox(height: 12.h),
+                            Divider(color: Colors.grey.shade200, height: 1),
+                            SizedBox(height: 10.h),
+
+                            if (downloading)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey.shade200,
+                                    color: axisMaroon,
+                                    minHeight: 6,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    "Downloading ${(progress * 100).toStringAsFixed(0)}%",
+                                    style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: axisMaroonShade700),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final fileUrl =
+                                          "https://playschool.edubloom.in/Upload/Notification/Images/${item.notesFile}";
+                                      final fileName = item.notesFile!
+                                          .toLowerCase()
+                                          .endsWith('.pdf')
+                                          ? item.notesFile!
+                                          : '${item.notesFile}.pdf';
+
+                                      _downloadAndShare(
+                                        url: fileUrl,
+                                        fileName: fileName,
+                                        index: index,
+                                        className: className,
+                                        sectionName: sectionName,
+                                        noteTitle: noteMessage,
+                                        remarks: remarks,
+                                        date: date,
+                                      );
+                                    },
+                                    icon: const Icon(Icons.download, size: 18),
+                                    label: const Text("Download & Share"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: axisMaroonShade700,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 14.w, vertical: 10.h),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(10.r),
+                                      ),
+                                      textStyle: TextStyle(fontSize: 13.sp),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ] else ...[
+                            SizedBox(height: 8.h),
+                            Text(
+                              "No file attached",
+                              style: TextStyle(color: Colors.grey.shade500),
+                            ),
+                          ],
                         ],
                       ),
-                      SizedBox(height: 8.h),
-
-                      // ✅ Subject name shown here now (instead of remarks)
-                      // Text(
-                      //   subjectName,
-                      //   style: TextStyle(
-                      //     fontSize: 13.sp,
-                      //     color: Colors.grey.shade800,
-                      //     fontWeight: FontWeight.w700,
-                      //     height: 1.35,
-                      //   ),
-                      // ),
-
-                      SizedBox(height: 10.h),
-                      Divider(color: Colors.grey.shade300, height: 1),
-                      SizedBox(height: 10.h),
-
-                      Text(
-                        'Class: $className',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        'Section: $sectionName',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-
-                      // Download section
-                      if (hasFile) ...[
-                        SizedBox(height: 12.h),
-                        Divider(color: Colors.grey.shade200, height: 1),
-                        SizedBox(height: 10.h),
-
-                        if (downloading)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              LinearProgressIndicator(
-                                value: progress,
-                                backgroundColor: Colors.grey.shade200,
-                                color: axisMaroon,
-                                minHeight: 6,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              SizedBox(height: 6.h),
-                              Text(
-                                "Downloading ${(progress * 100).toStringAsFixed(0)}%",
-                                style: TextStyle(
-                                    fontSize: 12.sp,
-                                    color: axisMaroonShade700),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          )
-                        else
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  final fileUrl =
-                                      "https://playschool.edubloom.in/Upload/Notification/Images/${item.notesFile}";
-                                  final fileName = item.notesFile!
-                                      .toLowerCase()
-                                      .endsWith('.pdf')
-                                      ? item.notesFile!
-                                      : '${item.notesFile}.pdf';
-
-                                  _downloadAndShare(
-                                    url: fileUrl,
-                                    fileName: fileName,
-                                    index: index,
-                                    className: className,
-                                    sectionName: sectionName,
-                                    noteTitle: noteMessage,
-                                    remarks: remarks,
-                                    date: date,
-                                  );
-                                },
-                                icon: const Icon(Icons.download, size: 18),
-                                label: const Text("Download & Share"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: axisMaroonShade700,
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 14.w, vertical: 10.h),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  ),
-                                  textStyle: TextStyle(fontSize: 13.sp),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ] else ...[
-                        SizedBox(height: 8.h),
-                        Text(
-                          "No file attached",
-                          style: TextStyle(color: Colors.grey.shade500),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        }
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
       }),
     );
   }

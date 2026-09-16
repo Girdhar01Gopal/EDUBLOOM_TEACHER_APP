@@ -16,6 +16,14 @@ import '../models/subject_model.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 
+const Color axisMaroon = Color(0xFF97144D);
+const Color axisMaroonShade50 = Color(0xFFF3E0E9);
+const Color axisMaroonShade300 = Color(0xFFC0568C);
+const Color axisMaroonShade400 = Color(0xFFAE3B77);
+const Color axisMaroonShade600 = Color(0xFFA61856);
+const Color axisMaroonShade700 = Color(0xFF97144D);
+const Color axisMaroonShade800 = Color(0xFF800F40);
+
 class HomeworkScreen extends GetView<HomeworkController> {
   const HomeworkScreen({super.key});
 
@@ -26,7 +34,7 @@ class HomeworkScreen extends GetView<HomeworkController> {
       child: Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
-          backgroundColor: const Color(0xFF97144D),
+          backgroundColor: axisMaroonShade800,
           title: const Text(
             "📚 Homework",
             style: TextStyle(color: Colors.white),
@@ -73,82 +81,20 @@ class AddHomeworkTab extends GetView<HomeworkController> {
         children: [
           SizedBox(height: 16.h),
 
-          Obx(
-                () => DropdownButtonFormField<ListDataa>(
-              value: controller.selectedClass.value,
-              items: controller.listDataa
-                  .map(
-                    (item) => DropdownMenuItem<ListDataa>(
-                  value: item,
-                  child: Text(item.className ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: (val) => controller.setSelectedClass(val),
-              decoration: const InputDecoration(
-                labelText: 'Select Class',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          // 🆕 CHANGED: dropdown -> horizontal multi-select chips
+          _sectionLabel("Select Class (Multiple)"),
+          SizedBox(height: 8.h),
+          _classMultiSelect(),
           SizedBox(height: 16.h),
 
-          Obx(
-                () => DropdownButtonFormField<ListDaataa>(
-              value: controller.subjectlist.firstWhereOrNull(
-                      (e) => e.subjectId == controller.subject.value),
-              items: controller.subjectlist
-                  .map(
-                    (item) => DropdownMenuItem<ListDaataa>(
-                  value: item,
-                  child: Text(item.subject ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: (val) => controller.setsubject(val),
-              decoration: const InputDecoration(
-                labelText: 'Select Subject',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          _sectionLabel("Select Section (Multiple)"),
+          SizedBox(height: 8.h),
+          _sectionMultiSelect(),
           SizedBox(height: 16.h),
 
-          Obx(() {
-            return DropdownButtonFormField<stListData?>(
-              value: controller.selectedSection.value,
-              isExpanded: true,
-              hint: const Text('Select Section'),
-              items: [
-                const DropdownMenuItem<stListData?>(
-                  value: null,
-                  child: Text(
-                    'Select Section',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ...controller.sectionList.map(
-                      (item) => DropdownMenuItem<stListData?>(
-                    value: item,
-                    child: Text(item.section ?? ''),
-                  ),
-                ),
-              ],
-              onChanged: (stListData? newVal) {
-                controller.setSelectedSection(newVal);
-                controller.section.value =
-                    newVal?.sectionId.toString() ?? '';
-              },
-              decoration: const InputDecoration(
-                labelText: 'Select Section',
-                border: OutlineInputBorder(),
-              ),
-              validator: (val) {
-                if (val == null) return 'Section is required';
-                return null;
-              },
-            );
-          }),
+          _sectionLabel("Select Subject (Multiple)"),
+          SizedBox(height: 8.h),
+          _subjectMultiSelect(),
           SizedBox(height: 16.h),
 
           Obx(
@@ -189,17 +135,7 @@ class AddHomeworkTab extends GetView<HomeworkController> {
               icon: const Icon(Icons.save, color: Colors.white),
               label: const Text('Submit',
                   style: TextStyle(color: Colors.white, fontSize: 15)),
-              onPressed: () {
-                controller.registerHomework(
-                  homeworkName: controller.homeworkName.value,
-                  section: controller.selectedSection.value?.sectionId ?? 0,
-                  homeworkDate: controller.getFormattedDate(),
-                  homeworkPlace: controller.homeworkPlace.value,
-                  description: controller.description.value,
-                  homeworkClass:
-                  controller.selectedClass.value?.classId ?? 0,
-                );
-              },
+              onPressed: () => controller.registerHomework(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -211,6 +147,228 @@ class AddHomeworkTab extends GetView<HomeworkController> {
           SizedBox(height: 16.h),
         ],
       ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 15.sp,
+      fontWeight: FontWeight.w700,
+      color: Colors.blueGrey.shade800,
+    ),
+  );
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Class
+  Widget _classMultiSelect() {
+    return SizedBox(
+      height: 42.h,
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.listDataa.isEmpty) {
+          return Text(
+            "No classes found",
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+          );
+        }
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: controller.listDataa.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (context, index) {
+            final cls = controller.listDataa[index];
+            return Obx(() {
+              final isSelected =
+              controller.selectedClassIds.contains(cls.classId);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (cls.classId != null) {
+                    controller.toggleClassSelection(cls.classId!);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isSelected ? axisMaroon : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle,
+                            size: 14.sp, color: Colors.white),
+                        SizedBox(width: 4.w),
+                      ],
+                      Text(
+                        cls.className ?? "",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          },
+        );
+      }),
+    );
+  }
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Section
+  Widget _sectionMultiSelect() {
+    return SizedBox(
+      height: 42.h,
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.sectionList.isEmpty) {
+          return Text(
+            "No sections found",
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+          );
+        }
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: controller.sectionList.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (context, index) {
+            final sec = controller.sectionList[index];
+            return Obx(() {
+              final isSelected =
+              controller.selectedSectionIds.contains(sec.sectionId);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (sec.sectionId != null) {
+                    controller.toggleSectionSelection(sec.sectionId!);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isSelected ? axisMaroon : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle,
+                            size: 14.sp, color: Colors.white),
+                        SizedBox(width: 4.w),
+                      ],
+                      Text(
+                        sec.section ?? "",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          },
+        );
+      }),
+    );
+  }
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Subject
+  Widget _subjectMultiSelect() {
+    return SizedBox(
+      height: 42.h,
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.subjectlist.isEmpty) {
+          return Text(
+            "No subjects found",
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+          );
+        }
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: controller.subjectlist.length,
+          separatorBuilder: (_, __) => SizedBox(width: 8.w),
+          itemBuilder: (context, index) {
+            final subj = controller.subjectlist[index];
+            return Obx(() {
+              final isSelected =
+              controller.selectedSubjectIds.contains(subj.subjectId);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (subj.subjectId != null) {
+                    controller.toggleSubjectSelection(subj.subjectId!);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: isSelected ? axisMaroon : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle,
+                            size: 14.sp, color: Colors.white),
+                        SizedBox(width: 4.w),
+                      ],
+                      Text(
+                        subj.subject ?? "",
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            });
+          },
+        );
+      }),
     );
   }
 
@@ -240,9 +398,9 @@ class AddHomeworkTab extends GetView<HomeworkController> {
               height: 160.h,
               width: double.infinity,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF97144D).withOpacity(0.5), width: 1.5),
+                border: Border.all(color: axisMaroonShade300, width: 1.5),
                 borderRadius: BorderRadius.circular(12.r),
-                color: const Color(0xFF97144D).withOpacity(0.06),
+                color: axisMaroonShade50,
               ),
               child: file != null
                   ? _buildFilePreview(file)
@@ -250,12 +408,12 @@ class AddHomeworkTab extends GetView<HomeworkController> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_circle_outline,
-                      size: 40.sp, color: const Color(0xFF97144D).withOpacity(0.6)),
+                      size: 40.sp, color: axisMaroonShade400),
                   SizedBox(height: 8.h),
                   Text("Tap to select file",
                       style: TextStyle(
                           fontSize: 14.sp,
-                          color: const Color(0xFF97144D).withOpacity(0.8))),
+                          color: axisMaroonShade600)),
                   SizedBox(height: 4.h),
                   Text("Camera • Gallery • PDF",
                       style: TextStyle(
@@ -463,10 +621,25 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
   final Map<int, double> _downloadProgress = {};
   final Map<int, bool> _isDownloading = {};
 
+  // 🆕 ADDED: search bar state (Notes jaisa hi)
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
-    controller.fetchHomework();
+    // 🆕 FIX: postFrameCallback se call karo, warna navigation ke beech
+    // "setState()/markNeedsBuild() called during build" crash aata hai
+    // aur us crash ki wajah se naya data screen pe render nahi hota.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchHomework();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // ✅ flutter_file_downloader se download — Notification Page jaisa same logic
@@ -537,6 +710,54 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
     );
   }
 
+  // 🆕 ADDED: search bar widget (subject/desc/class/section pe filter)
+  Widget _buildSearchBar() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim().toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: "Search by subject, description, class or section...",
+          hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: axisMaroonShade700),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -546,182 +767,220 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (controller.homeworkList.isEmpty) {
+        final allList = controller.homeworkList.toList()
+          ..sort((a, b) {
+            final dateA = DateTime.tryParse(a.createDate ?? '') ?? DateTime(1970);
+            final dateB = DateTime.tryParse(b.createDate ?? '') ?? DateTime(1970);
+            return dateB.compareTo(dateA); // descending -> latest date pehle
+          });
+
+        // 🆕 ADDED: local search filter
+        final list = _searchQuery.isEmpty
+            ? allList
+            : allList.where((item) {
+          final subjectName = (item.subjectName ?? '').toLowerCase();
+          final className = (item.className ?? '').toLowerCase();
+          final sectionName = (item.sectionName ?? '').toLowerCase();
+          final desc = (item.remarks ?? '').toLowerCase();
+          return subjectName.contains(_searchQuery) ||
+              className.contains(_searchQuery) ||
+              sectionName.contains(_searchQuery) ||
+              desc.contains(_searchQuery);
+        }).toList();
+
+        if (allList.isEmpty) {
           return const Center(child: Text('No homework found'));
         }
 
-        final list = controller.homeworkList.toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSearchBar(),
+            Expanded(
+              child: list.isEmpty
+                  ? Center(
+                child: Text(
+                  'No matching homework',
+                  style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600),
+                ),
+              )
+                  : ListView.builder(
+                itemCount: list.length,
+                itemBuilder: (context, index) {
+                  final item = list[index];
 
-        return ListView.builder(
-          itemCount: list.length,
-          itemBuilder: (context, index) {
-            final item = list[index];
+                  final downloading = _isDownloading[index] ?? false;
+                  final progress = _downloadProgress[index] ?? 0.0;
 
-            final downloading = _isDownloading[index] ?? false;
-            final progress = _downloadProgress[index] ?? 0.0;
+                  final subjectName = item.subjectName ?? 'N/A';
+                  final className = item.className ?? 'N/A';
+                  final sectionName = item.sectionName ?? 'N/A';
+                  final desc = item.remarks ?? 'No description';
+                  final date = formatDate(item.createDate ?? '');
 
-            final subjectName = item.subjectName ?? 'N/A';
-            final className = item.className ?? 'N/A';
-            final sectionName = item.sectionName ?? 'N/A';
-            final desc = item.remarks ?? 'No description';
-            final date = formatDate(item.createDate ?? '');
-
-            return Container(
-              margin: EdgeInsets.only(bottom: 14.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(14.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          height: 34.r,
-                          width: 34.r,
-                          decoration: BoxDecoration(
-                            color: Colors.purple.shade50,
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Icon(
-                            Icons.menu_book,
-                            color: Colors.purple[700],
-                            size: 18.sp,
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Text(
-                            'Homework: $subjectName',
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 10.w),
-                        Text(
-                          "Date: $date",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w700,
-                          ),
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 14.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      desc,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: Colors.grey.shade800,
-                        fontWeight: FontWeight.w700,
-                        height: 1.35,
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-                    Divider(color: Colors.grey.shade300, height: 1),
-                    SizedBox(height: 10.h),
-                    Text(
-                      'Class: $className',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'Section: $sectionName',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (item.homeworkFile?.isNotEmpty ?? false) ...[
-                      SizedBox(height: 12.h),
-                      Divider(color: Colors.grey.shade200, height: 1),
-                      SizedBox(height: 10.h),
-                      if (downloading)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.grey.shade200,
-                              color: const Color(0xFF97144D),
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              "Downloading ${(progress * 100).toStringAsFixed(0)}%",
-                              style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: const Color(0xFF97144D)),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                final fileUrl =
-                                    '${AppUrl.base_url}${AppUrl.homeworkDownloadUrl}${item.homeworkFile}';
-                                String fileName =
-                                    item.homeworkFile ?? 'homework_$index';
-                                if (!fileName.toLowerCase().endsWith('.pdf')) {
-                                  fileName = '$fileName.pdf';
-                                }
-                                _downloadAndShare(
-                                  url: fileUrl,
-                                  fileName: fileName,
-                                  index: index,
-                                  subjectName: subjectName,
-                                  className: className,
-                                  sectionName: sectionName,
-                                  description: desc,
-                                  date: date,
-                                );
-                              },
-                              icon: const Icon(Icons.download, size: 18),
-                              label: const Text("Download & Share"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF97144D),
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 14.w, vertical: 10.h),
-                                shape: RoundedRectangleBorder(
+                    child: Padding(
+                      padding: EdgeInsets.all(14.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                height: 34.r,
+                                width: 34.r,
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade50,
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
-                                textStyle: TextStyle(fontSize: 13.sp),
+                                child: Icon(
+                                  Icons.menu_book,
+                                  color: Colors.purple[700],
+                                  size: 18.sp,
+                                ),
                               ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  'Homework: $subjectName',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              Text(
+                                "Date: $date",
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            desc,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w700,
+                              height: 1.35,
                             ),
+                          ),
+                          SizedBox(height: 10.h),
+                          Divider(color: Colors.grey.shade300, height: 1),
+                          SizedBox(height: 10.h),
+                          Text(
+                            'Class: $className',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'Section: $sectionName',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (item.homeworkFile?.isNotEmpty ?? false) ...[
+                            SizedBox(height: 12.h),
+                            Divider(color: Colors.grey.shade200, height: 1),
+                            SizedBox(height: 10.h),
+                            if (downloading)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey.shade200,
+                                    color: axisMaroon,
+                                    minHeight: 6,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    "Downloading ${(progress * 100).toStringAsFixed(0)}%",
+                                    style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: axisMaroon),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final fileUrl =
+                                          '${AppUrl.base_url}${AppUrl.homeworkDownloadUrl}${item.homeworkFile}';
+                                      String fileName =
+                                          item.homeworkFile ?? 'homework_$index';
+                                      if (!fileName.toLowerCase().endsWith('.pdf')) {
+                                        fileName = '$fileName.pdf';
+                                      }
+                                      _downloadAndShare(
+                                        url: fileUrl,
+                                        fileName: fileName,
+                                        index: index,
+                                        subjectName: subjectName,
+                                        className: className,
+                                        sectionName: sectionName,
+                                        description: desc,
+                                        date: date,
+                                      );
+                                    },
+                                    icon: const Icon(Icons.download, size: 18),
+                                    label: const Text("Download & Share"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: axisMaroon,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 14.w, vertical: 10.h),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(10.r),
+                                      ),
+                                      textStyle: TextStyle(fontSize: 13.sp),
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
-                        ),
-                    ],
-                  ],
-                ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         );
       }),
     );

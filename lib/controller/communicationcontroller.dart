@@ -37,12 +37,12 @@ const List<_TileSpec> _tileSpecs = [
       Color(0xFFE8EAF6), RouteName.homework, ['HomeWork']),
   _TileSpec("Syllabus", Icons.menu_book_rounded, Color(0xFF00897B),
       Color(0xFFE0F2F1), RouteName.syllabus, ['Syllabus']),
-  _TileSpec("Circular", Icons.collections_bookmark_rounded, Color(0xFF1E88E5),
-      Color(0xFFE3F2FD), RouteName.viewcurriculumview, ['ViewCurriculum']),
-  _TileSpec("Add/View Curriculum", Icons.library_books_rounded, Color(0xFFF4511E),
-      Color(0xFFE3F2FD), RouteName.addviewcurriculum, ['Add/View Curriculum']),
-  _TileSpec("Parent Enquiry", Icons.edit_note_rounded, Color(0xFF00897B),
-      Color(0xFFE3F2FD), RouteName.parentenquirypage, ['Parent Enquiry']),
+  // _TileSpec("Leave Request", Icons.edit_note_rounded, Color(0xFF1E88E5),
+  //     Color(0xFFE3F2FD), RouteName.leaverequest, ['ViewCurriculum']),
+  // _TileSpec("Add/View Curriculum", Icons.library_books_rounded, Color(0xFFF4511E),
+  //     Color(0xFFE3F2FD), RouteName.addviewcurriculum, ['Add/View Curriculum']),
+  // _TileSpec("Parent Enquiry", Icons.edit_note_rounded, Color(0xFF00897B),
+  //     Color(0xFFE3F2FD), RouteName.parentenquirypage, ['Parent Enquiry']),
 ];
 
 class Communicationcontroller extends GetxController {

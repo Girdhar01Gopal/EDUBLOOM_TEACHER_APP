@@ -139,9 +139,9 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _classDropdown(),
+                  _classMultiSelect(),
                   SizedBox(height: 12.h),
-                  _sectionDropdown(),
+                  _sectionMultiSelect(),
                   SizedBox(height: 12.h),
                   TextField(
                     controller: controller.videoUrlController,
@@ -238,43 +238,181 @@ class Galeryvideoview extends GetView<Galaryvidevconroller> {
     );
   }
 
-  Widget _classDropdown() {
-    return DropdownButtonFormField(
-      value: controller.selectedClassId.value == 0
-          ? null
-          : controller.selectedClassId.value,
-      decoration: const InputDecoration(
-        labelText: "Select Class",
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.class_),
-      ),
-      items: controller.classList
-          .map((cls) => DropdownMenuItem(
-        value: cls.classId,
-        child: Text(cls.className ?? ""),
-      ))
-          .toList(),
-      onChanged: (v) => controller.selectedClassId.value = v!,
+  // ✅ FIXED: custom chip (theme-independent, guaranteed color change on tap)
+  Widget _classMultiSelect() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Select Class (Multiple)",
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 42.h,
+          child: Obx(() {
+            if (controller.classList.isEmpty) {
+              return Text(
+                "No classes found",
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: controller.classList.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final cls = controller.classList[index];
+                return Obx(() {
+                  final isSelected =
+                  controller.selectedClassIds.contains(cls.classId);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (isSelected) {
+                        controller.selectedClassIds.remove(cls.classId);
+                      } else {
+                        controller.selectedClassIds.add(cls.classId!);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF2E7D32) // green when selected
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF2E7D32)
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_circle,
+                                size: 14.sp, color: Colors.white),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            cls.className ?? "",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
+        ),
+      ],
     );
   }
 
-  Widget _sectionDropdown() {
-    return DropdownButtonFormField(
-      value: controller.selectedSectionId.value == 0
-          ? null
-          : controller.selectedSectionId.value,
-      decoration: const InputDecoration(
-        labelText: "Select Section",
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.segment),
-      ),
-      items: controller.sectionList
-          .map((sec) => DropdownMenuItem(
-        value: sec.sectionId,
-        child: Text(sec.section ?? ""),
-      ))
-          .toList(),
-      onChanged: (v) => controller.selectedSectionId.value = v!,
+  // ✅ FIXED: custom chip (theme-independent, guaranteed color change on tap)
+  Widget _sectionMultiSelect() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Select Section (Multiple)",
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 42.h,
+          child: Obx(() {
+            if (controller.sectionList.isEmpty) {
+              return Text(
+                "No sections found",
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: controller.sectionList.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final sec = controller.sectionList[index];
+                return Obx(() {
+                  final isSelected =
+                  controller.selectedSectionIds.contains(sec.sectionId);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (isSelected) {
+                        controller.selectedSectionIds.remove(sec.sectionId);
+                      } else {
+                        controller.selectedSectionIds.add(sec.sectionId!);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF2E7D32) // green when selected
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF2E7D32)
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_circle,
+                                size: 14.sp, color: Colors.white),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            sec.section ?? "",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
+        ),
+      ],
     );
   }
 

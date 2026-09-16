@@ -15,6 +15,8 @@ import '../models/viewsectionmodel.dart';
 
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
+const Color kAxisMaroonShade50 = Color(0xFFF3E0E9);
+const Color kAxisMaroonShade300 = Color(0xFFC0568C);
 
 class EventScreen extends GetView<EventController> {
   const EventScreen({super.key});
@@ -101,61 +103,11 @@ class _AddEventTabState extends State<AddEventTab> {
           _inputField('Event Name', controller.eventName),
           SizedBox(height: 16.h),
 
-          Obx(
-                () => DropdownButtonFormField<ListDataa>(
-              value: controller.selectedClass.value,
-              items: controller.listDataa
-                  .map(
-                    (item) => DropdownMenuItem<ListDataa>(
-                  value: item,
-                  child: Text(item.className ?? ''),
-                ),
-              )
-                  .toList(),
-              onChanged: (val) => controller.setSelectedClass(val),
-              decoration: const InputDecoration(
-                labelText: 'Select Class',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          // 🆕 CHANGED: dropdown -> horizontal multi-select chips (Notification jaisa hi)
+          _classMultiSelect(),
           SizedBox(height: 16.h),
 
-          Obx(
-                () => DropdownButtonFormField<stListData?>(
-              value: controller.selectedSection.value,
-              isExpanded: true,
-              hint: const Text('Select Section'),
-              items: [
-                const DropdownMenuItem<stListData?>(
-                  value: null,
-                  child: Text(
-                    'Select Section',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ...controller.sectionList.map(
-                      (item) => DropdownMenuItem<stListData?>(
-                    value: item,
-                    child: Text(item.section ?? ''),
-                  ),
-                ),
-              ],
-              onChanged: (stListData? newVal) {
-                controller.setSelectedSection(newVal);
-                controller.section.value =
-                    newVal?.sectionId.toString() ?? '';
-              },
-              decoration: const InputDecoration(
-                labelText: 'Select Section',
-                border: OutlineInputBorder(),
-              ),
-              validator: (val) {
-                if (val == null) return 'Section is required';
-                return null;
-              },
-            ),
-          ),
+          _sectionMultiSelect(),
           SizedBox(height: 16.h),
 
           GestureDetector(
@@ -185,43 +137,218 @@ class _AddEventTabState extends State<AddEventTab> {
           ),
           SizedBox(height: 24.h),
 
-          Container(
+          SizedBox(
             width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.pink.shade300, Colors.pink.shade500],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.pink.shade300, Colors.pink.shade500],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12.r),
               ),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.save, color: Colors.white),
-              label: const Text(
-                'Submit',
-                style: TextStyle(color: Colors.white, fontSize: 15),
-              ),
-              onPressed: () {
-                controller.registerEvent(
-                  controller.eventName.value,
-                  controller.selectedSection.value?.sectionId ?? 0,
-                  controller.getApiDate(),
-                  controller.eventPlace.value,
-                  controller.description.value,
-                  controller.selectedClass.value?.classId.toString() ?? '',
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                padding:
-                EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.save, color: Colors.white),
+                label: const Text(
+                  'Submit',
+                  style: TextStyle(color: Colors.white, fontSize: 15),
+                ),
+                onPressed: () => controller.registerEvent(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding:
+                  EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+                ),
               ),
             ),
           ),
           SizedBox(height: 16.h),
         ],
       ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 13.sp,
+      fontWeight: FontWeight.w700,
+      color: Colors.grey.shade700,
+      letterSpacing: 0.3,
+    ),
+  );
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Class (Notification jaisa hi)
+  Widget _classMultiSelect() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel("Select Class (Multiple)"),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 42.h,
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (controller.classList.isEmpty) {
+              return Text(
+                "No classes found",
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: controller.classList.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final cls = controller.classList[index];
+                return Obx(() {
+                  final isSelected =
+                  controller.selectedClassIds.contains(cls.classId);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (isSelected) {
+                        controller.selectedClassIds.remove(cls.classId);
+                      } else {
+                        controller.selectedClassIds.add(cls.classId!);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? kAxisMaroon
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? kAxisMaroon
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_circle,
+                                size: 14.sp, color: Colors.white),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            cls.className ?? "",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  // 🆕 NEW: horizontal scrollable multi-select chips for Section (Notification jaisa hi)
+  Widget _sectionMultiSelect() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel("Select Section (Multiple)"),
+        SizedBox(height: 8.h),
+        SizedBox(
+          height: 42.h,
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (controller.sectionList.isEmpty) {
+              return Text(
+                "No sections found",
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: controller.sectionList.length,
+              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final sec = controller.sectionList[index];
+                return Obx(() {
+                  final isSelected =
+                  controller.selectedSectionIds.contains(sec.sectionId);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (isSelected) {
+                        controller.selectedSectionIds.remove(sec.sectionId);
+                      } else {
+                        controller.selectedSectionIds.add(sec.sectionId!);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? kAxisMaroon
+                            : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? kAxisMaroon
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(Icons.check_circle,
+                                size: 14.sp, color: Colors.white),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            sec.section ?? "",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                });
+              },
+            );
+          }),
+        ),
+      ],
     );
   }
 
@@ -433,10 +560,20 @@ class _ViewEventTabState extends State<ViewEventTab> {
   final Map<int, double> _downloadProgress = {};
   final Map<int, bool> _isDownloading = {};
 
+  // 🆕 ADDED: search bar state (Notification jaisa hi)
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     controller.fetchVEvents();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   String formatDate(String? date) {
@@ -519,6 +656,54 @@ class _ViewEventTabState extends State<ViewEventTab> {
     );
   }
 
+  // 🆕 ADDED: search bar widget (title / place / message pe filter)
+  Widget _buildSearchBar() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim().toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: "Search by event name, place or description...",
+          hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: kAxisMaroon),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -528,161 +713,214 @@ class _ViewEventTabState extends State<ViewEventTab> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (controller.eventList.isEmpty) {
-          return const Center(child: Text('No data found'));
-        }
-
-        final events = controller.eventList.toList()
+        final allEvents = controller.eventList.toList()
           ..sort(
                   (a, b) => (b.createDate ?? '').compareTo(a.createDate ?? ''));
 
-        return ListView.builder(
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final item = events[index];
+        // 🆕 ADDED: local search filter — eventName/eventPlace/description/createBy
+        final events = _searchQuery.isEmpty
+            ? allEvents
+            : allEvents.where((item) {
+          final name = (item.eventName ?? '').toLowerCase();
+          final place = (item.eventPlace ?? '').toLowerCase();
+          final desc = (item.description ?? '').toLowerCase();
+          final by = (item.createBy ?? '').toLowerCase();
+          return name.contains(_searchQuery) ||
+              place.contains(_searchQuery) ||
+              desc.contains(_searchQuery) ||
+              by.contains(_searchQuery);
+        }).toList();
 
-            final createdBy = (item.createBy ?? '').trim();
-            final createdByText = createdBy.isEmpty ? 'N/A' : createdBy;
-
-            final pic = (item.eventPic ?? '').trim();
-            final hasPic = pic.isNotEmpty;
-
-            final downloading = _isDownloading[index] ?? false;
-            final progress = _downloadProgress[index] ?? 0.0;
-
-            return Card(
-              margin: EdgeInsets.symmetric(vertical: 8.h),
-              elevation: 5,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(16.r),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSearchBar(),
+            Expanded(
+              child: events.isEmpty
+                  ? Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12.r),
-                          child: hasPic
-                              ? Image.network(
-                            "https://playschool.edubloom.in/Upload/Event/Images/$pic",
-                            width: 100.w,
-                            height: 100.h,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 100.w,
-                              height: 100.h,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.broken_image,
-                                  color: Colors.white, size: 40),
-                            ),
-                          )
-                              : Container(
-                            width: 100.w,
-                            height: 100.h,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image,
-                                color: Colors.white, size: 40),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.eventName ?? 'N/A',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 6.h),
-                              Text('Place: ${item.eventPlace ?? 'N/A'}',
-                                  style: TextStyle(fontSize: 14.sp)),
-                              SizedBox(height: 4.h),
-                              Text('Desc: ${item.description ?? 'N/A'}',
-                                  style: TextStyle(fontSize: 12.sp)),
-                              SizedBox(height: 6.h),
-                              Text('Date: ${formatDate(item.eventDate)}',
-                                  style: TextStyle(fontSize: 12.sp)),
-                              SizedBox(height: 4.h),
-                              Text('Created By: $createdByText',
-                                  style: TextStyle(fontSize: 12.sp)),
-                            ],
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      allEvents.isEmpty
+                          ? Icons.event_busy_outlined
+                          : Icons.search_off_rounded,
+                      size: 60,
+                      color: Colors.grey.shade300,
                     ),
-                    if (hasPic) ...[
-                      SizedBox(height: 12.h),
-                      Divider(color: Colors.grey.shade200, height: 1),
-                      SizedBox(height: 10.h),
-                      if (downloading)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.grey.shade200,
-                              color: kAxisMaroon,
-                              minHeight: 6,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              "Downloading ${(progress * 100).toStringAsFixed(0)}%",
-                              style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: kAxisMaroon),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                final fileUrl =
-                                    "https://playschool.edubloom.in/Upload/Event/Images/$pic";
-                                _downloadAndShare(
-                                  url: fileUrl,
-                                  fileName: pic,
-                                  index: index,
-                                  eventName: item.eventName ?? 'N/A',
-                                  eventPlace: item.eventPlace ?? 'N/A',
-                                  description: item.description ?? 'N/A',
-                                  eventDate: formatDate(item.eventDate),
-                                  createdBy: createdByText,
-                                );
-                              },
-                              icon: const Icon(Icons.download, size: 18),
-                              label: const Text("Download & Share"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: kAxisMaroon,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 14.w, vertical: 10.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                textStyle: TextStyle(fontSize: 13.sp),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
+                    SizedBox(height: 12.h),
+                    Text(
+                      allEvents.isEmpty
+                          ? 'No data found'
+                          : 'No matching events',
+                      style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600),
+                    ),
                   ],
                 ),
+              )
+                  : ListView.builder(
+                itemCount: events.length,
+                itemBuilder: (context, index) {
+                  final item = events[index];
+
+                  final createdBy = (item.createBy ?? '').trim();
+                  final createdByText = createdBy.isEmpty ? 'N/A' : createdBy;
+
+                  final pic = (item.eventPic ?? '').trim();
+                  final hasPic = pic.isNotEmpty;
+
+                  final downloading = _isDownloading[index] ?? false;
+                  final progress = _downloadProgress[index] ?? 0.0;
+
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8.h),
+                    elevation: 5,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(16.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12.r),
+                                child: hasPic
+                                    ? Image.network(
+                                  "https://playschool.edubloom.in/Upload/Event/Images/$pic",
+                                  width: 100.w,
+                                  height: 100.h,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 100.w,
+                                    height: 100.h,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.broken_image,
+                                        color: Colors.white, size: 40),
+                                  ),
+                                )
+                                    : Container(
+                                  width: 100.w,
+                                  height: 100.h,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image,
+                                      color: Colors.white, size: 40),
+                                ),
+                              ),
+                              SizedBox(width: 16.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.eventName ?? 'N/A',
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6.h),
+                                    Text('Place: ${item.eventPlace ?? 'N/A'}',
+                                        style: TextStyle(fontSize: 14.sp)),
+                                    Text('Class: ${item.className ?? 'N/A'} - ${item.sectionName ?? 'N/A'}',
+                                        style: TextStyle(fontSize: 12.sp, color: Colors.teal.shade700)),
+                                    SizedBox(height: 4.h),
+                                    Text('Desc: ${item.description ?? 'N/A'}',
+                                        style: TextStyle(fontSize: 12.sp)),
+                                    SizedBox(height: 6.h),
+                                    Text(
+                                        'Date: ${formatDate(item.eventDate)}',
+                                        style: TextStyle(fontSize: 12.sp)),
+                                    SizedBox(height: 4.h),
+                                    Text('Created By: $createdByText',
+                                        style: TextStyle(fontSize: 12.sp)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (hasPic) ...[
+                            SizedBox(height: 12.h),
+                            Divider(color: Colors.grey.shade200, height: 1),
+                            SizedBox(height: 10.h),
+                            if (downloading)
+                              Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                                children: [
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey.shade200,
+                                    color: kAxisMaroon,
+                                    minHeight: 6,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    "Downloading ${(progress * 100).toStringAsFixed(0)}%",
+                                    style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: kAxisMaroon),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      final fileUrl =
+                                          "https://playschool.edubloom.in/Upload/Event/Images/$pic";
+                                      _downloadAndShare(
+                                        url: fileUrl,
+                                        fileName: pic,
+                                        index: index,
+                                        eventName: item.eventName ?? 'N/A',
+                                        eventPlace: item.eventPlace ?? 'N/A',
+                                        description:
+                                        item.description ?? 'N/A',
+                                        eventDate:
+                                        formatDate(item.eventDate),
+                                        createdBy: createdByText,
+                                      );
+                                    },
+                                    icon:
+                                    const Icon(Icons.download, size: 18),
+                                    label: const Text("Download & Share"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: kAxisMaroon,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 14.w,
+                                          vertical: 10.h),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(10.r),
+                                      ),
+                                      textStyle: TextStyle(fontSize: 13.sp),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         );
       }),
     );

@@ -71,8 +71,9 @@ class Mapcategorycontroller extends GetxController {
           session.value = sessionList.first;
         }
 
+
         debugPrint(
-          "✅ Sessions Loaded: ${sessionList.length}, Current: ${session.value}",
+          "✅ [VIEW SCREEN] Sessions Loaded: ${sessionList.length}, Using Session: ${session.value}",
         );
       } else {
         debugPrint("⚠️ Session API failed: ${res.statusCode}");
@@ -128,13 +129,17 @@ class Mapcategorycontroller extends GetxController {
           });
 
           galleryCategories.value = data;
-          debugPrint("📸 Images Loaded: ${galleryCategories.length}");
+          debugPrint(
+            "📸 Images Loaded: ${galleryCategories.length} (schoolId=$schoolId, session=${session.value})",
+          );
         } else {
           debugPrint("⚠️ API returned isSuccess=false: ${parsed.messages}");
           galleryCategories.value = [];
         }
       } else {
         debugPrint("⚠️ Images API failed: ${response.statusCode}");
+        // ✅ ADDED: print body on failure too, helps see server-side error detail
+        debugPrint("⚠️ Images API body: ${response.body}");
         Get.snackbar("Error", "Failed to load images (${response.statusCode})");
       }
     } catch (e, stack) {
@@ -186,6 +191,12 @@ class Mapcategorycontroller extends GetxController {
     session.value = newSession;
     fetchGalleryCategories();
     fetchMappedCategories();
+  }
+
+
+  Future<void> refreshAll() async {
+    await fetchGalleryCategories();
+    await fetchMappedCategories();
   }
 
   // ─── Helper ──────────────────────────────────────────────────

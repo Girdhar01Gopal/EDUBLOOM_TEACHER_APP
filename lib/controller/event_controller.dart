@@ -34,22 +34,12 @@ class EventController extends GetxController {
 
   var session = "".obs;
 
-  var classes = <ClassItem>[].obs;
-  var listDataa = <ListDataa>[].obs;
-  var selectedClass = Rx<ListDataa?>(null);
-
-  void setSelectedClass(ListDataa? val) {
-    selectedClass.value = val;
-  }
+  // 🆕 CHANGED: single select -> multi select (Notification jaisa hi)
+  var classList = <ListDataa>[].obs;
+  var selectedClassIds = <int>[].obs;
 
   var sectionList = <stListData>[].obs;
-  var selectedSection = Rxn<stListData>();
-  var section = ''.obs;
-
-  void setSelectedSection(stListData? val) {
-    selectedSection.value = val;
-    section.value = val?.section?.toString() ?? '';
-  }
+  var selectedSectionIds = <int>[].obs;
 
   var isLoading = false.obs;
 
@@ -61,9 +51,10 @@ class EventController extends GetxController {
   var schoolIdController = TextEditingController();
   var sessionController = TextEditingController();
 
-  // 🆕 Class Teacher filter
+  // 🆕 Role / Teacher-type detection (class & section fetch ke liye) — Notification jaisa hi
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
+  var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
   var classTeacherList = <ClassTeacherFilterData>[].obs;
-  var isClassTeacherLogin = false.obs;
 
   @override
   void onInit() async {
@@ -79,9 +70,25 @@ class EventController extends GetxController {
       }
     } catch (_) {}
 
-    await fetchClassTeacherFilter(); // 🆕 pehle
-    await fetchClasses();
-    await fetchSections();
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
+
+    if (isStaffLogin.value) {
+      // 🟢 STAFF — direct staff APIs
+      fetchClasses();
+      fetchSections();
+    } else {
+      // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class/section
+      await fetchClassTeacherFilter();
+      fetchClasses();
+      fetchSections();
+    }
+
     await fetchVEvents();
   }
 
@@ -105,7 +112,7 @@ class EventController extends GetxController {
     }
   }
 
-  // 🆕 Logged-in teacher ke assigned classes fetch karo
+  // 🆕 Logged-in teacher ke assigned classes fetch karo (Notification wala hi logic)
   Future<void> fetchClassTeacherFilter() async {
     try {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -125,7 +132,7 @@ class EventController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '/',
+          'accept': '*/*',
           'Content-Type': 'application/json',
         },
       );
@@ -138,6 +145,8 @@ class EventController extends GetxController {
         final model = ClassTeacherFilterModel.fromJson(jsonResponse);
 
         classTeacherList.value = model.data ?? [];
+
+        // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
     } catch (e) {
@@ -145,12 +154,124 @@ class EventController extends GetxController {
     }
   }
 
+  // 🆕 3-way class fetch: Staff -> existing API | Class Teacher -> ClassTeacher API
+  // | Normal Teacher -> GetClassTeacher API | fallback -> existing (staff) API
+  Future<void> fetchClasses() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classList.value = classTeacherList.map((e) {
+          return ListDataa.fromJson({
+            'classId': e.classId,
+            'class': e.className,
+            'studentClassId': e.studentClassId,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+            'sqno': e.sqno,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        classList.value = [];
+      }
+
+      if (classList.isEmpty) {
+        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+        await _fetchClassesStaffApi();
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — GetClassTeacher API
+    try {
+      isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session.value)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as List<dynamic>? ?? [];
+
+        classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
+      } else {
+        classList.value = [];
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
+      classList.value = [];
+    } finally {
+      isLoading(false);
+    }
+
+    if (classList.isEmpty) {
+      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+      await _fetchClassesStaffApi();
+    }
+  }
+
+  // 🔁 Ye wahi ViewClass API hai — Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isLoading(true);
+      final url = Uri.parse("${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId");
+      final response = await http.get(url);
+
+      debugPrint('ViewClass status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final classItem = ClassItem.fromJson(json.decode(response.body));
+
+        classList.value = classItem.listData
+            ?.where((e) => e.action == "1")
+            .toList() ?? [];
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching classes: $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // 🆕 3-way section fetch: Staff -> existing API | Class Teacher -> SectionTeacher API
+  // | Normal Teacher -> getSectionTeacher API | fallback -> existing (staff) API
   Future<void> fetchSections() async {
-    // 🆕 Class teacher login → SectionTeacher API
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
     if (isClassTeacherLogin.value) {
       try {
         isLoading(true);
-
         final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
         final url = Uri.parse(
@@ -163,7 +284,7 @@ class EventController extends GetxController {
         final response = await http.get(
           url,
           headers: {
-            'accept': '/',
+            'accept': '*/*',
             'Content-Type': 'application/json',
           },
         );
@@ -188,20 +309,25 @@ class EventController extends GetxController {
             });
           }).toList();
 
-          selectedSection.value = null;
-          section.value = '';
+          selectedSectionIds.clear();
         } else {
-          Get.snackbar('Error', 'Failed to load sections');
+          sectionList.value = [];
         }
       } catch (e) {
-        Get.snackbar('Error', 'Failed to load sections');
+        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+        sectionList.value = [];
       } finally {
         isLoading(false);
+      }
+
+      if (sectionList.isEmpty) {
+        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+        await _fetchSectionsStaffApi();
       }
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 3️⃣ NORMAL TEACHER — getSectionTeacher API
     try {
       isLoading(true);
 
@@ -217,7 +343,7 @@ class EventController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '/',
+          'accept': '*/*',
           'Content-Type': 'application/json',
         },
       );
@@ -229,96 +355,41 @@ class EventController extends GetxController {
         final jsonResponse = json.decode(response.body);
         final sectionModel = sectionmodel.fromJson(jsonResponse);
 
-        sectionList.assignAll(sectionModel.listData ?? []);
-        selectedSection.value = null;
-        section.value = '';
+        sectionList.value = sectionModel.listData ?? [];
+        selectedSectionIds.clear();
       } else {
-        Get.snackbar('Error', 'Failed to load sections');
+        sectionList.value = [];
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load sections');
+      debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
+      sectionList.value = [];
     } finally {
       isLoading(false);
     }
+
+    if (sectionList.isEmpty) {
+      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+      await _fetchSectionsStaffApi();
+    }
   }
 
-  Future<void> fetchClasses() async {
-    // 🆕 Class teacher login → ClassTeacher API data se hi banao
-    if (isClassTeacherLogin.value) {
-      listDataa.value = classTeacherList.map((e) {
-        return ListDataa.fromJson({
-          'classId': e.classId,
-          'class': e.className,
-          'studentClassId': e.studentClassId,
-          'action': e.action,
-          'createDate': e.createDate,
-          'updateDate': e.updateDate,
-          'createBy': e.createBy,
-          'updateBy': e.updateBy,
-          'schoolId': e.schoolId,
-          'sqno': e.sqno,
-        });
-      }).toList();
-
-      if (listDataa.isNotEmpty) {
-        selectedClass.value = listDataa.first;
-      } else {
-        selectedClass.value = null;
-      }
-      return;
-    }
-
-    // 🔁 Normal teacher — existing
+  // 🔁 Ye wahi ViewSectionApp API hai — Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchSectionsStaffApi() async {
     try {
       isLoading(true);
-      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+      final url =
+      Uri.parse("${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId");
+      final response = await http.get(url);
 
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
-            '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(session.value)}'
-            '&userId=${Uri.encodeComponent(userId ?? '')}',
-      );
-
-      final response = await http.get(
-        url,
-        headers: {
-          'accept': '/',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      debugPrint('GetClassTeacher status: ${response.statusCode}');
-      debugPrint('GetClassTeacher body: ${response.body}');
+      debugPrint('ViewSectionApp status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-
-        if (jsonResponse['data'] != null) {
-          final List<dynamic> data = jsonResponse['data'] ?? [];
-
-          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
-          listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
-
-          if (listDataa.isNotEmpty) {
-            selectedClass.value = listDataa.first;
-          } else {
-            selectedClass.value = null;
-          }
-        } else {
-          listDataa.value = [];
-          selectedClass.value = null;
-        }
-      } else {
-        Get.snackbar(
-          "Error",
-          "Failed to fetch classes: ${response.statusCode}",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        sectionList.value = (json.decode(response.body)['listData'] as List)
+            .map((e) => stListData.fromJson(e))
+            .toList();
       }
     } catch (e) {
-      debugPrint("Error loading classes: $e");
+      debugPrint("⚠️ Error fetching sections (staff): $e");
     } finally {
       isLoading(false);
     }
@@ -335,85 +406,138 @@ class EventController extends GetxController {
     }
   }
 
-  Future<void> registerEvent(
-      String eventName,
-      int sectionId,
-      String eventDateApi,
-      String eventPlace,
-      String description,
-      String eventClass,
-      ) async {
+  // ─────────────────────────────────────────────────────────────
+  // 🆕 FIXED: pehle har class×section combo ke liye ALAG POST request jaati thi,
+  // jisse backend ka "EventName already exists" uniqueness check baar-baar
+  // trigger hota tha (1st request 200, baaki 409 "Event name already exists").
+  // Ab admin ke working code jaisa hi — SAB selected classes aur sections ek
+  // hi single POST request me multiple 'Class' / 'Section' fields ke through
+  // bhejte hain, taaki backend ek hi call me sab combinations insert kar le
+  // aur duplicate-name conflict na aaye.
+  Future<void> registerEvent() async {
+    if (selectedClassIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one class.");
+      return;
+    }
+
+    if (selectedSectionIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one section.");
+      return;
+    }
+
+    if (eventName.value.trim().isEmpty) {
+      ShortMessage.toast(title: "Please enter a valid Event Name.");
+      return;
+    }
+
+    if (eventPlace.value.trim().isEmpty) {
+      ShortMessage.toast(title: "Please enter a valid Event Place.");
+      return;
+    }
+
+    if (description.value.trim().isEmpty) {
+      ShortMessage.toast(title: "Please enter a valid Description.");
+      return;
+    }
+
+    if (imageFile.value == null) {
+      ShortMessage.toast(title: "Please select an image.");
+      return;
+    }
+
+    isLoading(true);
+
     try {
-      if (imageFile.value == null) {
-        ShortMessage.toast(title: "Please select an image.");
-        return;
-      }
+      final cb =
+      createdBy.value.trim().isNotEmpty ? createdBy.value.trim() : "Admin";
 
-      if (sectionId == 0) {
-        ShortMessage.toast(title: "Please select a valid Section.");
-        return;
-      }
-
-      if (eventClass.isEmpty) {
-        ShortMessage.toast(title: "Please select a valid Class.");
-        return;
-      }
-      if (eventName.trim().isEmpty) {
-        ShortMessage.toast(title: "Please enter a valid Event Name.");
-        return;
-      }
-      if (eventPlace.trim().isEmpty) {
-        ShortMessage.toast(title: "Please enter a valid Event Place.");
-        return;
-      }
-      if (description.trim().isEmpty) {
-        ShortMessage.toast(title: "Please enter a valid Description.");
-        return;
-      }
-
-      final cb = createdBy.value.trim().isNotEmpty ? createdBy.value.trim() : "Admin";
-
-      final url =
+      final uri =
       Uri.parse("${AppUrl.base_url}api/CommumicationApp/PostEventApp");
-      final request = http.MultipartRequest('POST', url);
+      final request = http.MultipartRequest('POST', uri);
 
-      request.fields['EventName'] = eventName.trim();
-      request.fields['Section'] = sectionId.toString();
-      request.fields['EventDate'] = eventDateApi;
-      request.fields['EventPlace'] = eventPlace.trim();
-      request.fields['Descripation'] = description.trim();
+      // ── Scalar (single value) fields ──
+      request.fields['EventName'] = eventName.value.trim();
+      request.fields['EventDate'] = getApiDate();
+      request.fields['EventPlace'] = eventPlace.value.trim();
+      request.fields['Descripation'] = description.value.trim();
       request.fields['Session'] = session.value;
       request.fields['SchoolId'] = schoolId;
-      request.fields['schoolId'] = schoolId;
+      request.fields['schoolId'] = schoolId; // backend case-insensitive hai, safety ke liye dono
       request.fields['CreateBy'] = cb;
-      request.fields['Class'] = eventClass.toString();
-      request.fields['action'] = '1';
       request.fields['Action'] = '1';
+      request.fields['action'] = '1';
 
+      // ── Array fields: Class[] aur Section[] ──
+      // Same field-name multiple baar files list mein daal rahe hain,
+      // taaki backend isko List<int> ki tarah bind kare, ek hi request mein.
+      for (final classId in selectedClassIds) {
+        request.files.add(
+          http.MultipartFile.fromString('Class', classId.toString()),
+        );
+      }
+
+      for (final sectionId in selectedSectionIds) {
+        request.files.add(
+          http.MultipartFile.fromString('Section', sectionId.toString()),
+        );
+      }
+
+      // ✅ IMAGE VERIFICATION — confirm file exists before attaching
       final f = imageFile.value!;
+      final exists = await f.exists();
+      final length = exists ? await f.length() : 0;
+
+      debugPrint("🖼️ Image path: ${f.path}");
+      debugPrint("🖼️ Exists: $exists | size: $length bytes");
+
       final multipartFile = await http.MultipartFile.fromPath('file', f.path);
       request.files.add(multipartFile);
 
+      debugPrint(
+          "📤 POST EVENT -> Classes:$selectedClassIds Sections:$selectedSectionIds");
+
       final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      debugPrint("📥 Status: ${response.statusCode}");
+      debugPrint("📥 Body: $responseBody");
 
       if (response.statusCode == 200) {
-        ShortMessage.toast(title: "Event Added Successfully");
+        debugPrint('✅ Success');
+        ShortMessage.toast(title: "Events Added Successfully");
+
+        // Reset form
+        eventName.value = '';
+        description.value = '';
+        eventPlace.value = '';
         imageFile.value = null;
         file.value = '';
-        this.eventName.value = '';
-        this.description.value = '';
-        this.eventPlace.value = '';
-        selectedClass.value = null;
-        selectedSection.value = null;
+        selectedClassIds.clear();
+        selectedSectionIds.clear();
 
         await fetchVEvents();
         Get.back();
       } else {
-        ShortMessage.toast(title: "Failed with status: ${response.statusCode}");
+        debugPrint('❌ Error (${response.statusCode})');
+
+        // 🆕 backend ka asli error title dikhate hain (jaise "Event name
+        // already exists, try a different name") generic message ki jagah.
+        String errorMsg = "Failed to add event.";
+        try {
+          final decoded = jsonDecode(responseBody);
+          if (decoded is Map && decoded['title'] != null) {
+            errorMsg = decoded['title'].toString();
+          }
+        } catch (_) {}
+
+        ShortMessage.toast(title: errorMsg);
       }
     } catch (e) {
-      debugPrint('registerEvent Error: $e');
-      ShortMessage.toast(title: "Something went wrong");
+      debugPrint('⚠️ POST EVENT EXCEPTION -> $e');
+      ShortMessage.toast(
+          title: "An error occurred while adding the event.");
+    } finally {
+      isLoading(false);
     }
   }
 
@@ -463,6 +587,7 @@ class EventController extends GetxController {
         });
 
         eventList.assignAll(events);
+        debugPrint("📊 FETCHED EVENT COUNT -> ${eventList.length}");
       } else {
         debugPrint("fetchVEvents failed: ${response.statusCode}");
       }

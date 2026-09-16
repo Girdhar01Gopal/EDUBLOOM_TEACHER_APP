@@ -6,8 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../controller/mealcontroller.dart';
 import '../models/class_list_model.dart';
-import '../models/classmodel.dart';
 
+const Color kAxisMaroon = Color(0xFF97144D);
 
 class Mealactivityview extends GetView<Mealcontroller> {
   @override
@@ -23,7 +23,7 @@ class Mealactivityview extends GetView<Mealcontroller> {
           ),
           centerTitle: true,
           elevation: 2,
-          backgroundColor: const Color(0xFF6E0F38),
+          backgroundColor: kAxisMaroon,
           title: Text(
             "Meal Activity",
             style: TextStyle(
@@ -72,14 +72,12 @@ class PostActivity extends GetView<Mealcontroller> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 8.h),
-
-          // ── Header card ──
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [const Color(0xFF97144D), const Color(0xFFC2185B)],
+                colors: [kAxisMaroon, kAxisMaroon.withOpacity(0.6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -121,10 +119,7 @@ class PostActivity extends GetView<Mealcontroller> {
               ],
             ),
           ),
-
           SizedBox(height: 20.h),
-
-          // ── Form card ──
           Container(
             padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
@@ -141,20 +136,14 @@ class PostActivity extends GetView<Mealcontroller> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionLabel("Select Class", Icons.class_rounded),
-                SizedBox(height: 8.h),
-                _classDropdown(controller),
-
                 SizedBox(height: 16.h),
                 _sectionLabel("Select Students", Icons.people_rounded),
                 SizedBox(height: 8.h),
                 _studentSelector(controller),
-
                 SizedBox(height: 16.h),
                 _sectionLabel("Meal Activity", Icons.edit_note_rounded),
                 SizedBox(height: 8.h),
                 _activityField(controller),
-
                 SizedBox(height: 16.h),
                 _sectionLabel("Time Slot", Icons.access_time_rounded),
                 SizedBox(height: 8.h),
@@ -162,12 +151,8 @@ class PostActivity extends GetView<Mealcontroller> {
               ],
             ),
           ),
-
           SizedBox(height: 24.h),
-
-          // ── Submit button ──
           _submitButton(controller),
-
           SizedBox(height: 20.h),
         ],
       ),
@@ -175,11 +160,10 @@ class PostActivity extends GetView<Mealcontroller> {
   }
 }
 
-// ── Section label helper ──
 Widget _sectionLabel(String label, IconData icon) {
   return Row(
     children: [
-      Icon(icon, size: 16, color: const Color(0xFF97144D)),
+      Icon(icon, size: 16, color: kAxisMaroon),
       const SizedBox(width: 6),
       Text(
         label,
@@ -259,174 +243,211 @@ class ViewActivityScreen extends GetView<Mealcontroller> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.activityList.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.inbox_rounded, size: 60, color: Colors.grey.shade300),
-              const SizedBox(height: 12),
-              Text(
-                "No Activities Found",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
+    return Column(
+      children: [
+        // ── search bar ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: TextField(
+            onChanged: (val) => controller.searchQuery.value = val,
+            decoration: InputDecoration(
+              hintText: "Search by name, date or text...",
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp),
+              prefixIcon: Icon(Icons.search_rounded, color: kAxisMaroon),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-            ],
-          ),
-        );
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(14),
-        itemCount: controller.activityList.length,
-        itemBuilder: (context, index) {
-          final act = controller.activityList[index];
-          final from = _formatTime(act.fromTime);
-          final to = _formatTime(act.toTime);
-          final date = _formatDate(act.createDate);
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.pink.shade100.withOpacity(0.7),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: kAxisMaroon, width: 1.5),
+              ),
             ),
-            child: Column(
-              children: [
-                // ── Gradient header ──
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+          ),
+        ),
+        Expanded(
+          child: Obx(() {
+            final list = controller.filteredActivityList;
+
+            if (controller.activityList.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_rounded, size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No Activities Found",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (list.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off_rounded, size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No matching activities",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(14),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                final act = list[index];
+                final from = _formatTime(act.fromTime);
+                final to = _formatTime(act.toTime);
+                final date = _formatDate(act.createDate);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.pink.shade400,
-                        Colors.pink.shade200,
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.restaurant_menu_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          act.meal ?? "No Activity",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "#${index + 1}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pink.shade100.withOpacity(0.7),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                ),
-
-                // ── Info rows ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
                   child: Column(
                     children: [
-                      _infoRow(
-                        icon: Icons.person_rounded,
-                        iconColor: Colors.pink.shade300,
-                        label: "Student",
-                        value: act.studentName ?? "N/A",
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _infoRowCompact(
-                              icon: Icons.play_circle_outline_rounded,
-                              iconColor: const Color(0xFFAD1457),
-                              label: "From",
-                              value: from.isEmpty ? "N/A" : from,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.pink.shade400, Colors.pink.shade200],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _infoRowCompact(
-                              icon: Icons.stop_circle_outlined,
-                              iconColor: Colors.orange,
-                              label: "To",
-                              value: to.isEmpty ? "N/A" : to,
-                            ),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 18),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                act.meal ?? "No Activity",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "#${index + 1}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      _infoRow(
-                        icon: Icons.calendar_today_rounded,
-                        iconColor: Colors.blue,
-                        label: "Date",
-                        value: date.isEmpty ? "N/A" : date,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Column(
+                          children: [
+                            _infoRow(
+                              icon: Icons.person_rounded,
+                              iconColor: Colors.pink.shade300,
+                              label: "Student",
+                              value: act.studentName ?? "N/A",
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _infoRowCompact(
+                                    icon: Icons.play_circle_outline_rounded,
+                                    iconColor: kAxisMaroon,
+                                    label: "From",
+                                    value: from.isEmpty ? "N/A" : from,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _infoRowCompact(
+                                    icon: Icons.stop_circle_outlined,
+                                    iconColor: Colors.orange,
+                                    label: "To",
+                                    value: to.isEmpty ? "N/A" : to,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            _infoRow(
+                              icon: Icons.calendar_today_rounded,
+                              iconColor: Colors.blue,
+                              label: "Date",
+                              value: date.isEmpty ? "N/A" : date,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
+                );
+              },
+            );
+          }),
+        ),
+      ],
+    );
   }
 
-  Widget _infoRow({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-  }) {
+  Widget _infoRow({required IconData icon, required Color iconColor, required String label, required String value}) {
     return Row(
       children: [
         Container(
@@ -438,22 +459,11 @@ class ViewActivityScreen extends GetView<Mealcontroller> {
           child: Icon(icon, size: 16, color: iconColor),
         ),
         const SizedBox(width: 10),
-        Text(
-          "$label: ",
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text("$label: ", style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -462,12 +472,7 @@ class ViewActivityScreen extends GetView<Mealcontroller> {
     );
   }
 
-  Widget _infoRowCompact({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-  }) {
+  Widget _infoRowCompact({required IconData icon, required Color iconColor, required String label, required String value}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -482,21 +487,8 @@ class ViewActivityScreen extends GetView<Mealcontroller> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
+              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+              Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
             ],
           ),
         ],
@@ -505,53 +497,7 @@ class ViewActivityScreen extends GetView<Mealcontroller> {
   }
 }
 
-// ══════════════════════════════════════
-//  SHARED WIDGETS
-// ══════════════════════════════════════
-
-Widget _classDropdown(Mealcontroller controller) {
-  return Obx(() {
-    if (controller.isLoading.value) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return DropdownButtonFormField<ClassData>(   // 🔄 ListDataa -> ClassData
-      value: controller.selectedClass.value,
-      hint: Text(
-        "Choose a class",
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-      ),
-      isExpanded: true,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
-        ),
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      ),
-      items: controller.listDataa.map((item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item.className),   // 🔄 non-nullable, ?? "" hata diya
-        );
-      }).toList(),
-      onChanged: (val) {
-        controller.setSelectedClass(val);
-      },
-    );
-  });
-}
-
+// ── Shared Widgets ──
 Widget _studentSelector(Mealcontroller controller) {
   return Obx(() {
     return InkWell(
@@ -572,22 +518,16 @@ Widget _studentSelector(Mealcontroller controller) {
               child: Text(
                 controller.selectedStudent.isEmpty
                     ? "Choose students"
-                    : controller.selectedStudent
-                    .map((e) => e.studentName)
-                    .join(", "),
+                    : controller.selectedStudent.map((e) => e.studentName).join(", "),
                 style: TextStyle(
                   fontSize: 13,
-                  color: controller.selectedStudent.isEmpty
-                      ? Colors.grey.shade500
-                      : Colors.black87,
-                  fontWeight: controller.selectedStudent.isEmpty
-                      ? FontWeight.normal
-                      : FontWeight.w600,
+                  color: controller.selectedStudent.isEmpty ? Colors.grey.shade500 : Colors.black87,
+                  fontWeight: controller.selectedStudent.isEmpty ? FontWeight.normal : FontWeight.w600,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.people_rounded, size: 18, color: const Color(0xFFAD1457)),
+            Icon(Icons.people_rounded, size: 18, color: kAxisMaroon),
           ],
         ),
       ),
@@ -615,11 +555,20 @@ void _openStudentSelector(Mealcontroller controller) {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Text(
-            "Select Students",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
+          const Text("Select Students", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Obx(() {
+            return CheckboxListTile(
+              value: controller.isAllStudentsSelected,
+              activeColor: kAxisMaroon,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: const Text("Select All", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              onChanged: (checked) => controller.toggleSelectAllStudents(checked ?? false),
+            );
+          }),
+          const Divider(height: 1),
+          const SizedBox(height: 4),
           Expanded(
             child: Obx(() {
               return ListView.builder(
@@ -627,24 +576,20 @@ void _openStudentSelector(Mealcontroller controller) {
                 itemBuilder: (_, index) {
                   final student = controller.studentList[index];
                   return Obx(() {
-                    final isSelected = controller.selectedStudentIds
-                        .contains(student.studentId);
+                    final isSelected = controller.selectedStudentIds.contains(student.studentId);
                     return CheckboxListTile(
                       value: isSelected,
-                      activeColor: const Color(0xFF97144D),
+                      activeColor: kAxisMaroon,
                       title: Text(student.studentName ?? "Unnamed"),
                       onChanged: (checked) {
                         if (checked == true) {
-                          if (!controller.selectedStudentIds
-                              .contains(student.studentId)) {
+                          if (!controller.selectedStudentIds.contains(student.studentId)) {
                             controller.selectedStudent.add(student);
-                            controller.selectedStudentIds
-                                .add(student.studentId!);
+                            controller.selectedStudentIds.add(student.studentId!);
                           }
                         } else {
                           controller.selectedStudent.remove(student);
-                          controller.selectedStudentIds
-                              .remove(student.studentId);
+                          controller.selectedStudentIds.remove(student.studentId);
                         }
                       },
                     );
@@ -660,15 +605,10 @@ void _openStudentSelector(Mealcontroller controller) {
             child: ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF97144D),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                backgroundColor: kAxisMaroon,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text(
-                "Done",
-                style: TextStyle(color: Colors.white, fontSize: 15),
-              ),
+              child: const Text("Done", style: TextStyle(color: Colors.white, fontSize: 15)),
             ),
           ),
         ],
@@ -680,17 +620,9 @@ void _openStudentSelector(Mealcontroller controller) {
 Widget _timeRow(Mealcontroller controller) {
   return Row(
     children: [
-      Expanded(
-        child: _timeBox("From Time", controller.fromTime, () {
-          controller.pickTime(controller.fromTime, controller.fromDateTime);
-        }),
-      ),
+      Expanded(child: _timeBox("From Time", controller.fromTime, () => controller.pickTime(controller.fromTime))),
       const SizedBox(width: 12),
-      Expanded(
-        child: _timeBox("To Time", controller.toTime, () {
-          controller.pickTime(controller.toTime, controller.toDateTime);
-        }),
-      ),
+      Expanded(child: _timeBox("To Time", controller.toTime, () => controller.pickTime(controller.toTime))),
     ],
   );
 }
@@ -701,40 +633,18 @@ Widget _submitButton(Mealcontroller controller) {
     height: 50,
     child: ElevatedButton.icon(
       onPressed: () async {
-        final success =
-        await controller.postActivityToApi(controller.selectedStudentIds);
+        final success = await controller.postActivityToApi(controller.selectedStudentIds);
         if (success) {
-          Get.snackbar(
-            "Success",
-            "Activity posted successfully",
-            backgroundColor: Colors.green.shade50,
-            colorText: Colors.green.shade800,
-            icon: const Icon(Icons.check_circle, color: Colors.green),
-          );
+          Get.snackbar("Success", "Meal Activity posted successfully", backgroundColor: Colors.green, colorText: Colors.white, icon: const Icon(Icons.check_circle, color: Colors.white));
         } else {
-          Get.snackbar(
-            "Error",
-            "Failed to post activity",
-            backgroundColor: Colors.red.shade50,
-            colorText: Colors.red.shade800,
-            icon: const Icon(Icons.error, color: Colors.red),
-          );
+          Get.snackbar("Error", "Failed to post activity", backgroundColor: Colors.red, colorText: Colors.white, icon: const Icon(Icons.error, color: Colors.white));
         }
       },
       icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-      label: const Text(
-        "Post Meal Activity",
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      label: const Text("Post Meal Activity", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.pink.shade500,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         elevation: 3,
       ),
     ),
@@ -761,18 +671,13 @@ Widget _timeBox(String label, RxString val, Function onTap) {
                 val.value.isEmpty ? label : val.value,
                 style: TextStyle(
                   fontSize: 13,
-                  color: val.value.isEmpty
-                      ? Colors.grey.shade500
-                      : Colors.black87,
-                  fontWeight: val.value.isEmpty
-                      ? FontWeight.normal
-                      : FontWeight.w600,
+                  color: val.value.isEmpty ? Colors.grey.shade500 : Colors.black87,
+                  fontWeight: val.value.isEmpty ? FontWeight.normal : FontWeight.w600,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.access_time_rounded,
-                size: 18, color: const Color(0xFFAD1457)),
+            Icon(Icons.access_time_rounded, size: 18, color: kAxisMaroon),
           ],
         ),
       ),
@@ -789,20 +694,10 @@ Widget _activityField(Mealcontroller controller) {
       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
       filled: true,
       fillColor: Colors.grey.shade50,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
-      ),
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kAxisMaroon, width: 1.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     ),
   );
 }

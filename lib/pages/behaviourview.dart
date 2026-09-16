@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/behaviourcontroller.dart';
-import '../models/activitystudentmodel.dart';
-import '../models/class_list_model.dart';
-import '../models/classmodel.dart';
+
+
+const Color axisMaroon = Color(0xFF97144D);
+const Color axisMaroonShade50 = Color(0xFFF3E0E9);
+const Color axisMaroonShade300 = Color(0xFFC0568C);
+const Color axisMaroonShade700 = Color(0xFF97144D);
+const Color axisMaroonShade800 = Color(0xFF800F40);
 
 class Behaviourview extends GetView<Behaviourcontroller> {
   @override
@@ -20,7 +24,7 @@ class Behaviourview extends GetView<Behaviourcontroller> {
           ),
           centerTitle: true,
           elevation: 2,
-          backgroundColor: const Color(0xFF97144D),
+          backgroundColor: axisMaroonShade800,
           title: Text(
             "Behaviour Activity",
             style: TextStyle(
@@ -46,7 +50,7 @@ class Behaviourview extends GetView<Behaviourcontroller> {
         ),
         body: TabBarView(
           children: [
-            const PostActivity(),
+            PostActivity(),
             ViewActivityScreen(),
           ],
         ),
@@ -76,7 +80,7 @@ class PostActivity extends GetView<Behaviourcontroller> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [const Color(0xFF97144D), const Color(0xFFC2185B)],
+                colors: [axisMaroonShade800, axisMaroonShade300],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -138,11 +142,43 @@ class PostActivity extends GetView<Behaviourcontroller> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionLabel("Select Class", Icons.class_rounded),
+
+                _sectionLabel("Student Type", Icons.category_rounded),
                 SizedBox(height: 8.h),
-                _classDropdown(controller),
+                _typeDropdown(controller),
 
                 SizedBox(height: 16.h),
+
+
+                Obx(() {
+                  if (controller.selecttype.value != "Pre School") {
+                    return const SizedBox.shrink();
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _multiSelectHeader(
+                        "Select Class (Multiple)",
+                        Icons.class_rounded,
+                        onSelectAll: () {
+                          for (final c in controller.listDataa) {
+                            if (!controller.selectedClasses
+                                .any((s) => s.classId == c.classId)) {
+                              controller.toggleClassSelection(c);
+                            }
+                          }
+                        },
+                        onClear: () {
+                          controller.clearSelectedClasses();
+                        },
+                      ),
+                      SizedBox(height: 8.h),
+                      _classMultiSelect(controller),
+                      SizedBox(height: 16.h),
+                    ],
+                  );
+                }),
+
                 _sectionLabel("Select Students", Icons.people_rounded),
                 SizedBox(height: 8.h),
                 _studentSelector(controller),
@@ -176,7 +212,7 @@ class PostActivity extends GetView<Behaviourcontroller> {
 Widget _sectionLabel(String label, IconData icon) {
   return Row(
     children: [
-      Icon(icon, size: 16, color: const Color(0xFF97144D)),
+      Icon(icon, size: 16, color: axisMaroonShade700),
       const SizedBox(width: 6),
       Text(
         label,
@@ -184,6 +220,44 @@ Widget _sectionLabel(String label, IconData icon) {
           fontSize: 13,
           fontWeight: FontWeight.w600,
           color: Colors.grey.shade700,
+        ),
+      ),
+    ],
+  );
+}
+
+// ── Section label + "Select all" / "Clear" header (mirrors the
+// NotificationScreen's _multiSelectHeader pattern) ──
+Widget _multiSelectHeader(
+    String label,
+    IconData icon, {
+      required VoidCallback onSelectAll,
+      required VoidCallback onClear,
+    }) {
+  return Row(
+    children: [
+      Expanded(child: _sectionLabel(label, icon)),
+      GestureDetector(
+        onTap: onSelectAll,
+        child: Text(
+          "Select all",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: axisMaroonShade700,
+          ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      GestureDetector(
+        onTap: onClear,
+        child: Text(
+          "Clear",
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey.shade500,
+          ),
         ),
       ),
     ],
@@ -256,166 +330,225 @@ class ViewActivityScreen extends GetView<Behaviourcontroller> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.activityList.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.inbox_rounded, size: 60, color: Colors.grey.shade300),
-              const SizedBox(height: 12),
-              Text(
-                "No Activities Found",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
+    return Column(
+      children: [
+        // ── search bar — filters by student name, class, date, or
+        // the behaviour text (the card heading). ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: TextField(
+            onChanged: (val) => controller.searchQuery.value = val,
+            decoration: InputDecoration(
+              hintText: "Search by name, class, date or text...",
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp),
+              prefixIcon: Icon(Icons.search_rounded, color: axisMaroonShade700),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+              EdgeInsets.symmetric(horizontal: 14.w, vertical: 0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-            ],
-          ),
-        );
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(14),
-        itemCount: controller.activityList.length,
-        itemBuilder: (context, index) {
-          final act = controller.activityList[index];
-          final from = _formatTime(act.fromTime);
-          final to = _formatTime(act.toTime);
-          final date = _formatDate(act.createDate);
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.pink.shade100.withOpacity(0.7),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
+              ),
             ),
-            child: Column(
-              children: [
-                // ── Gradient header ──
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+          ),
+        ),
+        Expanded(
+          child: Obx(() {
+            final list = controller.filteredActivityList;
+
+            if (controller.activityList.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_rounded,
+                        size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No Activities Found",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (list.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off_rounded,
+                        size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No matching activities",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(14),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                final act = list[index];
+                final from = _formatTime(act.fromTime);
+                final to = _formatTime(act.toTime);
+                final date = _formatDate(act.createDate);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.pink.shade400,
-                        Colors.pink.shade200,
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.psychology_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          act.behaviour ?? "No Activity",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "#${index + 1}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pink.shade100.withOpacity(0.7),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                ),
-
-                // ── Info rows ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
                   child: Column(
                     children: [
-                      _infoRow(
-                        icon: Icons.person_rounded,
-                        iconColor: Colors.pink.shade300,
-                        label: "Student",
-                        value: act.studentName ?? "N/A",
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _infoRowCompact(
-                              icon: Icons.play_circle_outline_rounded,
-                              iconColor: const Color(0xFF97144D),
-                              label: "From",
-                              value: from.isEmpty ? "N/A" : from,
-                            ),
+                      // ── Gradient header ──
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.pink.shade400,
+                              Colors.pink.shade200,
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _infoRowCompact(
-                              icon: Icons.stop_circle_outlined,
-                              iconColor: Colors.orange,
-                              label: "To",
-                              value: to.isEmpty ? "N/A" : to,
-                            ),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.psychology_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                act.behaviour ?? "No Activity",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "#${index + 1}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      _infoRow(
-                        icon: Icons.calendar_today_rounded,
-                        iconColor: Colors.blue,
-                        label: "Date",
-                        value: date.isEmpty ? "N/A" : date,
+
+                      // ── Info rows ──
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Column(
+                          children: [
+                            _infoRow(
+                              icon: Icons.person_rounded,
+                              iconColor: Colors.pink.shade300,
+                              label: "Student",
+                              value: act.studentName ?? "N/A",
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _infoRowCompact(
+                                    icon: Icons.play_circle_outline_rounded,
+                                    iconColor: axisMaroon,
+                                    label: "From",
+                                    value: from.isEmpty ? "N/A" : from,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _infoRowCompact(
+                                    icon: Icons.stop_circle_outlined,
+                                    iconColor: Colors.orange,
+                                    label: "To",
+                                    value: to.isEmpty ? "N/A" : to,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            _infoRow(
+                              icon: Icons.calendar_today_rounded,
+                              iconColor: Colors.blue,
+                              label: "Date",
+                              value: date.isEmpty ? "N/A" : date,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
+                );
+              },
+            );
+          }),
+        ),
+      ],
+    );
   }
 
   Widget _infoRow({
@@ -506,19 +639,16 @@ class ViewActivityScreen extends GetView<Behaviourcontroller> {
 //  SHARED WIDGETS
 // ══════════════════════════════════════
 
-Widget _classDropdown(Behaviourcontroller controller) {
+// ── Student Type dropdown (Day Care / Pre School) — mirrors the
+// Meal screen's _typeDropdown. onChanged routes through
+// controller.onTypeChanged() which resets selections and fetches the
+// correct student list (Day Care API vs Pre School API). ──
+Widget _typeDropdown(Behaviourcontroller controller) {
   return Obx(() {
-    if (controller.isLoading.value) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return DropdownButtonFormField<ClassData>(   // 🔄 ListDataa -> ClassData
-      value: controller.selectedClass.value,
-      hint: Text(
-        "Choose a class",
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-      ),
-      isExpanded: true,
+    return DropdownButtonFormField<String>(
       decoration: InputDecoration(
+        hintText: "Select student type",
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -531,22 +661,97 @@ Widget _classDropdown(Behaviourcontroller controller) {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
+          borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
         ),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       ),
-      items: controller.listDataa.map((item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item.className),   // 🔄 non-nullable, ?? "" ki zaroorat nahi
-        );
-      }).toList(),
-      onChanged: (val) {
-        controller.setSelectedClass(val);
+      value: controller.selecttype.value.isEmpty
+          ? null
+          : controller.selecttype.value,
+      items: ["Day Care", "Pre School"]
+          .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+          .toList(),
+      onChanged: (value) {
+        if (value == null) return;
+        controller.onTypeChanged(value);
       },
     );
   });
+}
+
+// 🆕 CHANGED: Class multi-select is now a horizontal scrollable chip
+// row — EXACTLY like NotificationScreen's _classMultiSelect — instead
+// of a wrapped FilterChip grid. Reads from
+// Behaviourcontroller.listDataa (populated by the 3-way API flow:
+// Staff -> ViewClass API, Class Teacher -> ClassTeacher API, Normal
+// Teacher -> GetClassTeacher API, with staff fallback) and
+// Behaviourcontroller.selectedClasses. Only rendered when Pre School
+// is selected — see the Obx gate in PostActivity above.
+Widget _classMultiSelect(Behaviourcontroller controller) {
+  return SizedBox(
+    height: 42.h,
+    child: Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (controller.listDataa.isEmpty) {
+        return Text(
+          "No classes found",
+          style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+        );
+      }
+      return ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: controller.listDataa.length,
+        separatorBuilder: (_, __) => SizedBox(width: 8.w),
+        itemBuilder: (context, index) {
+          final cls = controller.listDataa[index];
+          return Obx(() {
+            final isSelected = controller.selectedClasses
+                .any((c) => c.classId == cls.classId);
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => controller.toggleClassSelection(cls),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding:
+                EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: isSelected ? axisMaroon : const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: isSelected ? axisMaroon : Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSelected) ...[
+                      Icon(Icons.check_circle,
+                          size: 14.sp, color: Colors.white),
+                      SizedBox(width: 4.w),
+                    ],
+                    Text(
+                      cls.className ?? "",
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          });
+        },
+      );
+    }),
+  );
 }
 
 Widget _studentSelector(Behaviourcontroller controller) {
@@ -584,7 +789,7 @@ Widget _studentSelector(Behaviourcontroller controller) {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.people_rounded, size: 18, color: const Color(0xFF97144D)),
+            Icon(Icons.people_rounded, size: 18, color: axisMaroonShade700),
           ],
         ),
       ),
@@ -612,13 +817,62 @@ void _openStudentSelector(Behaviourcontroller controller) {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Text(
-            "Select Students",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  "Select Students",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              // ── "Select all" / "Clear" for students ──
+              GestureDetector(
+                onTap: () {
+                  for (final student in controller.studentList) {
+                    if (!controller.selectedStudentIds
+                        .contains(student.studentId)) {
+                      controller.selectedStudent.add(student);
+                      controller.selectedStudentIds.add(student.studentId!);
+                    }
+                  }
+                },
+                child: Text(
+                  "Select all",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: axisMaroonShade700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  controller.selectedStudent.clear();
+                  controller.selectedStudentIds.clear();
+                },
+                child: Text(
+                  "Clear",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Expanded(
             child: Obx(() {
+              if (controller.studentList.isEmpty) {
+                return Center(
+                  child: Text(
+                    "No students available",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  ),
+                );
+              }
               return ListView.builder(
                 itemCount: controller.studentList.length,
                 itemBuilder: (_, index) {
@@ -628,7 +882,7 @@ void _openStudentSelector(Behaviourcontroller controller) {
                         .contains(student.studentId);
                     return CheckboxListTile(
                       value: isSelected,
-                      activeColor: const Color(0xFF97144D),
+                      activeColor: axisMaroon,
                       title: Text(student.studentName ?? "Unnamed"),
                       onChanged: (checked) {
                         if (checked == true) {
@@ -657,7 +911,7 @@ void _openStudentSelector(Behaviourcontroller controller) {
             child: ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF97144D),
+                backgroundColor: axisMaroonShade700,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -698,23 +952,40 @@ Widget _submitButton(Behaviourcontroller controller) {
     height: 50,
     child: ElevatedButton.icon(
       onPressed: () async {
+        // ✅ Same validation style as Meal — block if no student
+        // selected before hitting the API.
+        if (controller.selectedStudentIds.isEmpty) {
+          Get.snackbar(
+            "Validation",
+            "Please select a student first.",
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
+          );
+          return;
+        }
+
         final success =
         await controller.postActivityToApi(controller.selectedStudentIds);
         if (success) {
+          // ── Success snackbar: solid green background, white text,
+          // and the message always says "Behaviour". Controller has
+          // already refreshed the list, reset the form, and navigated
+          // back to RouteName.behaviour by the time we get here. ──
           Get.snackbar(
             "Success",
-            "Activity posted successfully",
-            backgroundColor: Colors.green.shade50,
-            colorText: Colors.green.shade800,
-            icon: const Icon(Icons.check_circle, color: Colors.green),
+            "Behaviour posted successfully",
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            icon: const Icon(Icons.check_circle, color: Colors.white),
           );
         } else {
           Get.snackbar(
             "Error",
-            "Failed to post activity",
-            backgroundColor: Colors.red.shade50,
-            colorText: Colors.red.shade800,
-            icon: const Icon(Icons.error, color: Colors.red),
+            "Failed to post Behaviour",
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            icon: const Icon(Icons.error, color: Colors.white),
           );
         }
       },
@@ -769,7 +1040,7 @@ Widget _timeBox(String label, RxString val, Function onTap) {
               ),
             ),
             Icon(Icons.access_time_rounded,
-                size: 18, color: const Color(0xFF97144D)),
+                size: 18, color: axisMaroonShade700),
           ],
         ),
       ),
@@ -796,7 +1067,7 @@ Widget _activityField(Behaviourcontroller controller) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
+        borderSide: BorderSide(color: axisMaroonShade700, width: 1.5),
       ),
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

@@ -109,6 +109,20 @@ class StudentControllerdaycare extends GetxController {
     try {
       isLoading(true);
 
+      if (schoolId.isEmpty) {
+        schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
+      }
+      if (session.value.isEmpty) {
+        session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
+      }
+
+      // Agar ab bhi khaali hain, silently skip karo — koi error mat dikhao,
+      // asli onInit() wali call thodi der me sahi data le aayegi.
+      if (schoolId.isEmpty || session.value.isEmpty) {
+        debugPrint("⏭️ fetchVStudents skipped, schoolId/session not ready yet");
+        return;
+      }
+
       final url = Uri.parse(
         '${AppUrl.base_url}api/StudentApp/GetAllDaycareStudentsAsyncApp?schoolId=$schoolId&currentSession=${session.value}',
       );

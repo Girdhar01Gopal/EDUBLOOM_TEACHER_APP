@@ -29,30 +29,30 @@ class SyllabusController extends GetxController {
   final description = ''.obs;
   final syllabusPlace = ''.obs;
   final syllabusName = ''.obs;
-  var section = ''.obs;
 
   final file = ''.obs;
   final pdfFile = Rx<File?>(null);
 
-  final subject = 0.obs;
+  final session = "".obs;
+
+  // ✅ CHANGED: single select -> multi select (Homework jaisa hi)
+  var selectedClassIds = <int>[].obs;
+  var selectedSectionIds = <int>[].obs;
+  var selectedSubjectIds = <int>[].obs;
 
   final listDataa = <ListDataa>[].obs;
-  final selectedClass = Rx<ListDataa?>(null);
-
-  final selectedSection = Rx<stListData?>(null);
   final sectionList = <stListData>[].obs;
-
   final subjectlist = <ListDaataa>[].obs;
   final subjectdata = SubjectModel().obs;
 
   // auth/session
   String token = "";
   String schoolId = "";
-  final session = "".obs;
 
-  // 🆕 Class Teacher filter
+  // 🆕 Role / Teacher-type detection (class & section & subject fetch ke liye)
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
+  var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
   var classTeacherList = <ClassTeacherFilterData>[].obs;
-  var isClassTeacherLogin = false.obs;
 
   @override
   void onInit() async {
@@ -61,11 +61,28 @@ class SyllabusController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     session.value = await PrefManager().readValue(key: PrefConst.session);
 
-    await fetchClassTeacherFilter(); // 🆕 pehle
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final role =
+    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
+
+    if (isStaffLogin.value) {
+      // 🟢 STAFF — direct staff APIs
+      fetchClasses();
+      fetchSections();
+    } else {
+      // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class/section
+      await fetchClassTeacherFilter();
+      fetchClasses();
+      fetchSections();
+    }
+
+    await fetchsubjectdata();
     fetchSyllabus();
-    fetchClasses();
-    fetchSections();
-    fetchsubjectdata();
   }
 
   String getDisplayDate() => DateFormat('dd-MM-yyyy').format(syllabusDate.value);
@@ -80,6 +97,31 @@ class SyllabusController extends GetxController {
     );
     if (pickedDate != null) {
       syllabusDate.value = pickedDate;
+    }
+  }
+
+  /// ---------------------- MULTI-SELECT TOGGLES ----------------------
+  void toggleClassSelection(int classId) {
+    if (selectedClassIds.contains(classId)) {
+      selectedClassIds.remove(classId);
+    } else {
+      selectedClassIds.add(classId);
+    }
+  }
+
+  void toggleSectionSelection(int sectionId) {
+    if (selectedSectionIds.contains(sectionId)) {
+      selectedSectionIds.remove(sectionId);
+    } else {
+      selectedSectionIds.add(sectionId);
+    }
+  }
+
+  void toggleSubjectSelection(int subjectId) {
+    if (selectedSubjectIds.contains(subjectId)) {
+      selectedSubjectIds.remove(subjectId);
+    } else {
+      selectedSubjectIds.add(subjectId);
     }
   }
 
@@ -105,12 +147,24 @@ class SyllabusController extends GetxController {
 
       if (response.statusCode == 200) {
         final model = syllabus_model.SyllabusModel.fromJson(jsonDecode(response.body)); // ✅ fixed
-        syllabusList.value = model.data ?? [];
+        final data = model.data ?? [];
+
+        // 🆕 FIX: latest syllabus sabse upar dikhane ke liye createDate
+        // ke hisaab se descending (newest-first) sort kiya. Pehle backend
+        // ascending order me deta tha isliye naya entry list ke bottom
+        // me chala jaata tha aur scroll kiye bina dikhta hi nahi tha.
+        data.sort((a, b) {
+          final dateA = DateTime.tryParse(a.createDate ?? '') ?? DateTime(2000);
+          final dateB = DateTime.tryParse(b.createDate ?? '') ?? DateTime(2000);
+          return dateB.compareTo(dateA);
+        });
+
+        syllabusList.value = data;
       } else {
-        // showSnackSafe('Error', 'Failed to fetch syllabus (${response.statusCode})', isError: true);
+        Get.snackbar('Error', 'Failed to fetch syllabus');
       }
     } catch (e) {
-      //showSnackSafe('Error', 'Exception: Failed to fetch syllabus', isError: true);
+      Get.snackbar('Error', 'Exception: Failed to fetch syllabus');
     } finally {
       isLoading(false);
     }
@@ -136,7 +190,7 @@ class SyllabusController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '/',
+          'accept': '*/*',
           'Content-Type': 'application/json',
         },
       );
@@ -156,33 +210,46 @@ class SyllabusController extends GetxController {
     }
   }
 
+  /// ---------------------- FETCH CLASSES (3-way) ----------------------
+  // 1️⃣ STAFF -> ViewClass API | 2️⃣ CLASS TEACHER -> ClassTeacher API
+  // | 3️⃣ NORMAL TEACHER -> GetClassTeacher API | fallback -> staff API
   Future<void> fetchClasses() async {
-    // 🆕 Class teacher login → ClassTeacher API data se hi banao
-    if (isClassTeacherLogin.value) {
-      listDataa.value = classTeacherList.map((e) {
-        return ListDataa.fromJson({
-          'classId': e.classId,
-          'class': e.className,
-          'studentClassId': e.studentClassId,
-          'action': e.action,
-          'createDate': e.createDate,
-          'updateDate': e.updateDate,
-          'createBy': e.createBy,
-          'updateBy': e.updateBy,
-          'schoolId': e.schoolId,
-          'sqno': e.sqno,
-        });
-      }).toList();
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
+      return;
+    }
 
-      if (listDataa.isNotEmpty) {
-        selectedClass.value = listDataa.first;
-      } else {
-        selectedClass.value = null;
+    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        listDataa.value = classTeacherList.map((e) {
+          return ListDataa.fromJson({
+            'classId': e.classId,
+            'class': e.className,
+            'studentClassId': e.studentClassId,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+            'sqno': e.sqno,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        listDataa.value = [];
+      }
+
+      if (listDataa.isEmpty) {
+        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+        await _fetchClassesStaffApi();
       }
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 3️⃣ NORMAL TEACHER — GetClassTeacher API
     try {
       isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -197,7 +264,7 @@ class SyllabusController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '/',
+          'accept': '*/*',
           'Content-Type': 'application/json',
         },
       );
@@ -213,33 +280,57 @@ class SyllabusController extends GetxController {
 
           // ❌ action filter hata diya — GetClassTeacher me action null aata hai
           listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
-
-          if (listDataa.isNotEmpty) {
-            selectedClass.value = listDataa.first;
-          } else {
-            selectedClass.value = null;
-          }
         } else {
           listDataa.value = [];
-          selectedClass.value = null;
         }
       } else {
-        Get.snackbar(
-          "Error",
-          "Failed to fetch classes: ${response.statusCode}",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        listDataa.value = [];
       }
     } catch (e) {
-      debugPrint("Error fetching classes: $e");
+      debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
+      listDataa.value = [];
+    } finally {
+      isLoading(false);
+    }
+
+    if (listDataa.isEmpty) {
+      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+      await _fetchClassesStaffApi();
+    }
+  }
+
+  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isLoading(true);
+      final url = Uri.parse("${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final classItem = ClassItem.fromJson(jsonDecode(response.body));
+
+        listDataa.value = classItem.listData
+            ?.where((e) => e.action == "1")
+            .toList() ?? [];
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching classes: $e");
     } finally {
       isLoading(false);
     }
   }
 
+  /// ---------------------- FETCH SECTIONS (3-way) ----------------------
+  // 1️⃣ STAFF -> ViewSectionApp API | 2️⃣ CLASS TEACHER -> SectionTeacher API
+  // | 3️⃣ NORMAL TEACHER -> getSectionTeacher API | fallback -> staff API
   Future<void> fetchSections() async {
-    // 🆕 Class teacher login → SectionTeacher API
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
     if (isClassTeacherLogin.value) {
       try {
         isLoading(true);
@@ -256,7 +347,7 @@ class SyllabusController extends GetxController {
         final response = await http.get(
           url,
           headers: {
-            'accept': '/',
+            'accept': '*/*',
             'Content-Type': 'application/json',
           },
         );
@@ -280,21 +371,24 @@ class SyllabusController extends GetxController {
               'schoolId': e.schoolId,
             });
           }).toList();
-
-          selectedSection.value = null;
-          section.value = '';
         } else {
-          Get.snackbar('Error', 'Failed to load sections');
+          sectionList.value = [];
         }
       } catch (e) {
-        Get.snackbar('Error', 'Failed to load sections');
+        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+        sectionList.value = [];
       } finally {
         isLoading(false);
+      }
+
+      if (sectionList.isEmpty) {
+        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+        await _fetchSectionsStaffApi();
       }
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 3️⃣ NORMAL TEACHER — getSectionTeacher API
     try {
       isLoading(true);
 
@@ -310,7 +404,7 @@ class SyllabusController extends GetxController {
       final response = await http.get(
         url,
         headers: {
-          'accept': '/',
+          'accept': '*/*',
           'Content-Type': 'application/json',
         },
       );
@@ -322,22 +416,52 @@ class SyllabusController extends GetxController {
         final jsonResponse = json.decode(response.body);
         final sectionModel = sectionmodel.fromJson(jsonResponse);
 
-        sectionList.assignAll(sectionModel.listData ?? []);
-
-        // ✅ IMPORTANT: keep dropdown unselected by default
-        selectedSection.value = null;
-        section.value = ''; // optional: clear saved sectionId too
+        sectionList.value = sectionModel.listData ?? [];
       } else {
-        Get.snackbar('Error', 'Failed to load sections');
+        sectionList.value = [];
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load sections');
+      debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
+      sectionList.value = [];
+    } finally {
+      isLoading(false);
+    }
+
+    if (sectionList.isEmpty) {
+      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+      await _fetchSectionsStaffApi();
+    }
+  }
+
+  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchSectionsStaffApi() async {
+    try {
+      isLoading(true);
+      final url =
+      Uri.parse("${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        sectionList.value = (jsonDecode(response.body)['listData'] as List)
+            .map((e) => stListData.fromJson(e))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching sections (staff): $e");
     } finally {
       isLoading(false);
     }
   }
 
+  /// ---------------------- FETCH SUBJECTS (2-way: teacher -> staff fallback) ----------------------
   Future<void> fetchsubjectdata() async {
+    // 1️⃣ STAFF — direct staff API
+    if (isStaffLogin.value) {
+      await _fetchSubjectsStaffApi();
+      return;
+    }
+
+    // 2️⃣ TEACHER — existing teacher subject API
     try {
       isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -356,21 +480,55 @@ class SyllabusController extends GetxController {
         },
       );
 
+      debugPrint('GetSubjectTeacher status: ${response.statusCode}');
+      debugPrint('GetSubjectTeacher body: ${response.body}');
+
       if (response.statusCode == 200) {
         final subjectWrapper = SubjectModel.fromJson(jsonDecode(response.body));
         subjectdata.value = subjectWrapper;
         subjectlist.value = subjectWrapper.listData ?? [];
       } else {
-        print('Request failed with status: ${response.statusCode}');
+        subjectlist.value = [];
       }
+    } catch (e) {
+      debugPrint('Error loading teacher subjects: $e');
+      subjectlist.value = [];
+    } finally {
+      isLoading(false);
+    }
+
+    // 🆕 FALLBACK: teacher API empty aaya to staff wali API try karo
+    if (subjectlist.isEmpty) {
+      debugPrint("↩️ Teacher subjects empty — falling back to staff API");
+      await _fetchSubjectsStaffApi();
+    }
+  }
+
+  // 🆕 Staff subject API (admin project se liya gaya URL pattern)
+  Future<void> _fetchSubjectsStaffApi() async {
+    try {
+      isLoading(true);
+      final url = '${AppUrl.base_url}${AppUrl.view_subject}$schoolId';
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      debugPrint('ViewSubject (staff) status: ${response.statusCode}');
+      debugPrint('ViewSubject (staff) body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final subjectWrapper = SubjectModel.fromJson(jsonDecode(response.body));
+        subjectdata.value = subjectWrapper;
+        subjectlist.value = subjectWrapper.listData ?? [];
+      }
+    } catch (e) {
+      debugPrint('Error loading staff subjects: $e');
     } finally {
       isLoading(false);
     }
   }
-
-  void setsubject(ListDaataa? s) => subject.value = s?.subjectId ?? 0;
-  void setSelectedClass(ListDataa? c) => selectedClass.value = c;
-  void setSelectedSection(stListData? s) => selectedSection.value = s;
 
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -387,77 +545,174 @@ class SyllabusController extends GetxController {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // FIX (400-type error prevention): backend har request me sirf 1
+  // class + 1 section + 1 subject expect karta hai (index-wise
+  // pairing), ek saath multiple values array me nahi. Isliye ab har
+  // class-section-subject COMBINATION ke liye ek ALAG request bheji
+  // jaati hai — parallel (Future.wait) taaki speed slow na ho. Har
+  // request me hamesha 1 class + 1 section + 1 subject hota hai.
+  // ─────────────────────────────────────────────────────────────
   Future<void> registerSyllabus() async {
     if (pdfFile.value == null) {
       ShortMessage.toast(title: "Please select a PDF file.");
       return;
     }
-    if(description.value.isEmpty){
+
+    if (description.value.isEmpty) {
       ShortMessage.toast(title: "Please enter Description.");
       return;
     }
-    if(subject.value == 0){
-      ShortMessage.toast(title: "Please select Subject.");
-      return;}
-    if(selectedClass.value == null){
-      ShortMessage.toast(title: "Please select Class.");}
-    final sectionId = selectedSection.value?.sectionId ?? 0;
-    final classId = selectedClass.value?.classId.toString() ?? '';
 
-    if (sectionId == 0 || subject.value == 0 || classId.isEmpty) {
-      ShortMessage.toast(title: "Please select Class, Section and Subject.");
+    if (selectedClassIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one class.");
       return;
     }
 
-    try {
-      isLoading(true);
+    if (selectedSectionIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one section.");
+      return;
+    }
 
-      final url = Uri.parse("${AppUrl.base_url}api/CommumicationApp/InsertSyllabusApp");
+    if (selectedSubjectIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one subject.");
+      return;
+    }
+
+    isLoading(true);
+
+    int successCount = 0;
+    int failCount = 0;
+
+    try {
+      // ✅ Saari class-section-subject combinations ek saath (parallel)
+      // bheji jaati hain, taaki total time sabse slowest single request
+      // jitna hi lage.
+      final futures = <Future<bool>>[];
+      for (final classId in selectedClassIds) {
+        for (final sectionId in selectedSectionIds) {
+          for (final subjectId in selectedSubjectIds) {
+            futures.add(
+              _postSingleSyllabus(
+                classId: classId,
+                sectionId: sectionId,
+                subjectId: subjectId,
+              ),
+            );
+          }
+        }
+      }
+
+      final results = await Future.wait(futures);
+      for (final ok in results) {
+        if (ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      debugPrint(
+          "📊 POST SYLLABUS MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
+
+      if (successCount > 0 && failCount == 0) {
+        ShortMessage.toast(
+            title: successCount == 1
+                ? "Syllabus Added Successfully"
+                : "$successCount Syllabus Added Successfully");
+      } else if (successCount > 0 && failCount > 0) {
+        ShortMessage.toast(
+            title:
+            "$successCount added, $failCount failed. Please check and retry.");
+      } else {
+        ShortMessage.toast(
+            title: "Failed to add syllabus(es). Please try again.");
+      }
+
+      if (successCount > 0) {
+        // ✅ Reset selections after at least one success
+        selectedClassIds.clear();
+        selectedSectionIds.clear();
+        selectedSubjectIds.clear();
+        description.value = '';
+        pdfFile.value = null;
+        file.value = '';
+
+        await fetchSyllabus();
+        Get.back();
+      }
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  /// Helper: posts ONE syllabus for one class+section+subject combination.
+  /// Returns true on success (status 200), false otherwise.
+  Future<bool> _postSingleSyllabus({
+    required int classId,
+    required int sectionId,
+    required int subjectId,
+  }) async {
+    try {
+      final url =
+      Uri.parse("${AppUrl.base_url}api/CommumicationApp/InsertSyllabusApp");
+
       final request = http.MultipartRequest('POST', url);
+
+      if (token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
 
       request.fields.addAll({
         'SyllabusId': "0",
         'Remark': description.value,
-        'SubjectId': subject.value.toString(),
+        'SubjectId': subjectId.toString(),
         'SectionId': sectionId.toString(),
-        'ClassID': classId,
+        'ClassID': classId.toString(),
         'CreateDate': getFormattedDate(),
         'Session': session.value,
         'SchoolId': schoolId,
+        'schoolId': schoolId,
+        'CreateBy': 'Admin',
         'Action': "1",
         'action': "1",
-        'CreateBy': 'Admin',
       });
 
-      request.files.add(
-        await http.MultipartFile.fromPath(
+      // ✅ FILE VERIFICATION — confirm file exists before attaching
+      if (pdfFile.value != null) {
+        final f = pdfFile.value!;
+        final exists = await f.exists();
+        final length = exists ? await f.length() : 0;
+
+        debugPrint("📎 [C:$classId S:$sectionId Sub:$subjectId] File path: ${f.path}");
+        debugPrint("📎 [C:$classId S:$sectionId Sub:$subjectId] Exists: $exists | size: $length bytes");
+
+        final multipartFile = await http.MultipartFile.fromPath(
           'file',
-          pdfFile.value!.path,
-          filename: pdfFile.value!.path.split('/').last,
-        ),
-      );
+          f.path,
+          filename: f.path.split('/').last,
+        );
+        request.files.add(multipartFile);
 
-      final streamed = await request.send();
+        debugPrint("📎 [C:$classId S:$sectionId Sub:$subjectId] Attached 'file' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
+      }
 
-      if (streamed.statusCode == 200) {
-        ShortMessage.toast(title: "Syllabus Added Successfully");
+      debugPrint("📤 POST SYLLABUS -> Class:$classId Section:$sectionId Subject:$subjectId");
 
-        pdfFile.value = null;
-        file.value = "";
-        description.value = "";
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
 
-        await fetchSyllabus();
-        Get.back();
+      debugPrint("📥 [C:$classId S:$sectionId Sub:$subjectId] Status: ${response.statusCode}");
+      debugPrint("📥 [C:$classId S:$sectionId Sub:$subjectId] Body: $responseBody");
+
+      if (response.statusCode == 200) {
+        return true;
       } else {
-        final body = await streamed.stream.bytesToString();
-        ShortMessage.toast(title: "Failed: ${streamed.statusCode}");
-        print('Error response: $body');
+        return false;
       }
     } catch (e) {
-      ShortMessage.toast(title: "Error: $e");
-      print("Error: $e");
-    } finally {
-      isLoading(false);
+      debugPrint('⚠️ [C:$classId S:$sectionId Sub:$subjectId] Exception: $e');
+      return false;
     }
   }
 }

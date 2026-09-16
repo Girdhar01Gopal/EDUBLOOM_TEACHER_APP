@@ -23,6 +23,14 @@ class _MapcategoryviewState extends State<Mapcategoryview>
   late TabController tabController;
   final controller = Get.put(Mapcategorycontroller());
 
+  // 🆕 ADDED: search bar state (Photos tab)
+  final TextEditingController _photoSearchController = TextEditingController();
+  String _photoSearchQuery = '';
+
+  // 🆕 ADDED: search bar state (Videos tab)
+  final TextEditingController _videoSearchController = TextEditingController();
+  String _videoSearchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +40,8 @@ class _MapcategoryviewState extends State<Mapcategoryview>
   @override
   void dispose() {
     tabController.dispose();
+    _photoSearchController.dispose();
+    _videoSearchController.dispose();
     super.dispose();
   }
 
@@ -266,6 +276,102 @@ class _MapcategoryviewState extends State<Mapcategoryview>
     );
   }
 
+  // 🆕 ADDED: search bar widget (Photos tab) — heading / date pe filter
+  Widget _buildPhotoSearchBar() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _photoSearchController,
+        onChanged: (val) {
+          setState(() {
+            _photoSearchQuery = val.trim().toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: "Search by heading or date...",
+          hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF97144D)),
+          suffixIcon: _photoSearchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () {
+              _photoSearchController.clear();
+              setState(() => _photoSearchQuery = '');
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        ),
+      ),
+    );
+  }
+
+  // 🆕 ADDED: search bar widget (Videos tab) — class / section / video url pe filter
+  Widget _buildVideoSearchBar() {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _videoSearchController,
+        onChanged: (val) {
+          setState(() {
+            _videoSearchQuery = val.trim().toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: "Search by class, section or video...",
+          hintStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade400),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF97144D)),
+          suffixIcon: _videoSearchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.grey),
+            onPressed: () {
+              _videoSearchController.clear();
+              setState(() => _videoSearchQuery = '');
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+          EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        ),
+      ),
+    );
+  }
+
   // ══════════════════════════════════════
   //  PHOTOS TAB
   // ══════════════════════════════════════
@@ -287,27 +393,59 @@ class _MapcategoryviewState extends State<Mapcategoryview>
       }
 
       // ─── Sort: latest date first ───
-      final groups = grouped.entries.toList();
-      groups.sort((a, b) {
+      final allGroups = grouped.entries.toList();
+      allGroups.sort((a, b) {
         final dateA = parseDate(a.value.first.date);
         final dateB = parseDate(b.value.first.date);
         return dateB.compareTo(dateA);
       });
 
-      return GridView.builder(
-        padding: EdgeInsets.all(12.r),
-        itemCount: groups.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 1,
-          mainAxisSpacing: 10.h,
-          mainAxisExtent: 240.h,
+      // 🆕 ADDED: search filter (heading ya date pe)
+      final groups = _photoSearchQuery.isEmpty
+          ? allGroups
+          : allGroups.where((g) {
+        final heading = g.key.toLowerCase();
+        final date = formatDate(g.value.first.date).toLowerCase();
+        return heading.contains(_photoSearchQuery) ||
+            date.contains(_photoSearchQuery);
+      }).toList();
+
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.r),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: 12.h),
+            _buildPhotoSearchBar(),
+            Expanded(
+              child: groups.isEmpty
+                  ? Center(
+                child: Text(
+                  'No matching photos',
+                  style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600),
+                ),
+              )
+                  : GridView.builder(
+                padding: EdgeInsets.only(bottom: 12.r),
+                itemCount: groups.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 1,
+                  mainAxisSpacing: 10.h,
+                  mainAxisExtent: 240.h,
+                ),
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  final heading = group.key;
+                  final images = group.value;
+                  return _buildGroupedCard(heading, images);
+                },
+              ),
+            ),
+          ],
         ),
-        itemBuilder: (context, index) {
-          final group = groups[index];
-          final heading = group.key;
-          final images = group.value;
-          return _buildGroupedCard(heading, images);
-        },
       );
     });
   }
@@ -494,156 +632,191 @@ class _MapcategoryviewState extends State<Mapcategoryview>
         return const Center(child: Text("No videos found"));
       }
 
-      return ListView.builder(
-        padding: EdgeInsets.all(12.r),
-        itemCount: controller.mappedCategories.length,
-        itemBuilder: (context, index) {
-          final item = controller.mappedCategories[index];
-          final videoUrl = item.videoUrl ?? '';
-          final className = item.className ?? '';
-          final sectionName = item.sectionName ?? '';
+      // 🆕 ADDED: search filter (class / section / video url pe)
+      final allVideos = controller.mappedCategories.toList();
+      final videos = _videoSearchQuery.isEmpty
+          ? allVideos
+          : allVideos.where((item) {
+        final className = (item.className ?? '').toLowerCase();
+        final sectionName = (item.sectionName ?? '').toLowerCase();
+        final videoUrl = (item.videoUrl ?? '').toLowerCase();
+        return className.contains(_videoSearchQuery) ||
+            sectionName.contains(_videoSearchQuery) ||
+            videoUrl.contains(_videoSearchQuery);
+      }).toList();
 
-          return Card(
-            elevation: 3,
-            margin: EdgeInsets.symmetric(vertical: 8.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ─── Thumbnail area ───
-                Stack(
-                  children: [
-                    Container(
-                      height: 155.h,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(12.r),
-                        ),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.videocam_rounded,
-                          size: 48.r,
-                          color: Colors.white30,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 10.h,
-                      left: 10.w,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10.w,
-                          vertical: 6.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.play_circle_fill,
-                                size: 18.r, color: Colors.white),
-                            SizedBox(width: 6.w),
-                            Text(
-                              "Play Video",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.sp,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8.h,
-                      right: 8.w,
-                      child: GestureDetector(
-                        onTap: () => shareVideo(videoUrl),
-                        child: Container(
-                          padding: EdgeInsets.all(7.r),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Icon(
-                            Icons.share_rounded,
-                            size: 20.r,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.r),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: 12.h),
+            _buildVideoSearchBar(),
+            Expanded(
+              child: videos.isEmpty
+                  ? Center(
+                child: Text(
+                  'No matching videos',
+                  style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600),
                 ),
-                // ─── Info section ───
-                Padding(
-                  padding: EdgeInsets.all(12.r),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (className.isNotEmpty)
-                        Row(
+              )
+                  : ListView.builder(
+                padding: EdgeInsets.only(bottom: 12.r),
+                itemCount: videos.length,
+                itemBuilder: (context, index) {
+                  final item = videos[index];
+                  final videoUrl = item.videoUrl ?? '';
+                  final className = item.className ?? '';
+                  final sectionName = item.sectionName ?? '';
+
+                  return Card(
+                    elevation: 3,
+                    margin: EdgeInsets.symmetric(vertical: 8.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ─── Thumbnail area ───
+                        Stack(
                           children: [
-                            Icon(Icons.class_rounded,
-                                size: 16.r, color: const Color(0xFFAD1457)),
-                            SizedBox(width: 6.w),
-                            Text(
-                              "Class: $className",
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (sectionName.isNotEmpty) ...[
-                        SizedBox(height: 4.h),
-                        Row(
-                          children: [
-                            Icon(Icons.people_rounded,
-                                size: 16.r, color: const Color(0xFFAD1457)),
-                            SizedBox(width: 6.w),
-                            Text(
-                              "Section: $sectionName",
-                              style: TextStyle(fontSize: 13.sp),
-                            ),
-                          ],
-                        ),
-                      ],
-                      if (videoUrl.isNotEmpty) ...[
-                        SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            Icon(Icons.link_rounded,
-                                size: 15.r, color: Colors.blue),
-                            SizedBox(width: 6.w),
-                            Expanded(
-                              child: Text(
-                                videoUrl,
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.blue,
+                            Container(
+                              height: 155.h,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(12.r),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.videocam_rounded,
+                                  size: 48.r,
+                                  color: Colors.white30,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 10.h,
+                              left: 10.w,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 6.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.play_circle_fill,
+                                        size: 18.r, color: Colors.white),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      "Play Video",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8.h,
+                              right: 8.w,
+                              child: GestureDetector(
+                                onTap: () => shareVideo(videoUrl),
+                                child: Container(
+                                  padding: EdgeInsets.all(7.r),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Icon(
+                                    Icons.share_rounded,
+                                    size: 20.r,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
+                        // ─── Info section ───
+                        Padding(
+                          padding: EdgeInsets.all(12.r),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (className.isNotEmpty)
+                                Row(
+                                  children: [
+                                    Icon(Icons.class_rounded,
+                                        size: 16.r, color: const Color(0xFFAD1457)),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      "Class: $className",
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              if (sectionName.isNotEmpty) ...[
+                                SizedBox(height: 4.h),
+                                Row(
+                                  children: [
+                                    Icon(Icons.people_rounded,
+                                        size: 16.r, color: const Color(0xFFAD1457)),
+                                    SizedBox(width: 6.w),
+                                    Text(
+                                      "Section: $sectionName",
+                                      style: TextStyle(fontSize: 13.sp),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              if (videoUrl.isNotEmpty) ...[
+                                SizedBox(height: 8.h),
+                                Row(
+                                  children: [
+                                    Icon(Icons.link_rounded,
+                                        size: 15.r, color: Colors.blue),
+                                    SizedBox(width: 6.w),
+                                    Expanded(
+                                      child: Text(
+                                        videoUrl,
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          color: Colors.blue,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                  );
+                },
+              ),
             ),
-          );
-        },
+          ],
+        ),
       );
     });
   }

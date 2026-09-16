@@ -10,12 +10,12 @@ import 'package:intl/intl.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
-import '../models/class_list_model.dart';
+import '../models/classmodel.dart'; // 🆕 ListDataa, ClassItem (Galaryvideo wale multi-select class model)
+import '../models/sectionmodel.dart'; // 🆕 ListDatta (Galaryvideo wale multi-select section model)
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (class teacher ke sections ke liye)
 import '../models/notificationAll_model.dart';
 import '../models/notification_model.dart';
 import '../models/pre school student teach stu filter api model.dart';
-import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
 import 'fees_controller.dart' hide ListData;
 import 'student_controller.dart'
@@ -24,10 +24,7 @@ import 'student_controller.dart'
 class NotificationController extends GetxController {
   var title = ''.obs;
   var message = ''.obs;
-  var section = ''.obs;
 
-  final Rxn<stListData> selectedSection = Rxn<stListData>();
-  var studentClass = ''.obs;
   var createDate = DateTime.now().obs;
   var updateDate = DateTime.now().obs;
   var notificationFile = ''.obs;
@@ -35,10 +32,12 @@ class NotificationController extends GetxController {
   var isLoading = false.obs;
   final notificationall = NotificationAllModel().obs;
 
-  var sectionList = <stListData>[].obs;
-  var classes = <ClassData>[].obs;
-  var selectedClass = Rx<ClassData?>(null);
-  var selectedClasses = <ClassData>[].obs;
+  // 🆕 CHANGED: single select -> multi select (Galaryvideo/uploadVideo jaisa hi)
+  var classList = <ListDataa>[].obs;
+  var selectedClassIds = <int>[].obs;
+
+  var sectionList = <ListDatta>[].obs;
+  var selectedSectionIds = <int>[].obs;
 
   var token = "";
   var schoolId = "";
@@ -49,9 +48,10 @@ class NotificationController extends GetxController {
 
   var notificationList = <ListData>[].obs;
 
-  // 🆕 Class Teacher filter (jo classes teacher ko assigned hain)
+  // 🆕 Role / Teacher-type detection (class & section fetch ke liye) — Galaryvideo jaisa hi
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
+  var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
   var classTeacherList = <ClassTeacherFilterData>[].obs;
-  var isClassTeacherLogin = false.obs; // 🆕 true agar ClassTeacher API se data mile
 
   @override
   Future<void> onInit() async {
@@ -59,9 +59,26 @@ class NotificationController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     session = await PrefManager().readValue(key: PrefConst.session) ?? "";
 
-    await fetchClassTeacherFilter(); // 🆕 teacher ke allowed classes/sections check ke liye — sabse pehle
-    await fetchSections();
-    await fetchClasses();
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final role =
+    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
+
+    if (isStaffLogin.value) {
+      // 🟢 STAFF — direct staff APIs
+      fetchClasses();
+      fetchSections();
+    } else {
+      // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class/section
+      await fetchClassTeacherFilter();
+      fetchClasses();
+      fetchSections();
+    }
+
     await fetchAllNotifications();
   }
 
@@ -101,7 +118,6 @@ class NotificationController extends GetxController {
   }
 
   // ✅ UPDATED API: TeacherGetAllNotificationAsynsApp
-  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchAllNotifications() async {
     try {
       isLoading(true);
@@ -122,6 +138,7 @@ class NotificationController extends GetxController {
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         notificationall.value = NotificationAllModel.fromJson(jsonResponse);
+        debugPrint("📊 FETCHED NOTIFICATION COUNT -> ${notificationall.value.data?.length}");
       } else {
         throw Exception('Failed to load notifications');
       }
@@ -132,13 +149,122 @@ class NotificationController extends GetxController {
     }
   }
 
+  // 🆕 3-way class fetch: Staff -> existing API | Class Teacher -> ClassTeacher API
+  // | Normal Teacher -> GetClassTeacher API | fallback -> existing (staff) API
+  Future<void> fetchClasses() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classList.value = classTeacherList.map((e) {
+          return ListDataa.fromJson({
+            'classId': e.classId,
+            'class': e.className,
+            'studentClassId': e.studentClassId,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+            'sqno': e.sqno,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        classList.value = [];
+      }
+
+      if (classList.isEmpty) {
+        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+        await _fetchClassesStaffApi();
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — GetClassTeacher API
+    try {
+      isLoading(true);
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(session)}'
+            '&userId=${Uri.encodeComponent(userId ?? '')}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('GetClassTeacher status: ${response.statusCode}');
+      debugPrint('GetClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as List<dynamic>? ?? [];
+
+        classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
+      } else {
+        classList.value = [];
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
+      classList.value = [];
+    } finally {
+      isLoading(false);
+    }
+
+    if (classList.isEmpty) {
+      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+      await _fetchClassesStaffApi();
+    }
+  }
+
+  // 🔁 Ye wahi ViewClass API hai — Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isLoading(true);
+      final url = Uri.parse("${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final classItem = ClassItem.fromJson(json.decode(response.body));
+
+        classList.value = classItem.listData
+            ?.where((e) => e.action == "1")
+            .toList() ?? [];
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching classes: $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // 🆕 3-way section fetch: Staff -> existing API | Class Teacher -> SectionTeacher API
+  // | Normal Teacher -> getSectionTeacher API | fallback -> existing (staff) API
   Future<void> fetchSections() async {
-    // 🆕 Agar class teacher login hai, to sections SectionTeacher API
-    // (jo Attendance wale me lagi hui hai) se fetch honge
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
     if (isClassTeacherLogin.value) {
       try {
         isLoading(true);
-
         final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
         final url = Uri.parse(
@@ -163,9 +289,8 @@ class NotificationController extends GetxController {
           final decoded = json.decode(response.body);
           final model = SectionForAttendanceModel.fromJson(decoded);
 
-          // ✅ existing stListData type me hi map kar rahe hai taaki screen untouched rahe
           sectionList.value = (model.data ?? []).map((e) {
-            return stListData.fromJson({
+            return ListDatta.fromJson({
               'sectionId': e.sectionId,
               'section': e.section,
               'action': e.action,
@@ -176,24 +301,26 @@ class NotificationController extends GetxController {
               'schoolId': e.schoolId,
             });
           }).toList();
-
-          selectedSection.value = null;
-          section.value = '';
         } else {
-          Get.snackbar('Error', 'Failed to load sections');
+          sectionList.value = [];
         }
       } catch (e) {
-        Get.snackbar('Error', 'Failed to load sections');
+        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+        sectionList.value = [];
       } finally {
         isLoading(false);
+      }
+
+      if (sectionList.isEmpty) {
+        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+        await _fetchSectionsStaffApi();
       }
       return;
     }
 
-    // 🔁 Otherwise — normal teacher — jo API pehle se lagi hui hai wahi chalegi
+    // 3️⃣ NORMAL TEACHER — getSectionTeacher API
     try {
       isLoading(true);
-
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       final url = Uri.parse(
@@ -216,44 +343,45 @@ class NotificationController extends GetxController {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        final sectionModel = sectionmodel.fromJson(jsonResponse);
-
-        sectionList.assignAll(sectionModel.listData ?? []);
-        selectedSection.value = null;
-        section.value = '';
+        final list = (jsonResponse['data'] as List<dynamic>?) ?? [];
+        sectionList.value = list.map((e) => ListDatta.fromJson(e)).toList();
       } else {
-        Get.snackbar('Error', 'Failed to load sections');
+        sectionList.value = [];
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load sections');
+      debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
+      sectionList.value = [];
+    } finally {
+      isLoading(false);
+    }
+
+    if (sectionList.isEmpty) {
+      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+      await _fetchSectionsStaffApi();
+    }
+  }
+
+  // 🔁 Ye wahi ViewSectionApp API hai — Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchSectionsStaffApi() async {
+    try {
+      isLoading(true);
+      final url =
+      Uri.parse("${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        sectionList.value = (json.decode(response.body)['listData'] as List)
+            .map((e) => ListDatta.fromJson(e))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching sections (staff): $e");
     } finally {
       isLoading(false);
     }
   }
 
-  void setSelectedSection(stListData? sectionData) {
-    selectedSection.value = sectionData;
-  }
-
-  /// Fixed: compare by classId for correct equality
-  void toggleClassSelection(ClassData classItem) {
-    final exists =
-    selectedClasses.any((c) => c.classId == classItem.classId);
-    if (exists) {
-      selectedClasses.removeWhere((c) => c.classId == classItem.classId);
-    } else {
-      selectedClasses.add(classItem);
-    }
-    studentClass.value = getSelectedClassIds();
-  }
-
-  String getSelectedClassIds() {
-    return selectedClasses
-        .map((classItem) => classItem.classId.toString())
-        .join(',');
-  }
-
-  // 🆕 Logged-in teacher ke assigned classes fetch karo (access filter ke liye)
+  // 🆕 Logged-in teacher ke assigned classes fetch karo (Notification wala hi logic)
   Future<void> fetchClassTeacherFilter() async {
     try {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -295,93 +423,6 @@ class NotificationController extends GetxController {
     }
   }
 
-  Future<void> fetchClasses() async {
-    // 🆕 Agar class teacher login hai, to class dropdown ClassTeacher API ke
-    // data se hi banao — GetClassTeacher API call hi nahi lagegi
-    if (isClassTeacherLogin.value) {
-      classes.value = classTeacherList.map((e) {
-        return ClassData.fromJson({
-          'classId': e.classId,
-          'class': e.className,
-          'studentClassId': e.studentClassId,
-          'action': e.action,
-          'createDate': e.createDate,
-          'updateDate': e.updateDate,
-          'createBy': e.createBy,
-          'updateBy': e.updateBy,
-          'schoolId': e.schoolId,
-          'sqno': e.sqno,
-        });
-      }).toList();
-
-      if (classes.isNotEmpty) {
-        selectedClass.value = classes.first;
-      } else {
-        selectedClass.value = null;
-      }
-      return;
-    }
-
-    // 🔁 Otherwise — normal teacher — jo API pehle se lagi hui hai wahi chalegi
-    try {
-      isLoading(true);
-      final userId = await PrefManager().readValue(key: PrefConst.Userid);
-
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
-            '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(session)}'
-            '&userId=${Uri.encodeComponent(userId ?? '')}',
-      );
-
-      final response = await http.get(
-        url,
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      debugPrint('GetClassTeacher status: ${response.statusCode}');
-      debugPrint('GetClassTeacher body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-
-        if (jsonResponse['data'] != null) {
-          final List<dynamic> data = jsonResponse['data'] ?? [];
-
-          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
-          classes.value = data.map((e) => ClassData.fromJson(e)).toList();
-
-          if (classes.isNotEmpty) {
-            selectedClass.value = classes.first;
-          } else {
-            selectedClass.value = null;
-          }
-        } else {
-          classes.value = [];
-          selectedClass.value = null;
-        }
-      } else {
-        Get.snackbar(
-          "Error",
-          "Failed to fetch classes: ${response.statusCode}",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      debugPrint("Error loading classes: $e");
-    } finally {
-      isLoading(false);
-    }
-  }
-
-  void setSelectedClass(ClassData? classItem) {
-    selectedClass.value = classItem;
-  }
-
   void fetchNotifications() async {
     if (schoolId.isEmpty || session.isEmpty) {
       Get.snackbar("Error", "Please enter both School ID and Session");
@@ -410,26 +451,95 @@ class NotificationController extends GetxController {
     }
   }
 
+
+  // ─────────────────────────────────────────────────────────────
   Future<void> registerNote() async {
+    if (selectedClassIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one class.");
+      return;
+    }
+
+    if (selectedSectionIds.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one section.");
+      return;
+    }
+
+    if (message.value.isEmpty || title.value.isEmpty) {
+      ShortMessage.toast(title: "Please provide valid Title and Message.");
+      return;
+    }
+
+    isLoading(true);
+
+    int successCount = 0;
+    int failCount = 0;
+
     try {
-      // ✅ FIX: selectedClass (single dropdown) check karo
-      if (selectedClass.value == null) {
-        ShortMessage.toast(title: "Please select at least one class.");
-        return;
+
+      final futures = <Future<bool>>[];
+      for (final classId in selectedClassIds) {
+        for (final sectionId in selectedSectionIds) {
+          futures.add(
+            _postSingleNotification(classId: classId, sectionId: sectionId),
+          );
+        }
       }
 
-      if (section.value.isEmpty || section.value == '0') {
-        ShortMessage.toast(title: "Please provide valid Section.");
-        return;
+      final results = await Future.wait(futures);
+      for (final ok in results) {
+        if (ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
       }
 
-      if (message.value.isEmpty || title.value.isEmpty) {
-        ShortMessage.toast(title: "Please provide valid Title and Message.");
-        return;
+      debugPrint(
+          "📊 POST NOTIF MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
+
+      if (successCount > 0 && failCount == 0) {
+        ShortMessage.toast(
+            title: successCount == 1
+                ? "Notification Added Successfully"
+                : "$successCount Notifications Added Successfully");
+      } else if (successCount > 0 && failCount > 0) {
+        ShortMessage.toast(
+            title:
+            "$successCount added, $failCount failed. Please check and retry.");
+      } else {
+        ShortMessage.toast(
+            title: "Failed to add notification(s). Please try again.");
       }
 
-      final uri =
-      Uri.parse("${AppUrl.base_url}api/CommumicationApp/PostNotificationApp");
+      if (successCount > 0) {
+        // ✅ Reset all fields only when at least one combination succeeded
+        title.value = '';
+        message.value = '';
+        selectedClassIds.clear();
+        selectedSectionIds.clear();
+        imageFile.value = null;
+        notificationFile.value = '';
+
+        await fetchAllNotifications();
+        Get.back();
+      }
+    } catch (e) {
+      debugPrint('❌ POST NOTIF EXCEPTION -> $e');
+      ShortMessage.toast(
+          title: "An error occurred while adding the notification.");
+    } finally {
+      isLoading(false);
+    }
+  }
+
+
+  Future<bool> _postSingleNotification({
+    required int classId,
+    required int sectionId,
+  }) async {
+    try {
+      final uri = Uri.parse(
+          "${AppUrl.base_url}api/CommumicationApp/PostNotificationApp");
       var request = http.MultipartRequest('POST', uri);
 
       request.fields['Title'] = title.value;
@@ -442,19 +552,22 @@ class NotificationController extends GetxController {
       // Ek hi class aur ek hi section per request -> count hamesha 1 == 1,
       // isliye backend ka "count must be same" check kabhi fail nahi hoga.
       request.files.add(
-        http.MultipartFile.fromString(
-          'ClassIDs',
-          selectedClass.value!.classId.toString(),
-        ),
+        http.MultipartFile.fromString('ClassIDs', classId.toString()),
       );
       request.files.add(
-        http.MultipartFile.fromString('SectionId', section.value.toString()),
+        http.MultipartFile.fromString('SectionId', sectionId.toString()),
       );
 
+      // ✅ IMAGE VERIFICATION — confirm file exists before attaching
       if (imageFile.value != null) {
         var file = imageFile.value!;
+        final exists = await file.exists();
+        final length = exists ? await file.length() : 0;
+
+        debugPrint("🖼️ [Class:$classId Section:$sectionId] Image path: ${file.path}");
+        debugPrint("🖼️ [Class:$classId Section:$sectionId] Exists: $exists | size: $length bytes");
+
         var stream = http.ByteStream(file.openRead().cast());
-        var length = await file.length();
         var multipartFile = http.MultipartFile(
           'Notificationfile',
           stream,
@@ -462,36 +575,28 @@ class NotificationController extends GetxController {
           filename: file.path.split('/').last,
         );
         request.files.add(multipartFile);
+
+        debugPrint("🖼️ [Class:$classId Section:$sectionId] Attached 'Notificationfile' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
       }
 
-      var response = await request.send();
+      debugPrint("📤 POST NOTIF -> Class:$classId Section:$sectionId");
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      debugPrint("📥 [Class:$classId Section:$sectionId] Status: ${response.statusCode}");
+      debugPrint("📥 [Class:$classId Section:$sectionId] Body: $responseBody");
 
       if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        debugPrint('Success: $responseData');
-        ShortMessage.toast(title: "Notification Added Successfully");
-
-        // ✅ Reset all fields
-        title.value = '';
-        message.value = '';
-        section.value = '';
-        selectedSection.value = null;
-        selectedClass.value = null;       // ✅ single class reset
-        selectedClasses.clear();
-        studentClass.value = '';
-        imageFile.value = null;
-        notificationFile.value = '';
-
-        await fetchAllNotifications();
-        Get.back();
+        debugPrint("✅ [Class:$classId Section:$sectionId] Success — check next 'TeacherGetAllNotificationAsynsApp' log for the saved notificationfile name to confirm image reached server.");
+        return true;
       } else {
-        var responseBody = await response.stream.bytesToString();
-        debugPrint('Error: ${response.statusCode}, Details: $responseBody');
-        ShortMessage.toast(title: "Failed with status: ${response.statusCode}");
+        debugPrint("❌ [Class:$classId Section:$sectionId] Failed with status ${response.statusCode}");
+        return false;
       }
     } catch (e) {
-      debugPrint('Exception: $e');
-      ShortMessage.toast(title: "An error occurred while adding the notification.");
+      debugPrint('⚠️ [Class:$classId Section:$sectionId] Exception: $e');
+      return false;
     }
   }
 }

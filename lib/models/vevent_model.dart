@@ -37,28 +37,31 @@ class ListData {
   String? createBy;
   Null? updateBy;
   String? schoolId;
-
+  String? className;
+  String? sectionName;
   ListData(
       {this.eventId,
-      this.classId,
-      this.sectionId,
-      this.session,
-      this.eventDate,
-      this.eventName,
-      this.eventPlace,
-      this.description,
-      this.eventPic,
-      this.action,
-      this.createDate,
-      this.updateDate,
-      this.createBy,
-      this.updateBy,
-      this.schoolId});
+        this.classId,
+        this.sectionId,
+        this.session,
+        this.eventDate,
+        this.eventName,
+        this.eventPlace,
+        this.description,
+        this.eventPic,
+        this.action,
+        this.createDate,
+        this.updateDate,
+        this.createBy,
+        this.updateBy,
+        this.schoolId});
 
   ListData.fromJson(Map<String, dynamic> json) {
     eventId = json['eventId'];
     classId = json['classId'];
     sectionId = json['sectionId'];
+    className = json['className'];      // add this
+    sectionName = json['sectionName'];   // add this
     session = json['session'];
     eventDate = json['eventDate'];
     eventName = json['eventName'];
@@ -73,9 +76,6 @@ class ListData {
     schoolId = json['schoolId'];
   }
 
-  get className => null;
-
-  get sectionName => null;
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();

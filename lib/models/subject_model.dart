@@ -18,12 +18,16 @@ class SubjectModel {
     statusCode = json['statusCode'];
     isSuccess = json['isSuccess'];
     messages = json['messages'];
-    if (json['data'] != null) {
+
+    final dynamic rawList = json['listData'] ?? json['data'];
+
+    if (rawList != null) {
       listData = <ListDaataa>[];
-      json['data'].forEach((v) {
+      (rawList as List).forEach((v) {
         listData!.add(new ListDaataa.fromJson(v));
       });
     }
+
     showPopup = json['showPopup'];
     popupMessage = json['popupMessage'];
   }
@@ -34,7 +38,7 @@ class SubjectModel {
     data['isSuccess'] = this.isSuccess;
     data['messages'] = this.messages;
     if (this.listData != null) {
-      data['data'] = this.listData!.map((v) => v.toJson()).toList();
+      data['listData'] = this.listData!.map((v) => v.toJson()).toList();
     }
     data['showPopup'] = this.showPopup;
     data['popupMessage'] = this.popupMessage;

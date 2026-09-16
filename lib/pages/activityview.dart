@@ -73,7 +73,7 @@ class PostActivity extends GetView<Activitycontroller> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [const Color(0xFF97144D), const Color(0xFFC2185B)],
+                colors: [Colors.pink.shade400, Colors.pink.shade200],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -140,7 +140,7 @@ class PostActivity extends GetView<Activitycontroller> {
                 _typeDropdown(controller),
 
                 SizedBox(height: 16.h),
-                _sectionLabel("Select Student", Icons.person_rounded),
+                _sectionLabel("Select Students", Icons.people_rounded),
                 SizedBox(height: 8.h),
                 _studentSelector(controller),
 
@@ -173,7 +173,7 @@ class PostActivity extends GetView<Activitycontroller> {
 Widget _sectionLabel(String label, IconData icon) {
   return Row(
     children: [
-      Icon(icon, size: 16, color: const Color(0xFF97144D)),
+      Icon(Icons.people_rounded, size: 18, color: const Color(0xFF97144D)),
       const SizedBox(width: 6),
       Text(
         label,
@@ -253,163 +253,226 @@ class ViewActivityScreen extends GetView<Activitycontroller> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.activityList.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.inbox_rounded, size: 60, color: Colors.grey.shade300),
-              const SizedBox(height: 12),
-              Text(
-                "No Activities Found",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
+    return Column(
+      children: [
+        // ── NEW: search bar — filters by student name, date, or the
+        // activity text (the card heading). No class field shown here
+        // since class isn't posted/tracked for Activity. ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: TextField(
+            onChanged: (val) => controller.searchQuery.value = val,
+            decoration: InputDecoration(
+              hintText: "Search by name, date or text...",
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp),
+              prefixIcon: Icon(Icons.search_rounded, color: Colors.teal.shade700),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding:
+              EdgeInsets.symmetric(horizontal: 14.w, vertical: 0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-            ],
-          ),
-        );
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(14),
-        itemCount: controller.activityList.length,
-        itemBuilder: (context, index) {
-          final act = controller.activityList[index];
-          final from = _formatTime(act.fromTime);
-          final to = _formatTime(act.toTime);
-          final date = _formatDate(act.createDate);
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.pink.shade100.withOpacity(0.7),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
+              ),
             ),
-            child: Column(
-              children: [
-                // ── Gradient header ──
-                Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+        Expanded(
+          child: Obx(() {
+            final list = controller.filteredActivityList;
+
+            if (controller.activityList.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inbox_rounded,
+                        size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No Activities Found",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (list.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off_rounded,
+                        size: 60, color: Colors.grey.shade300),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No matching activities",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(14),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                final act = list[index];
+                final from = _formatTime(act.fromTime);
+                final to = _formatTime(act.toTime);
+                final date = _formatDate(act.createDate);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.pink.shade400, Colors.pink.shade200],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.directions_run_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          act.activity ?? "No Activity",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          "#${index + 1}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pink.shade100.withOpacity(0.7),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                ),
-
-                // ── Info rows ──
-                Padding(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Column(
                     children: [
-                      _infoRow(
-                        icon: Icons.person_rounded,
-                        iconColor: Colors.pink.shade300,
-                        label: "Student",
-                        value: act.studentName ?? "N/A",
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _infoRowCompact(
-                              icon: Icons.play_circle_outline_rounded,
-                              iconColor: const Color(0xFF97144D),
-                              label: "From",
-                              value: from.isEmpty ? "N/A" : from,
-                            ),
+                      // ── Gradient header ──
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.pink.shade400,
+                              Colors.pink.shade200,
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _infoRowCompact(
-                              icon: Icons.stop_circle_outlined,
-                              iconColor: Colors.orange,
-                              label: "To",
-                              value: to.isEmpty ? "N/A" : to,
-                            ),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.directions_run_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                act.activity ?? "No Activity",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "#${index + 1}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      _infoRow(
-                        icon: Icons.calendar_today_rounded,
-                        iconColor: Colors.blue,
-                        label: "Date",
-                        value: date.isEmpty ? "N/A" : date,
+
+                      // ── Info rows ──
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Column(
+                          children: [
+                            _infoRow(
+                              icon: Icons.person_rounded,
+                              iconColor: Colors.pink.shade300,
+                              label: "Student",
+                              value: act.studentName ?? "N/A",
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _infoRowCompact(
+                                    icon: Icons.play_circle_outline_rounded,
+                                    iconColor: const Color(0xFF97144D),
+                                    label: "From",
+                                    value: from.isEmpty ? "N/A" : from,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _infoRowCompact(
+                                    icon: Icons.stop_circle_outlined,
+                                    iconColor: Colors.orange,
+                                    label: "To",
+                                    value: to.isEmpty ? "N/A" : to,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            _infoRow(
+                              icon: Icons.calendar_today_rounded,
+                              iconColor: Colors.blue,
+                              label: "Date",
+                              value: date.isEmpty ? "N/A" : date,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
+                );
+              },
+            );
+          }),
+        ),
+      ],
+    );
   }
 
   Widget _infoRow({
@@ -502,35 +565,35 @@ Widget _timeRow(Activitycontroller controller) {
     children: [
       Expanded(
         child: _timeBox("From Time", controller.fromTime, () {
-          controller.pickTime(controller.fromTime, controller.fromDateTime);
+          controller.pickTime(controller.fromTime);
         }),
       ),
       const SizedBox(width: 12),
       Expanded(
         child: _timeBox("To Time", controller.toTime, () {
-          controller.pickTime(controller.toTime, controller.toDateTime);
+          controller.pickTime(controller.toTime);
         }),
       ),
     ],
   );
 }
 
-// ✅ FIXED submit button — selectedStudentIds.first crash se bachao
+// ✅ FIXED submit button — multiple students post, solid snackbars,
+// stays on the same route after success (no navigation away).
 Widget _submitButton(Activitycontroller controller) {
   return SizedBox(
     width: double.infinity,
     height: 50,
     child: ElevatedButton.icon(
       onPressed: () async {
-        // ✅ Pehle check karo ki student select hua hai ya nahi
+        // ✅ Pehle check karo ki kam se kam ek student select hua hai
         if (controller.selectedStudentIds.isEmpty) {
           Get.snackbar(
             "Validation",
             "Please select a student first.",
-            backgroundColor: Colors.orange.shade50,
-            colorText: Colors.orange.shade800,
-            icon: const Icon(Icons.warning_amber_rounded,
-                color: Colors.orange),
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
           );
           return;
         }
@@ -540,30 +603,35 @@ Widget _submitButton(Activitycontroller controller) {
           Get.snackbar(
             "Error",
             "Student ID is invalid. Please re-select the student.",
-            backgroundColor: Colors.red.shade50,
-            colorText: Colors.red.shade800,
-            icon: const Icon(Icons.error, color: Colors.red),
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            icon: const Icon(Icons.error, color: Colors.white),
           );
           return;
         }
 
-        final success = await controller.postActivityToApi();
+        final success =
+        await controller.postActivityToApi(controller.selectedStudentIds);
 
         if (success) {
+          // ── Solid green background, white text — matches the Meal
+          // screen's success snackbar. Controller has already
+          // refreshed the list and reset the form; we stay right here
+          // on the Activity screen. ──
           Get.snackbar(
             "Success",
             "Activity posted successfully",
-            backgroundColor: Colors.green.shade50,
-            colorText: Colors.green.shade800,
-            icon: const Icon(Icons.check_circle, color: Colors.green),
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            icon: const Icon(Icons.check_circle, color: Colors.white),
           );
         } else {
           Get.snackbar(
             "Error",
             "Failed to post activity",
-            backgroundColor: Colors.red.shade50,
-            colorText: Colors.red.shade800,
-            icon: const Icon(Icons.error, color: Colors.red),
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            icon: const Icon(Icons.error, color: Colors.white),
           );
         }
       },
@@ -644,7 +712,7 @@ Widget _activityField(Activitycontroller controller) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
       ),
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -652,6 +720,9 @@ Widget _activityField(Activitycontroller controller) {
   );
 }
 
+// ── Multi-select student picker (mirrors Mealcontroller's
+// _studentSelector / _openStudentSelector pattern) — works the same
+// whether studentList came from Day Care or Pre School. ──
 Widget _studentSelector(Activitycontroller controller) {
   return Obx(() {
     return InkWell(
@@ -715,13 +786,62 @@ void _openStudentSelector(Activitycontroller controller) {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Text(
-            "Select Students",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  "Select Students",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              // ── "Select all" / "Clear" for students ──
+              GestureDetector(
+                onTap: () {
+                  for (final student in controller.studentList) {
+                    if (!controller.selectedStudentIds
+                        .contains(student.studentId)) {
+                      controller.selectedStudent.add(student);
+                      controller.selectedStudentIds.add(student.studentId!);
+                    }
+                  }
+                },
+                child: Text(
+                  "Select all",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.teal.shade700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  controller.selectedStudent.clear();
+                  controller.selectedStudentIds.clear();
+                },
+                child: Text(
+                  "Clear",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Expanded(
             child: Obx(() {
+              if (controller.studentList.isEmpty) {
+                return Center(
+                  child: Text(
+                    "No students available",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  ),
+                );
+              }
               return ListView.builder(
                 itemCount: controller.studentList.length,
                 itemBuilder: (_, index) {
@@ -739,7 +859,7 @@ void _openStudentSelector(Activitycontroller controller) {
                               .contains(student.studentId)) {
                             controller.selectedStudent.add(student);
                             controller.selectedStudentIds
-                                .add(student.studentId ?? 0);
+                                .add(student.studentId!);
                           }
                         } else {
                           controller.selectedStudent.remove(student);
