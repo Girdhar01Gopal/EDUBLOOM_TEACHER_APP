@@ -57,9 +57,16 @@ class MapFoundationalSkillsController extends GetxController {
   final RxBool isSaving = false.obs;
   final RxBool isListLoading = false.obs;
 
+  // 🆕 Notes wali logic ke liye alag loading flags
+  final RxBool isClassLoading = false.obs;
+  final RxBool isSectionLoading = false.obs;
+
   // 🆕 Class Teacher filter
   var classTeacherList = <ClassTeacherFilterData>[].obs;
   var isClassTeacherLogin = false.obs;
+
+  // 🆕 Role / Teacher-type detection (Notes wali hi logic)
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
 
   // =========================
   // URLs
@@ -78,6 +85,13 @@ class MapFoundationalSkillsController extends GetxController {
   // 🆕 SectionTeacher URL (for class teacher login)
   String get _sectionTeacherUrl =>
       '${AppUrl.base_url}api/TeacherApp/SectionTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
+  // 🆕 STAFF URLs (Notes wali hi logic)
+  String get _classStaffUrl =>
+      '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
+
+  String get _sectionStaffUrl =>
+      '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
 
   // ✅ Same pattern as FoundationalSkillsController — needs session
   String get _foundationalSkillsUrl =>
@@ -152,6 +166,14 @@ class MapFoundationalSkillsController extends GetxController {
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
     userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";   // ✅ naya
 
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final role =
+    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
       _showSnack("Error", "SchoolId not found");
@@ -199,7 +221,10 @@ class MapFoundationalSkillsController extends GetxController {
       // ✅ Session pehle fetch karo
       await _fetchCurrentSession();
 
-      await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
+      // 🆕 Notes jaisa hi flow — pehle ClassTeacher filter (agar teacher hai)
+      if (!isStaffLogin.value) {
+        await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
+      }
 
       // ✅ Baaki parallel
       await Future.wait([
@@ -242,30 +267,48 @@ class MapFoundationalSkillsController extends GetxController {
   }
 
   // =========================
-  // CLASS API
+  // CLASS API (3-way)
+  // 1️⃣ STAFF -> ViewClass API | 2️⃣ CLASS TEACHER -> ClassTeacher API
+  // | 3️⃣ NORMAL TEACHER -> GetClassTeacher API | fallback -> staff API
   // =========================
   Future<void> fetchClasses() async {
-    // 🆕 Class teacher login → ClassTeacher API data se hi banao
-    if (isClassTeacherLogin.value) {
-      classList.value = classTeacherList.map((e) {
-        return ClassData.fromJson({
-          'classId': e.classId,
-          'class': e.className,
-          'studentClassId': e.studentClassId,
-          'action': e.action,
-          'createDate': e.createDate,
-          'updateDate': e.updateDate,
-          'createBy': e.createBy,
-          'updateBy': e.updateBy,
-          'schoolId': e.schoolId,
-          'sqno': e.sqno,
-        });
-      }).toList();
-      selectedClass.value = null;
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classList.value = classTeacherList.map((e) {
+          return ClassData.fromJson({
+            'classId': e.classId,
+            'class': e.className,
+            'studentClassId': e.studentClassId,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+            'sqno': e.sqno,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        classList.value = [];
+      }
+      selectedClass.value = null;
+
+      if (classList.isEmpty) {
+        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+        await _fetchClassesStaffApi();
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — existing
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
@@ -275,14 +318,50 @@ class MapFoundationalSkillsController extends GetxController {
       selectedClass.value = null;
     } catch (e) {
       Get.snackbar("Error", "Class fetch error: $e");
+      classList.value = [];
+    }
+
+    if (classList.isEmpty) {
+      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+      await _fetchClassesStaffApi();
+    }
+  }
+
+  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isClassLoading(true);
+      final res = await http.get(Uri.parse(_classStaffUrl), headers: _headers);
+      final decoded = _safeDecodeResponse(res, label: "ClassesStaff");
+
+      final List<dynamic> rawList =
+      (decoded is Map<String, dynamic>) ? (decoded['listData'] ?? []) : [];
+
+      classList.value = rawList
+          .map((e) => ClassData.fromJson(e))
+          .where((e) => e.action == "1")
+          .toList();
+      selectedClass.value = null;
+    } catch (e) {
+      Get.snackbar("Error", "Class fetch error (staff): $e");
+    } finally {
+      isClassLoading(false);
     }
   }
 
   // =========================
-  // SECTION API
+  // SECTION API (3-way)
+  // 1️⃣ STAFF -> ViewSectionApp API | 2️⃣ CLASS TEACHER -> SectionTeacher API
+  // | 3️⃣ NORMAL TEACHER -> GetSectionTeacher API | fallback -> staff API
   // =========================
   Future<void> fetchSections() async {
-    // 🆕 Class teacher login → SectionTeacher API
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
     if (isClassTeacherLogin.value) {
       try {
         final res =
@@ -290,6 +369,10 @@ class MapFoundationalSkillsController extends GetxController {
         final decoded = _safeDecodeResponse(res, label: "SectionTeacher");
         if (decoded == null) {
           sectionList.clear();
+          if (sectionList.isEmpty) {
+            debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+            await _fetchSectionsStaffApi();
+          }
           return;
         }
         final model = SectionForAttendanceModel.fromJson(decoded);
@@ -313,28 +396,60 @@ class MapFoundationalSkillsController extends GetxController {
         selectedSection.value = null;
         _showSnack("Error", "Section fetch error: $e");
       }
+
+      if (sectionList.isEmpty) {
+        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+        await _fetchSectionsStaffApi();
+      }
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 3️⃣ NORMAL TEACHER — existing
     try {
       final res = await http.get(Uri.parse(_sectionUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Sections");
       if (decoded == null || decoded is! Map<String, dynamic>) {
         sectionList.clear();
-        return;
+      } else {
+        final sectionModelData = sectionmodel.fromJson(decoded);
+        sectionList.assignAll(
+          (sectionModelData.listData ?? [])
+              .where((e) => (e.action ?? "1") == "1")
+              .toList(),
+        );
+        selectedSection.value = null;
       }
-      final sectionModelData = sectionmodel.fromJson(decoded);
-      sectionList.assignAll(
-        (sectionModelData.listData ?? [])
-            .where((e) => (e.action ?? "1") == "1")
-            .toList(),
-      );
-      selectedSection.value = null;
     } catch (e) {
       sectionList.clear();
       selectedSection.value = null;
       _showSnack("Error", "Section fetch error: $e");
+    }
+
+    if (sectionList.isEmpty) {
+      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+      await _fetchSectionsStaffApi();
+    }
+  }
+
+  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchSectionsStaffApi() async {
+    try {
+      isSectionLoading(true);
+      final res =
+      await http.get(Uri.parse(_sectionStaffUrl), headers: _headers);
+      final decoded = _safeDecodeResponse(res, label: "SectionsStaff");
+
+      final List<dynamic> rawList =
+      (decoded is Map<String, dynamic>) ? (decoded['listData'] ?? []) : [];
+
+      sectionList.assignAll(
+        rawList.map((e) => stListData.fromJson(e)).toList(),
+      );
+      selectedSection.value = null;
+    } catch (e) {
+      _showSnack("Error", "Section fetch error (staff): $e");
+    } finally {
+      isSectionLoading(false);
     }
   }
 

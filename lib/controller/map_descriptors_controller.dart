@@ -54,9 +54,17 @@ class MapDescriptorsController extends GetxController {
   final RxBool isSaving = false.obs;
   final RxBool isListLoading = false.obs;
 
+  // 🆕 Notes wali logic ke liye alag loading flags
+  final RxBool isClassLoading = false.obs;
+  final RxBool isSectionLoading = false.obs;
+  final RxBool isSubjectLoading = false.obs;
+
   // 🆕 Class Teacher filter
   var classTeacherList = <ClassTeacherFilterData>[].obs;
   var isClassTeacherLogin = false.obs;
+
+  // 🆕 Role / Teacher-type detection (Notes wali hi logic)
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
 
   // =========================
   // URLs
@@ -83,6 +91,16 @@ class MapDescriptorsController extends GetxController {
   // 🆕 SectionTeacher URL (for class teacher login)
   String get _sectionTeacherUrl =>
       '${AppUrl.base_url}api/TeacherApp/SectionTeacher?schoolId=$schoolId&Session=$session&userId=$userId';
+
+  // 🆕 STAFF URLs (Notes wali hi logic)
+  String get _classStaffUrl =>
+      '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
+
+  String get _sectionStaffUrl =>
+      '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
+
+  String get _subjectStaffUrl =>
+      '${AppUrl.base_url}${AppUrl.view_subject}$schoolId';
 
   // ✅ View API with session
   String get _mapDescriptorViewUrl =>
@@ -135,6 +153,14 @@ class MapDescriptorsController extends GetxController {
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
     userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";   // ✅ naya
 
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final role =
+    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -176,7 +202,10 @@ class MapDescriptorsController extends GetxController {
       // ✅ Session pehle — baaki URLs mein session chahiye
       await _fetchCurrentSession();
 
-      await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
+      // 🆕 Notes jaisa hi flow — pehle ClassTeacher filter (agar teacher hai)
+      if (!isStaffLogin.value) {
+        await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
+      }
 
       // ✅ Baaki sab parallel
       await Future.wait([
@@ -219,30 +248,49 @@ class MapDescriptorsController extends GetxController {
     }
   }
 
-  // CLASS API
+  // =========================
+  // CLASS API (3-way)
+  // 1️⃣ STAFF -> ViewClass API | 2️⃣ CLASS TEACHER -> ClassTeacher API
+  // | 3️⃣ NORMAL TEACHER -> GetClassTeacher API | fallback -> staff API
   // =========================
   Future<void> fetchClasses() async {
-    // 🆕 Class teacher login → ClassTeacher API data se hi banao
-    if (isClassTeacherLogin.value) {
-      classList.value = classTeacherList.map((e) {
-        return ClassData.fromJson({
-          'classId': e.classId,
-          'class': e.className,
-          'studentClassId': e.studentClassId,
-          'action': e.action,
-          'createDate': e.createDate,
-          'updateDate': e.updateDate,
-          'createBy': e.createBy,
-          'updateBy': e.updateBy,
-          'schoolId': e.schoolId,
-          'sqno': e.sqno,
-        });
-      }).toList();
-      selectedClass.value = null;
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classList.value = classTeacherList.map((e) {
+          return ClassData.fromJson({
+            'classId': e.classId,
+            'class': e.className,
+            'studentClassId': e.studentClassId,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+            'sqno': e.sqno,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        classList.value = [];
+      }
+      selectedClass.value = null;
+
+      if (classList.isEmpty) {
+        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+        await _fetchClassesStaffApi();
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — existing
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Classes");
@@ -252,13 +300,50 @@ class MapDescriptorsController extends GetxController {
       selectedClass.value = null;
     } catch (e) {
       Get.snackbar("Error", "Class fetch error: $e");
+      classList.value = [];
+    }
+
+    if (classList.isEmpty) {
+      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+      await _fetchClassesStaffApi();
+    }
+  }
+
+  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isClassLoading(true);
+      final res = await http.get(Uri.parse(_classStaffUrl), headers: _headers);
+      final decoded = _safeDecodeResponse(res, label: "ClassesStaff");
+
+      final List<dynamic> rawList =
+      (decoded is Map<String, dynamic>) ? (decoded['listData'] ?? []) : [];
+
+      classList.value = rawList
+          .map((e) => ClassData.fromJson(e))
+          .where((e) => e.action == "1")
+          .toList();
+      selectedClass.value = null;
+    } catch (e) {
+      Get.snackbar("Error", "Class fetch error (staff): $e");
+    } finally {
+      isClassLoading(false);
     }
   }
 
   // =========================
-  // SUBJECT API
+  // SUBJECT API (2-way)
+  // 1️⃣ STAFF -> ViewSubject API | 2️⃣ TEACHER -> GetSubjectTeacher API
+  // fallback -> staff API
   // =========================
   Future<void> fetchSubjects() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSubjectsStaffApi();
+      return;
+    }
+
+    // 2️⃣ TEACHER — existing
     try {
       final res = await http.get(Uri.parse(_subjectUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Subjects");
@@ -270,7 +355,35 @@ class MapDescriptorsController extends GetxController {
       );
       selectedSubject.value = null;
     } catch (e) {
+      subjectList.value = [];
       Get.snackbar("Error", "Subject fetch error: $e");
+    }
+
+    if (subjectList.isEmpty) {
+      debugPrint("↩️ Teacher subjects empty — falling back to staff API");
+      await _fetchSubjectsStaffApi();
+    }
+  }
+
+  // 🆕 Staff subject API (Notes wali hi logic)
+  Future<void> _fetchSubjectsStaffApi() async {
+    try {
+      isSubjectLoading(true);
+      final res =
+      await http.get(Uri.parse(_subjectStaffUrl), headers: _headers);
+      final decoded = _safeDecodeResponse(res, label: "SubjectsStaff");
+
+      if (decoded is Map<String, dynamic>) {
+        final subjectWrapper = SubjectModel.fromJson(decoded);
+        subjectList.assignAll(subjectWrapper.listData ?? []);
+      } else {
+        subjectList.value = [];
+      }
+      selectedSubject.value = null;
+    } catch (e) {
+      Get.snackbar("Error", "Subject fetch error (staff): $e");
+    } finally {
+      isSubjectLoading(false);
     }
   }
 
@@ -297,10 +410,18 @@ class MapDescriptorsController extends GetxController {
   }
 
   // =========================
-  // SECTION DROPDOWN API
+  // SECTION DROPDOWN API (3-way)
+  // 1️⃣ STAFF -> ViewSectionApp API | 2️⃣ CLASS TEACHER -> SectionTeacher API
+  // | 3️⃣ NORMAL TEACHER -> GetSectionTeacher API | fallback -> staff API
   // =========================
   Future<void> fetchSections() async {
-    // 🆕 Class teacher login → SectionTeacher API
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
     if (isClassTeacherLogin.value) {
       try {
         final res =
@@ -327,10 +448,15 @@ class MapDescriptorsController extends GetxController {
         selectedSection.value = null;
         Get.snackbar("Error", "Section fetch error: $e");
       }
+
+      if (sectionList.isEmpty) {
+        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+        await _fetchSectionsStaffApi();
+      }
       return;
     }
 
-    // 🔁 Normal teacher — existing
+    // 3️⃣ NORMAL TEACHER — existing
     try {
       final res = await http.get(Uri.parse(_sectionUrl), headers: _headers);
       final decoded = _safeDecodeResponse(res, label: "Sections");
@@ -345,6 +471,33 @@ class MapDescriptorsController extends GetxController {
       sectionList.clear();
       selectedSection.value = null;
       Get.snackbar("Error", "Section fetch error: $e");
+    }
+
+    if (sectionList.isEmpty) {
+      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+      await _fetchSectionsStaffApi();
+    }
+  }
+
+  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchSectionsStaffApi() async {
+    try {
+      isSectionLoading(true);
+      final res =
+      await http.get(Uri.parse(_sectionStaffUrl), headers: _headers);
+      final decoded = _safeDecodeResponse(res, label: "SectionsStaff");
+
+      final List<dynamic> rawList =
+      (decoded is Map<String, dynamic>) ? (decoded['listData'] ?? []) : [];
+
+      sectionList.assignAll(
+        rawList.map((e) => stListData.fromJson(e)).toList(),
+      );
+      selectedSection.value = null;
+    } catch (e) {
+      Get.snackbar("Error", "Section fetch error (staff): $e");
+    } finally {
+      isSectionLoading(false);
     }
   }
 
