@@ -1,23 +1,21 @@
 class ClassItem {
-  List<ListDataa>? listData;
+  List<ListDataa> listData; // Non-nullable with default
   String? currentSession;
 
-  ClassItem({this.listData, this.currentSession});
+  ClassItem({required this.listData, this.currentSession});
 
-  ClassItem.fromJson(Map<String, dynamic> json) {
-    if (json['listData'] != null) {
-      listData = (json['listData'] as List)
-          .map((v) => ListDataa.fromJson(v))
-          .toList();
+  ClassItem.fromJson(Map<String, dynamic> json) :
+        listData = [] {
+    var items = json['listData'] ?? json['data'];
+    if (items != null && items is List) {
+      listData = items.map((v) => ListDataa.fromJson(v)).toList();
     }
-    currentSession = json['currentSession'];
+    currentSession = json['currentSession']?.toString();
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
-    if (listData != null) {
-      data['listData'] = listData!.map((v) => v.toJson()).toList();
-    }
+    data['listData'] = listData.map((v) => v.toJson()).toList();
     data['currentSession'] = currentSession;
     return data;
   }
@@ -25,11 +23,11 @@ class ClassItem {
 
 class ListDataa {
   int? classId;
-  String? className; // Removed final
+  String className;
   String? studentClassId;
-  String? action;
+  String action;
   String? createDate;
-  String? updateDate; // Removed final
+  String? updateDate;
   String? createBy;
   String? updateBy;
   String? schoolId;
@@ -37,9 +35,9 @@ class ListDataa {
 
   ListDataa({
     this.classId,
-    this.className,
+    required this.className,
     this.studentClassId,
-    this.action,
+    required this.action,
     this.createDate,
     this.updateDate,
     this.createBy,
@@ -48,17 +46,17 @@ class ListDataa {
     this.sqno,
   });
 
-  ListDataa.fromJson(Map<String, dynamic> json) {
-    classId = json['classId'];
-    className = json['class'];
-    studentClassId = json['studentClassId'];
-    action = json['action'];
-    createDate = json['createDate'];
-    updateDate = json['updateDate'];
-    createBy = json['createBy'];
-    updateBy = json['updateBy'];
-    schoolId = json['schoolId'];
-    sqno = json['sqno'];
+  ListDataa.fromJson(Map<String, dynamic> json) :
+        className = (json['class'] ?? json['className'] ?? "").toString(),
+        action = (json['action'] ?? "").toString() {
+    classId = json['classId'] is int ? json['classId'] : int.tryParse(json['classId']?.toString() ?? '');
+    studentClassId = json['studentClassId']?.toString();
+    createDate = json['createDate']?.toString();
+    updateDate = json['updateDate']?.toString();
+    createBy = json['createBy']?.toString();
+    updateBy = json['updateBy']?.toString();
+    schoolId = json['schoolId']?.toString();
+    sqno = json['sqno']?.toString();
   }
 
   Map<String, dynamic> toJson() {

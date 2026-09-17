@@ -15,7 +15,7 @@ class sectionview extends GetView<Sectioncontroller> {
           title: const Text('📘 Section Management',
             style: TextStyle(color: Colors.white),),
           centerTitle: true,
-          backgroundColor: const Color(0xFF6E0F38), // AppBar color
+          backgroundColor: const Color(0xFF97144D),// AppBar color
           iconTheme: IconThemeData(color: Colors.white), // Change the back arrow to white
           bottom: const TabBar(
             tabs: [
@@ -96,58 +96,70 @@ class ViewSessionTab extends GetView<Sectioncontroller> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (controller.isLoading.value) {
+      final sessionData = controller.sessionData.value;
+
+      // Show big loader only on the very first load (no data yet)
+      if (controller.isLoading.value &&
+          (sessionData.listData == null || sessionData.listData!.isEmpty)) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      final sessionData = controller.sessionData.value;
-
-      if (sessionData.listData == null || sessionData.listData!.isEmpty) {
-        return const Center(child: Text('🚫 No Section available'));
-      }
-
-      return Padding(
-        padding: EdgeInsets.all(16.r),
-        child: ListView(
-          children: [
-            Text(
-              '📂All Sections',
-              style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10.h),
-            ...sessionData.listData!.map((item) {
-              return Card(
-                color: Colors.white,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                margin: EdgeInsets.symmetric(vertical: 6.h),
-                child: ListTile(
-                  leading: const Icon(Icons.history, color: Colors.blueAccent),
-                  title: Text(
-                    item.section ?? 'No Section Name',
-                    style: TextStyle(fontSize: 18.sp),
+      return RefreshIndicator(
+        onRefresh: () async {
+          await controller.fetchSessionData();
+        },
+        child: sessionData.listData == null || sessionData.listData!.isEmpty
+            ? ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 200),
+            Center(child: Text('🚫 No Section available')),
+          ],
+        )
+            : Padding(
+          padding: EdgeInsets.all(16.r),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              Text(
+                '📂All Sections',
+                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10.h),
+              ...sessionData.listData!.map((item) {
+                return Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
-                  trailing: InkWell(
-                    onTap: () => controller.openEditSectionDialog(item),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                        size: 18,
+                  margin: EdgeInsets.symmetric(vertical: 6.h),
+                  child: ListTile(
+                    leading: const Icon(Icons.history, color: Colors.blueAccent),
+                    title: Text(
+                      item.section ?? 'No Section Name',
+                      style: TextStyle(fontSize: 18.sp),
+                    ),
+                    trailing: InkWell(
+                      onTap: () => controller.openEditSectionDialog(item),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-          ],
+                );
+              }).toList(),
+            ],
+          ),
         ),
       );
     });

@@ -111,6 +111,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _LeaveTypeSearchSheet(
+        controller: controller,
         options: controller.leaveTypeList.toList(),
         selected: controller.selectedLeaveType.value,
         onSelected: (item) {
@@ -135,6 +136,35 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 16.h),
+
+            // Overall summary line (from GetAllLeveApp's own totalLeave /
+            // totalTaken / remainingLeave fields, aggregated across every
+            // leave type).
+            Obx(() {
+              if (controller.isBalanceLoading.value &&
+                  controller.myLeaveSummary.value == null) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (controller.myLeaveSummary.value == null) {
+                return const SizedBox();
+              }
+              return Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: Text(
+                  "Total: ${controller.overallTotalLeave}   •   "
+                      "Taken: ${controller.overallTakenLeave}   •   "
+                      "Remaining: ${controller.overallRemainingLeave}",
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    color: axisMaroon.shade700,
+                  ),
+                ),
+              );
+            }),
 
             // Remaining leave days — one chip per leave type (parsed from
             // the logged-in user's GetAllLeveApp summary).
@@ -227,22 +257,28 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
 
             // Leave Type — searchable, scrollable field (opens bottom sheet)
             Obx(
-              () => _LeaveTypeSearchField(
+                  () => _LeaveTypeSearchField(
                 selected: controller.selectedLeaveType.value,
                 onTap: () => _openLeaveTypeSearchSheet(context),
                 isLoading: controller.isTypesLoading.value,
               ),
             ),
 
-            // Balance available for the selected type (auto-filled, read-only)
+            // Balance available for the selected type (auto-filled,
+            // read-only). Uses the live per-type numbers — see
+            // balanceForType/totalForType/takenForType in the controller —
+            // which prefer the real GetAllLeveApp figures over the
+            // dropdown's own (sometimes stale) balanceLeave/totalLeave.
             Obx(() {
               final sel = controller.selectedLeaveType.value;
               if (sel == null) return const SizedBox();
-              final total = sel.totalLeave ?? sel.noOfDay ?? 0;
+              final balance = controller.balanceForType(sel);
+              final total = controller.totalForType(sel);
+              final taken = controller.takenForType(sel);
               return Padding(
                 padding: EdgeInsets.only(top: 6.h, left: 4.w),
                 child: Text(
-                  "Balance available: ${sel.balanceLeave ?? 0} / $total",
+                  "Balance available: $balance / $total   •   Taken: $taken",
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: axisMaroon.shade600,
@@ -255,7 +291,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
 
             // From Date
             Obx(
-              () => _dateField(
+                  () => _dateField(
                 label: "From Date",
                 value: controller.fromDate.value,
                 onTap: () => controller.pickFromDate(context),
@@ -265,7 +301,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
 
             // To Date
             Obx(
-              () => _dateField(
+                  () => _dateField(
                 label: "To Date",
                 value: controller.toDate.value,
                 onTap: () => controller.pickToDate(context),
@@ -342,50 +378,50 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                   ),
                   child: file != null
                       ? Row(
-                          children: [
-                            Icon(
-                              Icons.insert_drive_file,
-                              color: axisMaroon.shade600,
-                            ),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Text(
-                                file.path.split('/').last,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                              onPressed: controller.removeAttachment,
-                            ),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            Icon(Icons.attach_file, color: axisMaroon.shade400),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Text(
-                                "Tap to attach a file (PDF / Image)",
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  color: axisMaroon.shade600,
-                                ),
-                              ),
-                            ),
-                          ],
+                    children: [
+                      Icon(
+                        Icons.insert_drive_file,
+                        color: axisMaroon.shade600,
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          file.path.split('/').last,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.red,
+                          size: 18,
+                        ),
+                        onPressed: controller.removeAttachment,
+                      ),
+                    ],
+                  )
+                      : Row(
+                    children: [
+                      Icon(Icons.attach_file, color: axisMaroon.shade400),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          "Tap to attach a file (PDF / Image)",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: axisMaroon.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),
@@ -393,7 +429,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
             SizedBox(height: 24.h),
 
             Obx(
-              () => Container(
+                  () => Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -406,13 +442,13 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                 child: ElevatedButton.icon(
                   icon: controller.isSubmitting.value
                       ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                       : const Icon(Icons.send, color: Colors.white),
                   label: Text(
                     controller.isSubmitting.value
@@ -592,7 +628,10 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
                   itemBuilder: (context, index) {
                     final leave_apply.LeaveData item = list[index];
 
+                    final employeeName = (item.employeeName ?? '').trim();
                     final leaveType = item.leave ?? 'N/A';
+                    final balanceLeave = item.balanceLeave;
+                    final totalLeave = item.totalLeave;
                     final from = formatDate(item.fromDate);
                     final to = formatDate(item.toDate);
                     final reason = item.reasonforLeave ?? 'No reason provided';
@@ -636,14 +675,31 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
                                 ),
                                 SizedBox(width: 10.w),
                                 Expanded(
-                                  child: Text(
-                                    leaveType,
-                                    style: TextStyle(
-                                      fontSize: 15.sp,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        leaveType,
+                                        style: TextStyle(
+                                          fontSize: 15.sp,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (employeeName.isNotEmpty)
+                                        Text(
+                                          employeeName,
+                                          style: TextStyle(
+                                            fontSize: 11.sp,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                    ],
                                   ),
                                 ),
                                 Flexible(
@@ -724,6 +780,17 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
                                   ),
                               ],
                             ),
+                            if (balanceLeave != null || totalLeave != null) ...[
+                              SizedBox(height: 6.h),
+                              Text(
+                                "Balance at apply: ${balanceLeave ?? '-'} / ${totalLeave ?? '-'}",
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  color: axisMaroon.shade600,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                             SizedBox(height: 6.h),
                             Text(
                               reason,
@@ -796,13 +863,13 @@ class _LeaveTypeSearchField extends StatelessWidget {
           fillColor: Colors.white,
           suffixIcon: isLoading
               ? Padding(
-                  padding: EdgeInsets.all(12.r),
-                  child: const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
+            padding: EdgeInsets.all(12.r),
+            child: const SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
               : Icon(Icons.search, color: axisMaroon.shade400, size: 20.sp),
         ),
         child: Text(
@@ -821,11 +888,13 @@ class _LeaveTypeSearchField extends StatelessWidget {
 
 // ================= LEAVE TYPE — SEARCHABLE, SCROLLABLE BOTTOM SHEET =================
 class _LeaveTypeSearchSheet extends StatefulWidget {
+  final LeaveRequestController controller;
   final List<leave_dropdown.LeaveBalanceData> options;
   final leave_dropdown.LeaveBalanceData? selected;
   final ValueChanged<leave_dropdown.LeaveBalanceData> onSelected;
 
   const _LeaveTypeSearchSheet({
+    required this.controller,
     required this.options,
     required this.selected,
     required this.onSelected,
@@ -851,8 +920,8 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
       _filtered = q.isEmpty
           ? widget.options
           : widget.options
-                .where((e) => (e.leave ?? '').toLowerCase().contains(q))
-                .toList();
+          .where((e) => (e.leave ?? '').toLowerCase().contains(q))
+          .toList();
     });
   }
 
@@ -912,12 +981,12 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                _searchCtrl.clear();
-                                _onSearchChanged("");
-                              },
-                            )
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          _onSearchChanged("");
+                        },
+                      )
                           : null,
                       isDense: true,
                       filled: true,
@@ -938,60 +1007,68 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
                 Flexible(
                   child: _filtered.isEmpty
                       ? Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32.h),
-                          child: Center(
-                            child: Text(
-                              "No matching leave type",
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 13.sp,
-                              ),
-                            ),
-                          ),
-                        )
-                      : ListView.separated(
-                          shrinkWrap: true,
-                          padding: EdgeInsets.symmetric(vertical: 4.h),
-                          itemCount: _filtered.length,
-                          separatorBuilder: (_, __) =>
-                              Divider(height: 1, color: Colors.grey.shade100),
-                          itemBuilder: (context, index) {
-                            final item = _filtered[index];
-                            final isSelected =
-                                item.leaveId == widget.selected?.leaveId;
-                            final total = item.totalLeave ?? item.noOfDay ?? 0;
-                            return ListTile(
-                              dense: true,
-                              title: Text(
-                                item.leave ?? '',
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? axisMaroon.shade700
-                                      : Colors.black87,
-                                ),
-                              ),
-                              subtitle: Text(
-                                "Balance: ${item.balanceLeave ?? 0} / $total",
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              trailing: isSelected
-                                  ? Icon(
-                                      Icons.check_circle,
-                                      color: axisMaroon.shade600,
-                                      size: 20.sp,
-                                    )
-                                  : null,
-                              onTap: () => widget.onSelected(item),
-                            );
-                          },
+                    padding: EdgeInsets.symmetric(vertical: 32.h),
+                    child: Center(
+                      child: Text(
+                        "No matching leave type",
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13.sp,
                         ),
+                      ),
+                    ),
+                  )
+                      : ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.symmetric(vertical: 4.h),
+                    itemCount: _filtered.length,
+                    separatorBuilder: (_, __) =>
+                        Divider(height: 1, color: Colors.grey.shade100),
+                    itemBuilder: (context, index) {
+                      final item = _filtered[index];
+                      final isSelected =
+                          item.leaveId == widget.selected?.leaveId;
+                      final balance = widget.controller.balanceForType(
+                        item,
+                      );
+                      final total = widget.controller.totalForType(
+                        item,
+                      );
+                      final taken = widget.controller.takenForType(
+                        item,
+                      );
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          item.leave ?? '',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? axisMaroon.shade700
+                                : Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          "Balance: $balance / $total   •   Taken: $taken",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(
+                          Icons.check_circle,
+                          color: axisMaroon.shade600,
+                          size: 20.sp,
+                        )
+                            : null,
+                        onTap: () => widget.onSelected(item),
+                      );
+                    },
+                  ),
                 ),
                 SizedBox(height: 8.h),
               ],

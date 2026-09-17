@@ -6,7 +6,10 @@ import 'package:flutter/services.dart';
 import '../controller/session_controller.dart';
 import '../models/session_model.dart';
 
-// ✅ NEW: Strict formatter for YYYY-YY (e.g., 2025-26)
+// ✅ Axis Bank brand color
+const Color kAxisMaroon = Color(0xFF97144D);
+
+// ✅ Strict formatter for YYYY-YY (e.g., 2025-26)
 class SessionInputFormatter extends TextInputFormatter {
   static final RegExp _validPartial = RegExp(r'^\d{0,4}(-\d{0,2})?$');
 
@@ -51,7 +54,7 @@ class SessionScreen extends GetView<SessionController> {
             style: TextStyle(color: Colors.white),
           ),
           centerTitle: true,
-          backgroundColor: const Color(0xFF6E0F38),
+          backgroundColor: kAxisMaroon,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Get.back(),
@@ -97,7 +100,7 @@ class PostSessionTab extends GetView<SessionController> {
             controller: controller.sessionController,
             keyboardType: TextInputType.number,
             inputFormatters: [
-              SessionInputFormatter(), // ✅ NEW
+              SessionInputFormatter(),
             ],
             decoration: InputDecoration(
               labelText: 'Enter Session',
@@ -134,7 +137,7 @@ class PostSessionTab extends GetView<SessionController> {
                 Get.snackbar(
                   'Success',
                   'Session added successfully',
-                  snackPosition: SnackPosition.BOTTOM,
+                  snackPosition: SnackPosition.TOP,
                   backgroundColor: Colors.green,
                   colorText: Colors.white,
                 );
@@ -186,7 +189,17 @@ class ViewSessionTab extends GetView<SessionController> {
       final sessionData = controller.sessionData.value;
 
       if (sessionData.listData == null || sessionData.listData!.isEmpty) {
-        return const Center(child: Text('🚫 No sessions available'));
+        // ✅ Pull-to-refresh works even on the empty state
+        return RefreshIndicator(
+          onRefresh: () => controller.fetchSessionData(),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: const [
+              SizedBox(height: 200),
+              Center(child: Text('🚫 No sessions available')),
+            ],
+          ),
+        );
       }
 
       final List<sListDdata> sortedSessions =
@@ -198,120 +211,126 @@ class ViewSessionTab extends GetView<SessionController> {
           Expanded(
             child: Padding(
               padding: EdgeInsets.all(16.r),
-              child: ListView(
-                children: [
-                  Text(
-                    '📌 Current Session',
-                    style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 10.h),
-                  Container(
-                    padding: EdgeInsets.all(15.r),
-                    decoration: BoxDecoration(
-                      color: Colors.deepPurple.shade50,
-                      borderRadius: BorderRadius.circular(15.r),
-                      border: Border.all(color: Colors.deepPurple),
+              // ✅ NEW: Pull-to-refresh — pulls fresh/complete data on swipe down
+              child: RefreshIndicator(
+                onRefresh: () => controller.fetchSessionData(),
+                child: ListView(
+                  // ✅ Needed so refresh works even when list is short
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Text(
+                      '📌 Current Session',
+                      style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle, color: Colors.deepPurple, size: 30),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Text(
-                            sessionData.currentSession!.session.toString(),
-                            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 30.h),
-
-                  Text(
-                    '📂 Previous Sessions',
-                    style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 10.h),
-
-                  ...sortedSessions.map((session) {
-                    final bool isCurrent =
-                        session.sessionId == controller.selectedSessionId.value;
-
-                    // ✅ Action -> Active/Inactive (same logic)
-                    final String actionVal = (session.action ?? "0").toString();
-                    final bool isActive = actionVal == "1";
-
-                    // ✅ Created date formatted dd-mm-yyyy
-                    final String createdDate = _formatToDDMMYYYY(session.createDate);
-
-                    return Container(
-                      margin: EdgeInsets.only(bottom: 12.h),
+                    SizedBox(height: 10.h),
+                    Container(
+                      padding: EdgeInsets.all(15.r),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.pink.shade300, Colors.pink.shade600],
-                        ),
-                        borderRadius: BorderRadius.circular(12.r),
+                        color: Colors.deepPurple.shade50,
+                        borderRadius: BorderRadius.circular(15.r),
+                        border: Border.all(color: Colors.deepPurple),
                       ),
-                      child: ListTile(
-                        leading: Checkbox(
-                          value: isCurrent,
-                          onChanged: (_) {
-                            controller.selectedSessionId.value = session.sessionId!;
-                            controller.tempSelectedSession.value = session;
-                          },
-                        ),
-
-                        // ✅ Session + created date below
-                        title: Text(
-                          session.session.toString(),
-                          style: TextStyle(fontSize: 18.sp, color: Colors.white),
-                        ),
-                        subtitle: Padding(
-                          padding: EdgeInsets.only(top: 4.h),
-                          child: Text(
-                            "Created: $createdDate",
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: Colors.white.withOpacity(0.9),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.deepPurple, size: 30),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Text(
+                              sessionData.currentSession!.session.toString(),
+                              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w700),
                             ),
                           ),
-                        ),
-
-                        // ✅ Action + tick + edit
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  isActive ? Icons.check_circle : Icons.cancel,
-                                  color: isActive ? Colors.greenAccent : Colors.redAccent,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 6.w),
-                                Text(
-                                  isActive ? "Active" : "Inactive",
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(width: 10.w),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.white),
-                              onPressed: () {
-                                controller.openEditSessionDialog(session);
-                              },
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                ],
+                    ),
+                    SizedBox(height: 30.h),
+
+                    Text(
+                      '📂 Previous Sessions',
+                      style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 10.h),
+
+                    ...sortedSessions.map((session) {
+                      final bool isCurrent =
+                          session.sessionId == controller.selectedSessionId.value;
+
+                      // ✅ Action -> Active/Inactive (same logic)
+                      final String actionVal = (session.action ?? "0").toString();
+                      final bool isActive = actionVal == "1";
+
+                      // ✅ Created date formatted dd-mm-yyyy
+                      final String createdDate = _formatToDDMMYYYY(session.createDate);
+
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.pink.shade300, Colors.pink.shade600],
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: ListTile(
+                          leading: Checkbox(
+                            value: isCurrent,
+                            onChanged: (_) {
+                              controller.selectedSessionId.value = session.sessionId!;
+                              controller.tempSelectedSession.value = session;
+                            },
+                          ),
+
+                          // ✅ Session + created date below
+                          title: Text(
+                            session.session.toString(),
+                            style: TextStyle(fontSize: 18.sp, color: Colors.white),
+                          ),
+                          subtitle: Padding(
+                            padding: EdgeInsets.only(top: 4.h),
+                            child: Text(
+                              "Created: $createdDate",
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ),
+
+                          // ✅ Action + tick + edit
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    isActive ? Icons.check_circle : Icons.cancel,
+                                    color: isActive ? Colors.greenAccent : Colors.redAccent,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    isActive ? "Active" : "Inactive",
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(width: 10.w),
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.white),
+                                onPressed: () {
+                                  controller.openEditSessionDialog(session);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
               ),
             ),
           ),

@@ -15,11 +15,22 @@ import '../models/leave apply model.dart' as leave_apply;
 import '../models/leave balance dropdown model.dart' as leave_dropdown;
 
 // TODO: adjust these import paths to wherever these model files actually
+// live. Also make sure these two model classes expose every field the API
+// actually returns (see the JSON samples referenced in the comments below):
+//   - get_all_leave.EmployeeLeaveData must expose: totalLeave (int?),
+//     totalTaken (int?), remainingLeave (int?) in addition to the existing
+//     leave / takenLeaveTypes strings.
+//   - leave_apply.LeaveData must expose: employeeName (String?),
+//     balanceLeave (int?), totalLeave (int?) — the API already returns
+//     these per leave request, they just weren't being read anywhere yet.
 
 // ======================= Small helper: per-type balance row =======================
 // Derived client-side by parsing EmployeeLeaveData.leave ("CL - 5 | MC - 12 | ...")
-// and .takenLeaveTypes ("c - 1 | CL - 1 | ...") since the API only gives combined
-// pipe-delimited strings, not a clean per-type breakdown.
+// and .takenLeaveTypes ("c - 1 | CL - 1 | ...") since that's the only place the
+// API breaks balances down PER leave type. (The API does also return
+// totalLeave / totalTaken / remainingLeave directly, but those are the
+// *aggregate* numbers across every leave type combined — see
+// overallTotalLeave / overallTakenLeave / overallRemainingLeave below.)
 class LeaveTypeBalanceRow {
   final String type;
   final int total;
@@ -145,7 +156,9 @@ class LeaveRequestController extends GetxController {
 
   /// Per-type balance rows for the current user, derived from
   /// [myLeaveSummary] (`leave` = total per type, `takenLeaveTypes` = taken
-  /// per type). Used for the "Leave Balance" chips on the Add tab.
+  /// per type). This is the source of truth for per-type balance/taken —
+  /// e.g. for `"leave": "CL - 5", "takenLeaveTypes": "CL - 2"` this returns
+  /// a single row: CL, total 5, taken 2, remaining 3.
   List<LeaveTypeBalanceRow> get leaveBalanceRows {
     final summary = myLeaveSummary.value;
     if (summary == null) return [];
@@ -160,6 +173,67 @@ class LeaveRequestController extends GetxController {
       final taken = takenLower[e.key.toLowerCase()] ?? 0;
       return LeaveTypeBalanceRow(type: e.key, total: e.value, taken: taken);
     }).toList();
+  }
+
+  LeaveTypeBalanceRow? _matchingBalanceRow(String? leaveType) {
+    if (leaveType == null || leaveType.trim().isEmpty) return null;
+    for (final row in leaveBalanceRows) {
+      if (row.type.toLowerCase() == leaveType.toLowerCase()) return row;
+    }
+    return null;
+  }
+
+  // ── Aggregate total / taken / remaining across ALL leave types ──────
+  // The API returns these directly on the summary (`totalLeave`,
+  // `totalTaken`, `remainingLeave`) so we use them as-is when present, and
+  // only fall back to summing the per-type rows if the API ever omits them.
+  int get overallTotalLeave {
+    final apiValue = myLeaveSummary.value?.totalLeave;
+    if (apiValue != null) return apiValue;
+    return leaveBalanceRows.fold<int>(0, (sum, r) => sum + r.total);
+  }
+
+  int get overallTakenLeave {
+    final apiValue = myLeaveSummary.value?.totalTaken;
+    if (apiValue != null) return apiValue;
+    return leaveBalanceRows.fold<int>(0, (sum, r) => sum + r.taken);
+  }
+
+  int get overallRemainingLeave {
+    final apiValue = myLeaveSummary.value?.remainingLeave;
+    if (apiValue != null) return apiValue;
+    return overallTotalLeave - overallTakenLeave;
+  }
+
+  // ── Live, per-type balance/total/taken for a leave type ─────────────
+  // IMPORTANT: the dropdown API's own `balanceLeave` / `totalLeave` /
+  // `noOfDay` fields are template/master values and can be stale or zero
+  // (confirmed from real data: ViewLeaveBalanceDropdown returned
+  // `balanceLeave: 0, noOfDay: 8` for "CL", while GetAllLeveApp — the
+  // user's actual usage record — correctly showed 5 total / 2 taken / 3
+  // remaining for the same "CL" type). So these three always prefer the
+  // real number parsed from GetAllLeveApp (via leaveBalanceRows) and only
+  // fall back to the dropdown's own value if the user's summary has no
+  // entry at all for that leave type yet.
+  int balanceForType(leave_dropdown.LeaveBalanceData? type) {
+    if (type == null) return 0;
+    final row = _matchingBalanceRow(type.leave);
+    if (row != null) return row.remaining;
+    return type.balanceLeave ?? 0;
+  }
+
+  int totalForType(leave_dropdown.LeaveBalanceData? type) {
+    if (type == null) return 0;
+    final row = _matchingBalanceRow(type.leave);
+    if (row != null) return row.total;
+    return type.totalLeave ?? type.noOfDay ?? 0;
+  }
+
+  int takenForType(leave_dropdown.LeaveBalanceData? type) {
+    if (type == null) return 0;
+    final row = _matchingBalanceRow(type.leave);
+    if (row != null) return row.taken;
+    return 0;
   }
 
   // ── Fetch Leave Types + Balance (dropdown) ──────────────────────────
@@ -250,18 +324,20 @@ class LeaveRequestController extends GetxController {
     }
   }
 
-  // ── Date pickers (From Date can only be today or a past date) ──────
+  // ── Date pickers ─────────────────────────────────────────────────
+  // From Date: only today or a future date (past dates are hidden).
   Future<void> pickFromDate(BuildContext context) async {
     final today = _dateOnly(DateTime.now());
+    final maxDate = DateTime(today.year + 5);
     final currentValue = fromDate.value;
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: (currentValue != null && !currentValue.isAfter(today))
+      initialDate: (currentValue != null && !currentValue.isBefore(today))
           ? currentValue
           : today,
-      firstDate: DateTime(DateTime.now().year - 1),
-      lastDate: today,
+      firstDate: today,
+      lastDate: maxDate,
     );
     if (picked != null) {
       fromDate.value = picked;
@@ -271,21 +347,23 @@ class LeaveRequestController extends GetxController {
     }
   }
 
+  // To Date: from the selected From Date (or today) onward into the future.
   Future<void> pickToDate(BuildContext context) async {
     final today = _dateOnly(DateTime.now());
-    final minDate = fromDate.value ?? DateTime(DateTime.now().year - 1);
+    final maxDate = DateTime(today.year + 5);
+    final minDate = fromDate.value ?? today;
     final currentValue = toDate.value;
 
     final picked = await showDatePicker(
       context: context,
       initialDate:
-          (currentValue != null &&
-              !currentValue.isBefore(minDate) &&
-              !currentValue.isAfter(today))
+      (currentValue != null &&
+          !currentValue.isBefore(minDate) &&
+          !currentValue.isAfter(maxDate))
           ? currentValue
-          : (minDate.isAfter(today) ? today : minDate),
+          : minDate,
       firstDate: minDate,
-      lastDate: today,
+      lastDate: maxDate,
     );
     if (picked != null) {
       toDate.value = picked;
@@ -383,10 +461,12 @@ class LeaveRequestController extends GetxController {
 
     final df = DateFormat('yyyy-MM-dd');
     final selected = selectedLeaveType.value!;
-    // ViewLeaveBalanceDropdown returns balanceLeave directly, and its
-    // totalLeave is always null in practice — noOfDay carries the total
-    // allotted days for that type instead.
-    final totalForType = selected.totalLeave ?? selected.noOfDay ?? 0;
+    // Use the same live numbers shown on screen (balanceForType/
+    // totalForType) rather than the dropdown's own possibly-stale
+    // balanceLeave/totalLeave/noOfDay, so what gets submitted matches what
+    // the user actually saw on the form.
+    final liveBalance = balanceForType(selected);
+    final liveTotal = totalForType(selected);
 
     try {
       isSubmitting(true);
@@ -399,8 +479,8 @@ class LeaveRequestController extends GetxController {
         'UserId': userId,
         'RegistrationNo': registrationNo,
         'Leave': selected.leave ?? '',
-        'BalanceLeave': (selected.balanceLeave ?? 0).toString(),
-        'TotalLeave': totalForType.toString(),
+        'BalanceLeave': liveBalance.toString(),
+        'TotalLeave': liveTotal.toString(),
         'ReasonforLeave': reason.value.trim(),
         'FromDate': df.format(fromDate.value!),
         'ToDate': df.format(toDate.value!),
@@ -428,7 +508,11 @@ class LeaveRequestController extends GetxController {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
-      final streamed = await request.send();
+      // Give the submit call itself a bound so a slow network doesn't leave
+      // the button stuck on "Submitting..." indefinitely.
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 20),
+      );
       final resBody = await streamed.stream.bytesToString();
 
       if (streamed.statusCode == 200) {
@@ -441,14 +525,20 @@ class LeaveRequestController extends GetxController {
         if (success) {
           ShortMessage.toast(
             title:
-                decoded['messages']?.toString() ??
+            decoded['messages']?.toString() ??
                 "Leave Request Submitted Successfully",
           );
           resetForm();
-          await fetchLeaveRequests();
-          await fetchLeaveBalance();
-          await fetchLeaveTypes(); // refresh dropdown balances too
+          // Close the screen immediately instead of waiting on 3 sequential
+          // GET calls — that serial refresh was the main source of the
+          // "submit takes forever" delay. Refresh the lists/balances in the
+          // background instead; the previous screen will pick them up.
           Get.back();
+          Future.wait([
+            fetchLeaveRequests(),
+            fetchLeaveBalance(),
+            fetchLeaveTypes(),
+          ]);
         } else {
           ShortMessage.toast(
             title: decoded['messages']?.toString() ?? "Submit failed",
