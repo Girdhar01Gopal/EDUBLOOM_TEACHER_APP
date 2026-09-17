@@ -25,7 +25,11 @@ class LeaveTypeBalanceRow {
   final int total;
   final int taken;
 
-  LeaveTypeBalanceRow({required this.type, required this.total, required this.taken});
+  LeaveTypeBalanceRow({
+    required this.type,
+    required this.total,
+    required this.taken,
+  });
 
   int get remaining => total - taken;
 }
@@ -35,7 +39,7 @@ class LeaveTypeBalanceRow {
 class LeaveRequestController extends GetxController {
   // Base URL for all 3 real leave GET/POST APIs (test env).
   // TODO: confirm whether this should instead come from AppUrl.base_url.
-  static const String _apiBase = "https://playschooltest.edubloom.in/api";
+  static const String _apiBase = "https://playschool.edubloom.in/api";
 
   // ── Lists ──────────────────────────────────────────────────────────
   final leaveRequestList = <leave_apply.LeaveData>[].obs;
@@ -148,7 +152,9 @@ class LeaveRequestController extends GetxController {
 
     final totals = _parseLeaveCounts(summary.leave);
     final takenRaw = _parseLeaveCounts(summary.takenLeaveTypes);
-    final takenLower = {for (final e in takenRaw.entries) e.key.toLowerCase(): e.value};
+    final takenLower = {
+      for (final e in takenRaw.entries) e.key.toLowerCase(): e.value,
+    };
 
     return totals.entries.map((e) {
       final taken = takenLower[e.key.toLowerCase()] ?? 0;
@@ -178,10 +184,15 @@ class LeaveRequestController extends GetxController {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final model = leave_dropdown.LeaveBalanceDropdownResponse.fromJson(decoded);
+        final model = leave_dropdown.LeaveBalanceDropdownResponse.fromJson(
+          decoded,
+        );
         leaveTypeList.value = model.listData;
       } else {
-        Get.snackbar("Error", "Failed to load leave types (${response.statusCode})");
+        Get.snackbar(
+          "Error",
+          "Failed to load leave types (${response.statusCode})",
+        );
       }
     } catch (e) {
       debugPrint("Error fetching leave types: $e");
@@ -206,7 +217,9 @@ class LeaveRequestController extends GetxController {
         return;
       }
 
-      final url = Uri.parse('$_apiBase/SchoolApp/GetAllLeveApp/$schoolId/$userId');
+      final url = Uri.parse(
+        '$_apiBase/SchoolApp/GetAllLeveApp/$schoolId/$userId',
+      );
 
       final response = await http.get(
         url,
@@ -214,7 +227,9 @@ class LeaveRequestController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        final model = get_all_leave.GetAllLeaveAppResponse.fromJson(jsonDecode(response.body));
+        final model = get_all_leave.GetAllLeaveAppResponse.fromJson(
+          jsonDecode(response.body),
+        );
         final uid = int.tryParse(userId);
 
         get_all_leave.EmployeeLeaveData? found;
@@ -263,9 +278,10 @@ class LeaveRequestController extends GetxController {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: (currentValue != null &&
-          !currentValue.isBefore(minDate) &&
-          !currentValue.isAfter(today))
+      initialDate:
+          (currentValue != null &&
+              !currentValue.isBefore(minDate) &&
+              !currentValue.isAfter(today))
           ? currentValue
           : (minDate.isAfter(today) ? today : minDate),
       firstDate: minDate,
@@ -320,7 +336,9 @@ class LeaveRequestController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        final model = leave_apply.LeaveApplyResponse.fromJson(jsonDecode(response.body));
+        final model = leave_apply.LeaveApplyResponse.fromJson(
+          jsonDecode(response.body),
+        );
         // Newest first.
         final list = model.listData;
         list.sort((a, b) {
@@ -422,7 +440,8 @@ class LeaveRequestController extends GetxController {
         final success = decoded['isSuccess'] == true;
         if (success) {
           ShortMessage.toast(
-            title: decoded['messages']?.toString() ??
+            title:
+                decoded['messages']?.toString() ??
                 "Leave Request Submitted Successfully",
           );
           resetForm();

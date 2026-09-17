@@ -82,5 +82,42 @@ class AppUrl {
   static var syllabusDownloadUrl = "Upload/Syllabus/";
   static var notificationDownloadUrl = "Upload/Notification/";
   static var eventDownloadUrl = "Upload/Event/";
+
+  static const _imageExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+  ];
+
+  static bool isImageFile(String fileName) {
+    final lower = fileName.toLowerCase();
+    return _imageExtensions.any(lower.endsWith);
+  }
+
+  // e.g. Upload/Homework/Images/<file> or Upload/Homework/Pdf/<file>
+  static String homeworkFileUrl(String fileName) {
+    final folder = isImageFile(fileName) ? 'Images' : 'Pdf';
+    return '$base_url$homeworkDownloadUrl$folder/$fileName';
+  }
+
+  // e.g. Upload/Note/images/<file> or Upload/Note/Pdf/<file>
+  static String notesFileUrl(String fileName) {
+    final folder = isImageFile(fileName) ? 'images' : 'Pdf';
+    return '$base_url$notesDownloadUrl$folder/$fileName';
+  }
+
+  // e.g. Upload/Notification/Notification/<file>
+  static String notificationFileUrl(String fileName) {
+    return '$base_url${notificationDownloadUrl}Notification/$fileName';
+  }
+
+  // e.g. Upload/Event/Images/<file> or Upload/Event/Pdf/<file>
+  static String eventFileUrl(String fileName) {
+    final folder = isImageFile(fileName) ? 'Images' : 'Pdf';
+    return '$base_url$eventDownloadUrl$folder/$fileName';
+  }
 }
 //

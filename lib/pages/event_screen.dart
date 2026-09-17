@@ -795,7 +795,8 @@ class _ViewEventTabState extends State<ViewEventTab> {
                                 borderRadius: BorderRadius.circular(12.r),
                                 child: hasPic
                                     ? Image.network(
-                                  "${AppUrl.base_url}${AppUrl.eventDownloadUrl}$pic",                                  width: 100.w,
+                                  AppUrl.eventFileUrl(pic),
+                                  width: 100.w,
                                   height: 100.h,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
@@ -879,8 +880,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      final fileUrl =
-                                          "${AppUrl.base_url}${AppUrl.eventDownloadUrl}$pic";
+                                      final fileUrl = AppUrl.eventFileUrl(pic);
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: pic,
