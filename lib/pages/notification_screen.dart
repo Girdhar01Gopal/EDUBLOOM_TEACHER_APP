@@ -937,10 +937,10 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      final fileUrl =
-                                          "${AppUrl.base_url}${AppUrl.notificationDownloadUrl}${item.notificationfile}";
                                       final fileName =
                                       item.notificationfile!;
+                                      final fileUrl =
+                                          AppUrl.notificationFileUrl(fileName);
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: fileName,

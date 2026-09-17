@@ -938,13 +938,10 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      final fileUrl =
-                                          '${AppUrl.base_url}${AppUrl.homeworkDownloadUrl}${item.homeworkFile}';
-                                      String fileName =
+                                      final fileName =
                                           item.homeworkFile ?? 'homework_$index';
-                                      if (!fileName.toLowerCase().endsWith('.pdf')) {
-                                        fileName = '$fileName.pdf';
-                                      }
+                                      final fileUrl =
+                                          AppUrl.homeworkFileUrl(fileName);
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: fileName,

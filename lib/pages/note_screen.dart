@@ -955,12 +955,9 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
+                                      final fileName = item.notesFile!;
                                       final fileUrl =
-                                          "${AppUrl.base_url}${AppUrl.notesDownloadUrl}${item.notesFile}";                                      final fileName = item.notesFile!
-                                          .toLowerCase()
-                                          .endsWith('.pdf')
-                                          ? item.notesFile!
-                                          : '${item.notesFile}.pdf';
+                                          AppUrl.notesFileUrl(fileName);
 
                                       _downloadAndShare(
                                         url: fileUrl,
