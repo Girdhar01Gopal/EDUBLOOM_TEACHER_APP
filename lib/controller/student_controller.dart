@@ -574,6 +574,8 @@ class StudentController extends GetxController {
           );
         }).toList();
         selectedClass.value = classes.isNotEmpty ? classes.first : null;
+
+        // allowedClassNames already set in fetchClassTeacherFilter(), no change needed here
       } catch (e) {
         print("⚠️ Error mapping ClassTeacher classes: $e");
         classes.value = [];
@@ -615,6 +617,14 @@ class StudentController extends GetxController {
           // ❌ action filter hata diya — GetClassTeacher me action null aata hai
           classes.value = data.map((e) => ClassItem.fromJson(e)).toList();
 
+          // 🆕 FIX: teacher ko jo classes assigned hain unke naam allowedClassNames me daalo
+          // (warna GetAllStudentAsynsApp wala student-filter kabhi match nahi karta tha,
+          // aur normal teacher ko View Students tab me koi student nahi dikhta tha)
+          allowedClassNames.value = classes
+              .map((e) => e.className.trim().toLowerCase())
+              .where((s) => s.isNotEmpty)
+              .toList();
+
           if (classes.isNotEmpty) {
             selectedClass.value = classes.first;
           } else {
@@ -623,6 +633,7 @@ class StudentController extends GetxController {
         } else {
           classes.value = [];
           selectedClass.value = null;
+          allowedClassNames.value = []; // 🆕 stale data clear
         }
       } else {
         Get.snackbar("Error", "Failed to fetch classes: ${response.statusCode}",
