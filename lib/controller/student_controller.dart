@@ -85,6 +85,10 @@ class StudentController extends GetxController {
   var isLoading = false.obs;
   var isSubmitting = false.obs;
 
+  // 🆕 Role / Teacher-type detection (class & section dropdown ke liye) — Attendance jaisa
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
+  var isClassTeacherLogin = false.obs; // true agar ClassTeacher API se data mile
+
   // 🆕 Class Teacher filter (jo classes teacher ko assigned hain)
   var classTeacherList = <ClassTeacherFilterData>[].obs;
   var allowedClassNames = <String>[].obs;
@@ -97,10 +101,23 @@ class StudentController extends GetxController {
   void onInit() async {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     session.value = await PrefManager().readValue(key: PrefConst.session);
-    await fetchClasses();
+
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    print("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
+
     await fetchSessions();
+
+    if (!isStaffLogin.value) {
+      await fetchClassTeacherFilter(); // 🆕 teacher ke allowed classes le lo
+    }
+
+    await fetchClasses();
     await fetchSections();
-    await fetchClassTeacherFilter(); // 🆕 pehle teacher ke allowed classes le lo
     await fetchVStudents();          // fir students filter honge
     await fetchRoutes();
     super.onInit();
@@ -151,6 +168,9 @@ class StudentController extends GetxController {
             .map((e) => (e.className ?? '').trim().toLowerCase())
             .where((s) => s.isNotEmpty)
             .toList();
+
+        // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
     } catch (e) {
       print("Error loading ClassTeacher filter: $e");
@@ -183,21 +203,18 @@ class StudentController extends GetxController {
         final students = StudentModel.fromJson(jsonResponse);
         final allStudents = students.data ?? [];
 
-        // 🆕 sirf teacher ke assigned class AND section ke students dikhao
-        if (allowedClassNames.isEmpty && allowedSectionNames.isEmpty) {
-          // ✅ Fallback enabled: teacher ko class/section assign nahi hai,
-          // to saare students dikha do
+        // 🆕 Staff => complete students dikhao (no filter)
+        // 🆕 Teacher (class-teacher / normal) => sirf assigned class AND section ke students
+        if (isStaffLogin.value) {
           listData.value = allStudents;
           filteredData.value = allStudents;
-        }else {
+        } else {
           final filtered = allStudents.where((s) {
             final cName = (s.className ?? '').trim().toLowerCase();
             final sName = (s.sectionName ?? '').trim().toLowerCase();
 
-            final classMatch =
-                allowedClassNames.isEmpty || allowedClassNames.contains(cName);
-            final sectionMatch = allowedSectionNames.isEmpty ||
-                allowedSectionNames.contains(sName);
+            final classMatch = allowedClassNames.contains(cName);
+            final sectionMatch = allowedSectionNames.contains(sName);
 
             return classMatch && sectionMatch;
           }).toList();
@@ -536,7 +553,36 @@ class StudentController extends GetxController {
     }
   }
 
+  /// ---------------------- FETCH CLASSES (3-way, no fallback) ----------------------
+  // 1️⃣ STAFF -> ViewClass API | 2️⃣ CLASS TEACHER -> ClassTeacher API (mapped)
+  // | 3️⃣ NORMAL TEACHER -> GetClassTeacher API
   Future<void> fetchClasses() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — class dropdown ClassTeacher API ke data se hi banao
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classes.value = classTeacherList.map((e) {
+          return ClassItem(
+            classId: e.classId ?? 0,
+            className: e.className ?? 'Unknown',
+            studentClassId: e.studentClassId?.toString() ?? 'N/A',
+          );
+        }).toList();
+        selectedClass.value = classes.isNotEmpty ? classes.first : null;
+      } catch (e) {
+        print("⚠️ Error mapping ClassTeacher classes: $e");
+        classes.value = [];
+        selectedClass.value = null;
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — GetClassTeacher API (existing)
     try {
       isLoading(true);
 
@@ -589,6 +635,38 @@ class StudentController extends GetxController {
     }
   }
 
+  // 🔁 Staff-only path (no fallback)
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isLoading(true);
+
+      final url = Uri.parse("${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId");
+      final response = await http.get(url);
+
+      print('ViewClass (staff) status: ${response.statusCode}');
+      print('ViewClass (staff) body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded['listData'] ?? [];
+
+        final activeData = data
+            .where((e) => (e['action']?.toString().trim() ?? '') == '1')
+            .toList();
+
+        classes.value = activeData.map((e) => ClassItem.fromJson(e)).toList();
+        selectedClass.value = classes.isNotEmpty ? classes.first : null;
+      } else {
+        Get.snackbar("Error", "Failed to fetch classes: ${response.statusCode}",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      }
+    } catch (e) {
+      print("⚠️ Error fetching classes (staff): $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
   void setSelectedClass(ClassItem? classItem) {
     selectedClass.value = classItem;
   }
@@ -631,7 +709,69 @@ class StudentController extends GetxController {
     selectedSession.value = session;
   }
 
+  /// ---------------------- FETCH SECTIONS (3-way, no fallback) ----------------------
+  // 1️⃣ STAFF -> ViewSectionApp API | 2️⃣ CLASS TEACHER -> SectionTeacher API
+  // | 3️⃣ NORMAL TEACHER -> GetSectionTeacher API
   Future<void> fetchSections() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
+    if (isClassTeacherLogin.value) {
+      try {
+        isLoading(true);
+
+        final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+        final url = Uri.parse(
+          '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
+              '?schoolId=${Uri.encodeComponent(schoolId)}'
+              '&Session=${Uri.encodeComponent(session.value)}'
+              '&userId=${Uri.encodeComponent(userId ?? '')}',
+        );
+
+        final response = await http.get(
+          url,
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        print('SectionTeacher status: ${response.statusCode}');
+        print('SectionTeacher body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final decoded = json.decode(response.body);
+          final List<dynamic> data = decoded['data'] ?? [];
+
+          sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
+          if (sectionList.isNotEmpty) {
+            selectedSection.value = sectionList.first;
+          } else {
+            selectedSection.value = null;
+          }
+
+          allowedSectionNames.value = sectionList
+              .map((e) => (e.section ?? '').trim().toLowerCase())
+              .where((s) => s.isNotEmpty)
+              .toList();
+        } else {
+          Get.snackbar("Error", "Failed to fetch sections: ${response.statusCode}",
+              backgroundColor: Colors.red, colorText: Colors.white);
+        }
+      } catch (e) {
+        print("⚠️ Error fetching SectionTeacher sections: $e");
+      } finally {
+        isLoading(false);
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — GetSectionTeacher API (existing)
     try {
       isLoading(true);
 
@@ -670,9 +810,45 @@ class StudentController extends GetxController {
             .map((e) => (e.section ?? '').trim().toLowerCase())
             .where((s) => s.isNotEmpty)
             .toList();
+      } else {
+        Get.snackbar("Error", "Failed to fetch sections: ${response.statusCode}",
+            backgroundColor: Colors.red, colorText: Colors.white);
       }
     } catch (e) {
       print("Error loading sections: $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // 🔁 Staff-only path (no fallback)
+  Future<void> _fetchSectionsStaffApi() async {
+    try {
+      isLoading(true);
+
+      final url = Uri.parse("${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId");
+      final response = await http.get(url);
+
+      print('ViewSectionApp (staff) status: ${response.statusCode}');
+      print('ViewSectionApp (staff) body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        final List<dynamic> data = decoded['listData'] ?? [];
+
+        sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
+        selectedSection.value = sectionList.isNotEmpty ? sectionList.first : null;
+
+        allowedSectionNames.value = sectionList
+            .map((e) => (e.section ?? '').trim().toLowerCase())
+            .where((s) => s.isNotEmpty)
+            .toList();
+      } else {
+        Get.snackbar("Error", "Failed to fetch sections: ${response.statusCode}",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      }
+    } catch (e) {
+      print("⚠️ Error fetching sections (staff): $e");
     } finally {
       isLoading(false);
     }

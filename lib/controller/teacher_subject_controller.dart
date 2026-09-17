@@ -333,10 +333,10 @@ class TeacherSubjectController extends GetxController {
       }
       selectedClass.value = null;
 
-      if (classList.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (classList.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -358,10 +358,10 @@ class TeacherSubjectController extends GetxController {
       classList.value = [];
     }
 
-    if (classList.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (classList.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -419,10 +419,10 @@ class TeacherSubjectController extends GetxController {
         Get.snackbar("Error", "Section fetch error: $e");
       }
 
-      if (sectionList.isEmpty) {
-        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -441,10 +441,10 @@ class TeacherSubjectController extends GetxController {
       sectionList.value = [];
     }
 
-    if (sectionList.isEmpty) {
-      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -489,10 +489,10 @@ class TeacherSubjectController extends GetxController {
       subjectList.value = [];
     }
 
-    if (subjectList.isEmpty) {
-      debugPrint("↩️ Teacher subjects empty — falling back to staff API");
-      await _fetchSubjectsStaffApi();
-    }
+    // if (subjectList.isEmpty) {
+    //   debugPrint("↩️ Teacher subjects empty — falling back to staff API");
+    //   await _fetchSubjectsStaffApi();
+    // }
   }
 
   // 🆕 Staff subject API (Notes wali hi logic)

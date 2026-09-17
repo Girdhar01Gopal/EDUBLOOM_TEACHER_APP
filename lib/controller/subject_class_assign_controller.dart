@@ -233,10 +233,10 @@ class SubjectClassAssignController extends GetxController {
 
       selectedClass.value = null;
 
-      if (classList.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (classList.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -257,10 +257,10 @@ class SubjectClassAssignController extends GetxController {
 
     selectedClass.value = null;
 
-    if (classList.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (classList.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -331,10 +331,10 @@ class SubjectClassAssignController extends GetxController {
 
       selectedSection.value = null;
 
-      if (sectionList.isEmpty) {
-        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -353,10 +353,10 @@ class SubjectClassAssignController extends GetxController {
 
     selectedSection.value = null;
 
-    if (sectionList.isEmpty) {
-      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -414,10 +414,10 @@ class SubjectClassAssignController extends GetxController {
     selectedSubject.value = null;
 
     // 🆕 FALLBACK: teacher API empty aaya to staff wali API try karo
-    if (subjectList.isEmpty) {
-      debugPrint("↩️ Teacher subjects empty — falling back to staff API");
-      await _fetchSubjectsStaffApi();
-    }
+    // if (subjectList.isEmpty) {
+    //   debugPrint("↩️ Teacher subjects empty — falling back to staff API");
+    //   await _fetchSubjectsStaffApi();
+    // }
   }
 
   // 🆕 Staff subject API (Notes jaisa hi)

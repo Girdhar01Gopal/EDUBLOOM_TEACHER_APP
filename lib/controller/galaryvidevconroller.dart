@@ -254,10 +254,10 @@ class Galaryvidevconroller extends GetxController {
         classList.value = [];
       }
 
-      if (classList.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (classList.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -296,10 +296,10 @@ class Galaryvidevconroller extends GetxController {
       classList.value = [];
     }
 
-    if (classList.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (classList.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Ye wahi ViewClass API hai jo pehle se is file me lagi hui thi — bina kisi change ke.
@@ -379,10 +379,10 @@ class Galaryvidevconroller extends GetxController {
         sectionList.value = [];
       }
 
-      if (sectionList.isEmpty) {
-        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -422,10 +422,10 @@ class Galaryvidevconroller extends GetxController {
       sectionList.value = [];
     }
 
-    if (sectionList.isEmpty) {
-      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Ye wahi ViewSectionApp API hai jo pehle se is file me lagi hui thi — bina kisi change ke.

@@ -275,10 +275,10 @@ class ReportCardController extends GetxController {
       }
       selectedClass.value = null;
 
-      if (classList.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (classList.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -295,10 +295,10 @@ class ReportCardController extends GetxController {
       classList.value = [];
     }
 
-    if (classList.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (classList.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -383,10 +383,10 @@ class ReportCardController extends GetxController {
         final decoded = _safeDecodeResponse(res, label: "SectionTeacher");
         if (decoded == null) {
           sectionList.clear();
-          if (sectionList.isEmpty) {
-            debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-            await _fetchSectionsStaffApi();
-          }
+          // if (sectionList.isEmpty) {
+          //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+          //   await _fetchSectionsStaffApi();
+          // }
           return;
         }
         final model = SectionForAttendanceModel.fromJson(decoded);
@@ -411,10 +411,10 @@ class ReportCardController extends GetxController {
         _showSnack("Error", "Section fetch failed: $e");
       }
 
-      if (sectionList.isEmpty) {
-        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -440,10 +440,10 @@ class ReportCardController extends GetxController {
       _showSnack("Error", "Section fetch failed: $e");
     }
 
-    if (sectionList.isEmpty) {
-      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.

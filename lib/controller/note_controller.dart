@@ -420,10 +420,10 @@ class NoteController extends GetxController {
         listDataa.value = [];
       }
 
-      if (listDataa.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (listDataa.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -473,10 +473,10 @@ class NoteController extends GetxController {
       isClassLoading(false);
     }
 
-    if (listDataa.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (listDataa.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -565,10 +565,10 @@ class NoteController extends GetxController {
         isSectionLoading(false);
       }
 
-      if (sectionList.isEmpty) {
-        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -611,10 +611,10 @@ class NoteController extends GetxController {
       isSectionLoading(false);
     }
 
-    if (sectionList.isEmpty) {
-      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -701,10 +701,10 @@ class NoteController extends GetxController {
     }
 
     // 🆕 FALLBACK: teacher API empty aaya to staff wali API try karo
-    if (subjectlist.isEmpty) {
-      debugPrint("↩️ Teacher subjects empty — falling back to staff API");
-      await _fetchSubjectsStaffApi();
-    }
+    // if (subjectlist.isEmpty) {
+    //   debugPrint("↩️ Teacher subjects empty — falling back to staff API");
+    //   await _fetchSubjectsStaffApi();
+    // }
   }
 
   // 🆕 Staff subject API (admin project se liya gaya URL pattern)

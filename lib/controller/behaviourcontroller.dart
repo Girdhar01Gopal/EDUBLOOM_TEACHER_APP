@@ -167,10 +167,10 @@ class Behaviourcontroller extends GetxController {
       selectedClass.value = null;
       selectedClasses.clear();
 
-      if (listDataa.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (listDataa.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -215,10 +215,10 @@ class Behaviourcontroller extends GetxController {
     selectedClass.value = null;
     selectedClasses.clear();
 
-    if (listDataa.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (listDataa.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Ye wahi ViewClass API hai — Staff ke liye main path, Teacher ke liye

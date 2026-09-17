@@ -283,10 +283,10 @@ class MapDescriptorsController extends GetxController {
       }
       selectedClass.value = null;
 
-      if (classList.isEmpty) {
-        debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (classList.isEmpty) {
+      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -303,10 +303,10 @@ class MapDescriptorsController extends GetxController {
       classList.value = [];
     }
 
-    if (classList.isEmpty) {
-      debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (classList.isEmpty) {
+    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -359,10 +359,10 @@ class MapDescriptorsController extends GetxController {
       Get.snackbar("Error", "Subject fetch error: $e");
     }
 
-    if (subjectList.isEmpty) {
-      debugPrint("↩️ Teacher subjects empty — falling back to staff API");
-      await _fetchSubjectsStaffApi();
-    }
+    // if (subjectList.isEmpty) {
+    //   debugPrint("↩️ Teacher subjects empty — falling back to staff API");
+    //   await _fetchSubjectsStaffApi();
+    // }
   }
 
   // 🆕 Staff subject API (Notes wali hi logic)
@@ -449,10 +449,10 @@ class MapDescriptorsController extends GetxController {
         Get.snackbar("Error", "Section fetch error: $e");
       }
 
-      if (sectionList.isEmpty) {
-        debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -473,10 +473,10 @@ class MapDescriptorsController extends GetxController {
       Get.snackbar("Error", "Section fetch error: $e");
     }
 
-    if (sectionList.isEmpty) {
-      debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.

@@ -254,10 +254,10 @@ class FeesController extends GetxController {
         isLoading(false);
       }
 
-      if (sectionList.isEmpty) {
-        print("↩️ SectionTeacher sections empty — falling back to staff API");
-        await _fetchSectionsStaffApi();
-      }
+      // if (sectionList.isEmpty) {
+      //   print("↩️ SectionTeacher sections empty — falling back to staff API");
+      //   await _fetchSectionsStaffApi();
+      // }
       return;
     }
 
@@ -309,10 +309,10 @@ class FeesController extends GetxController {
       isLoading(false);
     }
 
-    if (sectionList.isEmpty) {
-      print("↩️ GetSectionTeacher sections empty — falling back to staff API");
-      await _fetchSectionsStaffApi();
-    }
+    // if (sectionList.isEmpty) {
+    //   print("↩️ GetSectionTeacher sections empty — falling back to staff API");
+    //   await _fetchSectionsStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -392,10 +392,10 @@ class FeesController extends GetxController {
         listDataa.value = [];
       }
 
-      if (listDataa.isEmpty) {
-        print("↩️ ClassTeacher classes empty — falling back to staff API");
-        await _fetchClassesStaffApi();
-      }
+      // if (listDataa.isEmpty) {
+      //   print("↩️ ClassTeacher classes empty — falling back to staff API");
+      //   await _fetchClassesStaffApi();
+      // }
       return;
     }
 
@@ -440,10 +440,10 @@ class FeesController extends GetxController {
       isLoading(false);
     }
 
-    if (listDataa.isEmpty) {
-      print("↩️ GetClassTeacher classes empty — falling back to staff API");
-      await _fetchClassesStaffApi();
-    }
+    // if (listDataa.isEmpty) {
+    //   print("↩️ GetClassTeacher classes empty — falling back to staff API");
+    //   await _fetchClassesStaffApi();
+    // }
   }
 
   // 🔁 Staff ke liye main path, Teacher ke liye fallback.
@@ -639,28 +639,17 @@ class FeesController extends GetxController {
           );
         }).toList();
 
-        // 🆕 sirf teacher ke assigned class AND section ke students dikhao
-        if (allowedClassNames.isEmpty && allowedSectionNames.isEmpty) {
-          // ❌ Teacher ko koi class ya section hi assign nahi hai — koi student mat dikhao
-          allStudents.value = [];
-
-          // ── 🗑️ PURANA FALLBACK LOGIC (comment kar diya) ──────────────
-          // Pehle jab allowedClassNames aur allowedSectionNames dono empty
-          // hote the, to saare students dikha diye jaate the (fallback).
-          // Ab requirement change ho gayi hai — is condition me ab koi
-          // student nahi dikhana, isliye neeche wala purana code comment
-          // kar diya hai (future reference ke liye rakha hai):
-          //
-          // allStudents.value = allFetchedStudents;
+        // 🆕 Staff => complete students dikhao (no filter)
+        // 🆕 Teacher (class-teacher / normal) => sirf assigned class AND section ke students
+        if (isStaffLogin.value) {
+          allStudents.value = allFetchedStudents;
         } else {
           final filtered = allFetchedStudents.where((s) {
             final cName = (s.className ?? '').trim().toLowerCase();
             final sName = (s.sectionName ?? '').trim().toLowerCase();
 
-            final classMatch =
-                allowedClassNames.isEmpty || allowedClassNames.contains(cName);
-            final sectionMatch = allowedSectionNames.isEmpty ||
-                allowedSectionNames.contains(sName);
+            final classMatch = allowedClassNames.contains(cName);
+            final sectionMatch = allowedSectionNames.contains(sName);
 
             return classMatch && sectionMatch;
           }).toList();

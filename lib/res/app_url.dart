@@ -71,6 +71,8 @@ class AppUrl {
 
   static var insertHomeworkApp = "api/CommumicationApp/InsertHomeworkApp";
   static var insertSyllabusApp = "api/CommumicationApp/InsertSyllabusApp";
+  static const viewNoteApp = "api/CommumicationApp/ViewNoteApp/"; // note_controller.dart
+
 
   static var getSyllabusAsyncApp = "api/CommumicationApp/GetSyllabusAsyncApp";
   static const postProductApp = "api/ProductApp/PostProductApp";
