@@ -19,6 +19,18 @@ class Sectioncontroller extends GetxController {
   final sessionData = sectionmodel().obs;
   var isLoading = false.obs;
 
+  // ADDED: search query for filtering sections
+  final searchQuery = ''.obs;
+
+  // ADDED: filtered list based on search query
+  List get filteredSessionList {
+    final list = sessionData.value.listData;
+    if (list == null) return [];
+    if (searchQuery.value.trim().isEmpty) return list;
+    final q = searchQuery.value.trim().toLowerCase();
+    return list.where((item) => (item.section ?? '').toLowerCase().contains(q)).toList();
+  }
+
   @override
   void onInit() async {
     super.onInit();

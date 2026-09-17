@@ -18,6 +18,17 @@ class ClassController extends GetxController {
 
   final classList = ClassItem(listData: []).obs;
 
+  // ADDED: search query for filtering classes
+  final searchQuery = ''.obs;
+
+  // ADDED: filtered list based on search query
+  List<ListDataa> get filteredClassList {
+    final list = classList.value.listData;
+    if (searchQuery.value.trim().isEmpty) return list;
+    final q = searchQuery.value.trim().toLowerCase();
+    return list.where((c) => c.className.toLowerCase().contains(q)).toList();
+  }
+
   @override
   void onInit() async {
     super.onInit();

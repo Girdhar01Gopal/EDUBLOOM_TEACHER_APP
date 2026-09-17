@@ -85,46 +85,70 @@ class ViewClassTab extends GetView<ClassController> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: controller.fetchClasses,
-      child: Obx(() {
-        if (controller.isLoading.value) return const Center(child: CircularProgressIndicator());
-
-        // FIX: Added null safety check and default empty list
-        final classes = controller.classList.value.listData.reversed.toList();
-
-        if (classes.isEmpty) {
-          return ListView(children: const [SizedBox(height: 200), Center(child: Text("📭 No classes available"))]);
-        }
-
-        return ListView.separated(
-          padding: EdgeInsets.all(16.r),
-          itemCount: classes.length,
-          separatorBuilder: (_, __) => SizedBox(height: 12.h),
-          itemBuilder: (context, index) {
-            final c = classes[index];
-            // FIX: Using robust trim with fallbacks
-            final className = c.className.trim().isEmpty ? "-" : c.className.trim();
-            final created = controller.formatDDMMYYYY(c.createDate);
-            final updated = controller.formatDDMMYYYY(c.updateDate);
-            final isActionOne = c.action.trim() == "1";
-
-            return Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
-              child: ListTile(
-                leading: CircleAvatar(backgroundColor: Colors.indigo, child: Icon(Icons.class_, color: Colors.white, size: 20.sp)),
-                title: Text(className, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
-                subtitle: Text("Created: $created", style: TextStyle(fontSize: 12.sp)),
-                trailing: IconButton(
-                  icon: Icon(Icons.edit, color: Colors.orange, size: 20.sp),
-                  onPressed: () => controller.openEditClassDialog(context, c),
-                ),
+    return Column(
+      children: [
+        // ADDED: search bar right below the app bar
+        Padding(
+          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 0),
+          child: TextField(
+            onChanged: (value) => controller.searchQuery.value = value,
+            decoration: InputDecoration(
+              hintText: "Search class...",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12.r),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
               ),
-            );
-          },
-        );
-      }),
+            ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: controller.fetchClasses,
+            child: Obx(() {
+              if (controller.isLoading.value) return const Center(child: CircularProgressIndicator());
+
+              // FIX: Added null safety check and default empty list
+              final classes = controller.filteredClassList.reversed.toList();
+
+              if (classes.isEmpty) {
+                return ListView(children: const [SizedBox(height: 200), Center(child: Text("📭 No classes available"))]);
+              }
+
+              return ListView.separated(
+                padding: EdgeInsets.all(16.r),
+                itemCount: classes.length,
+                separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                itemBuilder: (context, index) {
+                  final c = classes[index];
+                  // FIX: Using robust trim with fallbacks
+                  final className = c.className.trim().isEmpty ? "-" : c.className.trim();
+                  final created = controller.formatDDMMYYYY(c.createDate);
+                  final updated = controller.formatDDMMYYYY(c.updateDate);
+                  final isActionOne = c.action.trim() == "1";
+
+                  return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
+                    child: ListTile(
+                      leading: CircleAvatar(backgroundColor: Colors.indigo, child: Icon(Icons.class_, color: Colors.white, size: 20.sp)),
+                      title: Text(className, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+                      subtitle: Text("Created: $created", style: TextStyle(fontSize: 12.sp)),
+                      trailing: IconButton(
+                        icon: Icon(Icons.edit, color: Colors.orange, size: 20.sp),
+                        onPressed: () => controller.openEditClassDialog(context, c),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 }

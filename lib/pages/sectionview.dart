@@ -95,73 +95,100 @@ class ViewSessionTab extends GetView<Sectioncontroller> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final sessionData = controller.sessionData.value;
-
-      // Show big loader only on the very first load (no data yet)
-      if (controller.isLoading.value &&
-          (sessionData.listData == null || sessionData.listData!.isEmpty)) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      return RefreshIndicator(
-        onRefresh: () async {
-          await controller.fetchSessionData();
-        },
-        child: sessionData.listData == null || sessionData.listData!.isEmpty
-            ? ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 200),
-            Center(child: Text('🚫 No Section available')),
-          ],
-        )
-            : Padding(
-          padding: EdgeInsets.all(16.r),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Text(
-                '📂All Sections',
-                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+    return Column(
+      children: [
+        // ADDED: search bar right below the app bar
+        Padding(
+          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 0),
+          child: TextField(
+            onChanged: (value) => controller.searchQuery.value = value,
+            decoration: InputDecoration(
+              hintText: "Search section...",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12.r),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
               ),
-              SizedBox(height: 10.h),
-              ...sessionData.listData!.map((item) {
-                return Card(
-                  color: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  margin: EdgeInsets.symmetric(vertical: 6.h),
-                  child: ListTile(
-                    leading: const Icon(Icons.history, color: Colors.blueAccent),
-                    title: Text(
-                      item.section ?? 'No Section Name',
-                      style: TextStyle(fontSize: 18.sp),
-                    ),
-                    trailing: InkWell(
-                      onTap: () => controller.openEditSectionDialog(item),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(
-                          Icons.edit,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ],
+            ),
           ),
         ),
-      );
-    });
+        Expanded(
+          child: Obx(() {
+            final sessionData = controller.sessionData.value;
+
+            // Show big loader only on the very first load (no data yet)
+            if (controller.isLoading.value &&
+                (sessionData.listData == null || sessionData.listData!.isEmpty)) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // CHANGED: using filteredSessionList instead of sessionData.listData directly
+            final filteredList = controller.filteredSessionList;
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                await controller.fetchSessionData();
+              },
+              child: sessionData.listData == null || sessionData.listData!.isEmpty
+                  ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 200),
+                  Center(child: Text('🚫 No Section available')),
+                ],
+              )
+                  : Padding(
+                padding: EdgeInsets.all(16.r),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Text(
+                      '📂All Sections',
+                      style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 10.h),
+                    ...filteredList.map((item) {
+                      return Card(
+                        color: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        margin: EdgeInsets.symmetric(vertical: 6.h),
+                        child: ListTile(
+                          leading: const Icon(Icons.history, color: Colors.blueAccent),
+                          title: Text(
+                            item.section ?? 'No Section Name',
+                            style: TextStyle(fontSize: 18.sp),
+                          ),
+                          trailing: InkWell(
+                            onTap: () => controller.openEditSectionDialog(item),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
   }
 }
