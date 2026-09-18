@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart'; // 🆕 ADDED: to open video URLs on tap
 
 import '../controller/mapcategory.dart';
 import '../models/viewphotosmodel.dart'; // ✅ PhotoData
@@ -164,6 +165,50 @@ class _MapcategoryviewState extends State<Mapcategoryview>
       await Share.share(url, subject: 'Gallery Video');
     } catch (_) {
       Get.snackbar("Error", "Failed to share video");
+    }
+  }
+
+  // 🆕 ADDED: normalize a raw video URL string into something url_launcher can open.
+  // Root cause of "Play Video / URL not opening" was that no tap handler ever
+  // called url_launcher at all — this method + the tap handlers below fix that.
+  String _normalizeVideoUrl(String raw) {
+    var url = raw.trim();
+    if (url.isEmpty) return url;
+
+    // Agar scheme missing hai (e.g. "www.youtube.com/..." ya "youtube.com/...")
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://$url";
+    }
+    return url;
+  }
+
+  // 🆕 ADDED: actual launch logic with proper error handling + user feedback
+  Future<void> _launchVideo(String? rawUrl) async {
+    if (rawUrl == null || rawUrl.trim().isEmpty) {
+      Get.snackbar("Error", "Video URL not found");
+      return;
+    }
+
+    final normalized = _normalizeVideoUrl(rawUrl);
+    final uri = Uri.tryParse(normalized);
+
+    if (uri == null) {
+      Get.snackbar("Error", "Invalid video URL");
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication, // YouTube app / browser me khulega
+      );
+
+      if (!launched) {
+        Get.snackbar("Error", "Could not open video link");
+      }
+    } catch (e) {
+      debugPrint("❌ Error launching video URL '$normalized': $e");
+      Get.snackbar("Error", "Could not open video link");
     }
   }
 
@@ -684,48 +729,60 @@ class _MapcategoryviewState extends State<Mapcategoryview>
                         // ─── Thumbnail area ───
                         Stack(
                           children: [
-                            Container(
-                              height: 155.h,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: Colors.black87,
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(12.r),
+                            // 🆕 FIXED: wrapped in GestureDetector so tapping
+                            // the thumbnail / "Play Video" label actually
+                            // opens the video URL — this was completely
+                            // missing before (root cause of the bug).
+                            GestureDetector(
+                              onTap: () => _launchVideo(videoUrl),
+                              child: Container(
+                                height: 155.h,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(12.r),
+                                  ),
                                 ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  Icons.videocam_rounded,
-                                  size: 48.r,
-                                  color: Colors.white30,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.videocam_rounded,
+                                    size: 48.r,
+                                    color: Colors.white30,
+                                  ),
                                 ),
                               ),
                             ),
                             Positioned(
                               bottom: 10.h,
                               left: 10.w,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 6.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.play_circle_fill,
-                                        size: 18.r, color: Colors.white),
-                                    SizedBox(width: 6.w),
-                                    Text(
-                                      "Play Video",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12.sp,
+                              child: GestureDetector(
+                                // 🆕 FIXED: "Play Video" label ab tap karne
+                                // par video open karega
+                                onTap: () => _launchVideo(videoUrl),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 6.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.play_circle_fill,
+                                          size: 18.r, color: Colors.white),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        "Play Video",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12.sp,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -787,23 +844,30 @@ class _MapcategoryviewState extends State<Mapcategoryview>
                               ],
                               if (videoUrl.isNotEmpty) ...[
                                 SizedBox(height: 8.h),
-                                Row(
-                                  children: [
-                                    Icon(Icons.link_rounded,
-                                        size: 15.r, color: Colors.blue),
-                                    SizedBox(width: 6.w),
-                                    Expanded(
-                                      child: Text(
-                                        videoUrl,
-                                        style: TextStyle(
-                                          fontSize: 12.sp,
-                                          color: Colors.blue,
+                                // 🆕 FIXED: video URL row ab tap karne par
+                                // video open karega
+                                GestureDetector(
+                                  onTap: () => _launchVideo(videoUrl),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.link_rounded,
+                                          size: 15.r, color: Colors.blue),
+                                      SizedBox(width: 6.w),
+                                      Expanded(
+                                        child: Text(
+                                          videoUrl,
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            color: Colors.blue,
+                                            decoration:
+                                            TextDecoration.none,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ],

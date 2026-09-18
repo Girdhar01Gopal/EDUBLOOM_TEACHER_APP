@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import '../controller/teacher_add_controller.dart';
+import '../controller/home_page_controller.dart';
 import '../models/teacher list model.dart';
 
 class AddTeacherView extends GetView<TeacherAddController> {
@@ -12,8 +13,53 @@ class AddTeacherView extends GetView<TeacherAddController> {
   Widget build(BuildContext context) {
     Get.put(TeacherAddController());
 
+    // ── Access check: 'Teachers' module ke andar konsi child
+    // activities (AddTeacher / AllTeacher) allow hain ──────
+    final accessible = accessibleChildNames('Teachers');
+    final bool showAdd = accessible.contains('AddTeacher');
+    final bool showView = accessible.contains('AllTeacher');
+
+    final List<Tab> tabs = [];
+    final List<Widget> tabViews = [];
+
+    if (showAdd) {
+      tabs.add(const Tab(
+          icon: Icon(Icons.person_add, color: Colors.white),
+          text: "Add Teacher"));
+      tabViews.add(const AddTeacherTab());
+    }
+    if (showView) {
+      tabs.add(const Tab(
+          icon: Icon(Icons.view_list, color: Colors.white),
+          text: "View Teacher"));
+      tabViews.add(const ViewTeacherTab());
+    }
+
+    // Agar dono ka access nahi hai to empty-state dikhado
+    if (tabs.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF4F6F9),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF97144D),
+          foregroundColor: Colors.white,
+          title: const Text(
+            '📚 Teacher Management',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Get.back(),
+          ),
+        ),
+        body: const Center(
+          child: Text('You do not have access to this module.'),
+        ),
+      );
+    }
+
     return DefaultTabController(
-      length: 2,
+      length: tabs.length,
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
         appBar: AppBar(
@@ -28,21 +74,18 @@ class AddTeacherView extends GetView<TeacherAddController> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Get.back(),
           ),
-          bottom: const TabBar(
+          // ── Sirf tab hi tabh dikhana jab 1 se zyada tab ho ────
+          bottom: tabs.length > 1
+              ? TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white,
             indicatorColor: Colors.white,
-            tabs: [
-              Tab(icon: Icon(Icons.person_add, color: Colors.white), text: "Add Teacher"),
-              Tab(icon: Icon(Icons.view_list, color: Colors.white), text: "View Teacher"),
-            ],
-          ),
+            tabs: tabs,
+          )
+              : null,
         ),
-        body: const TabBarView(
-          children: [
-            AddTeacherTab(),
-            ViewTeacherTab(),
-          ],
+        body: TabBarView(
+          children: tabViews,
         ),
       ),
     );
@@ -382,14 +425,14 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
                             DataCell(Text(controller.formatDate(t.dateofJoining))),
                             DataCell(Text(controller.formatDate(t.createDate))),
                             DataCell(Text(controller.formatDate(t.updateDate))),
-                          DataCell(Obx(() => _ActionButtons(
+                            DataCell(Obx(() => _ActionButtons(
                               onEdit: () => _openEditDialog(context, controller, t),
                               onView: () => controller.onTeacherView(t),   // ← eye icon navigates
                               onApprove: () => controller.onTeacherApprove(t),
-                            isActive: t.isActive,
-                            isStatusLoading: controller.statusLoadingId.value == t.id,
-                            onToggleStatus: () => controller.toggleTeacherStatus(t),
-                          ))),
+                              isActive: t.isActive,
+                              isStatusLoading: controller.statusLoadingId.value == t.id,
+                              onToggleStatus: () => controller.toggleTeacherStatus(t),
+                            ))),
                           ]);
                         }),
                       ),

@@ -78,6 +78,9 @@ const Map<String, ModuleDisplayMeta> moduleDisplayMeta = {
   'Leads': ModuleDisplayMeta(
       icon: Icons.trending_up_rounded, color: Color(0xFF0EA5E9), bgColor: Color(0xFFE0F2FE),
       emoji: '📈'),
+  'Leave': ModuleDisplayMeta(
+      icon: Icons.beach_access_rounded, color: Color(0xFFF59E0B), bgColor: Color(0xFFFEF3C7),
+      emoji: '🏖️', route: RouteName.leaverequest, label: "Leave Request"),
 };
 
 const ModuleDisplayMeta defaultModuleDisplayMeta = ModuleDisplayMeta(

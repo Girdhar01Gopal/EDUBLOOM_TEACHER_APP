@@ -10,12 +10,13 @@ import '../models/classmodel.dart';
 import '../models/galerycategoeymodel.dart';
 import '../models/pre school student teach stu filter api model.dart';
 import '../models/sectionmodel.dart';
-import '../models/session_model.dart';      // ✅ ADD
-import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (class teacher sections ke liye)
+import '../models/session_model.dart';
+import '../models/new model teacher section attendance.dart';
+import '../models/viewphotosmodel.dart';
 import '../res/app_url.dart';
-import 'mapcategory.dart'; // ✅ ADDED: to refresh gallery view controller after upload
+import 'mapcategory.dart';
 import 'student_controller.dart'
-    show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 class-teacher filter reuse (Notification wala hi)
+    show ClassTeacherFilterModel, ClassTeacherFilterData;
 
 class Galaryvidevconroller extends GetxController {
   var schoolId = "";
@@ -514,10 +515,6 @@ class Galaryvidevconroller extends GetxController {
 
       var response = await request.send();
 
-      // ✅ FIX #3: read and print the actual response body instead of
-      // only checking statusCode. Some APIs return 200 even when the
-      // save silently failed on the server side (e.g. validation issue),
-      // so the body often reveals the real problem.
       final responseBody = await response.stream.bytesToString();
       debugPrint("📥 Upload Response Code: ${response.statusCode}");
       debugPrint("📥 Upload Response Body: $responseBody");
@@ -525,6 +522,23 @@ class Galaryvidevconroller extends GetxController {
       Navigator.of(Get.context!, rootNavigator: true).pop();
 
       if (response.statusCode == 200) {
+
+        try {
+          final decoded = jsonDecode(responseBody);
+          final newItemsJson = decoded['data'] as List<dynamic>? ?? [];
+          final newItems =
+          newItemsJson.map((e) => PhotoData.fromJson(e)).toList();
+
+          if (Get.isRegistered<Mapcategorycontroller>()) {
+            final galleryCtrl = Get.find<Mapcategorycontroller>();
+            // Naye items ko list ke top pe daal do (latest-first order maintain)
+            galleryCtrl.galleryCategories.insertAll(0, newItems);
+          }
+        } catch (e) {
+          debugPrint(
+              "⚠️ Could not parse upload response for instant local update: $e");
+        }
+
         _showSuccess("Images Uploaded Successfully");
 
         // ✅ FIX #4: refresh the gallery view controller if it's already
@@ -532,6 +546,8 @@ class Galaryvidevconroller extends GetxController {
         // in-memory list because Mapcategorycontroller.onInit() only runs
         // once when that controller is first created — it won't re-run
         // just because you navigated back to that screen.
+        // (Ab ye sirf background sync ke liye hai — UI already upar wale
+        // insertAll se turant update ho chuki hai.)
         if (Get.isRegistered<Mapcategorycontroller>()) {
           debugPrint("🔄 Refreshing gallery view after upload...");
           Get.find<Mapcategorycontroller>().fetchGalleryCategories();
@@ -560,6 +576,16 @@ class Galaryvidevconroller extends GetxController {
         selectedSectionIds.isEmpty ||
         videoUrlController.text.trim().isEmpty) {
       _showError("Class, Section & Video URL are required!");
+      return;
+    }
+
+    final urlPattern = RegExp(
+      r'^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w\-._~:/?#\[\]@!$&()*+,;=%]*)?$',
+    );
+    final enteredText = videoUrlController.text.trim();
+
+    if (!urlPattern.hasMatch(enteredText) || enteredText.contains(' ')) {
+      _showError("Please enter a valid URL only");
       return;
     }
 
