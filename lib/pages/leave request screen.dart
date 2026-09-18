@@ -577,259 +577,285 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: controller.fetchLeaveRequests,
-      child: Padding(
-        padding: EdgeInsets.all(16.r),
-        child: Obx(() {
-          if (controller.isLoading.value &&
-              controller.leaveRequestList.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (controller.leaveRequestList.isEmpty) {
-            return ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 120),
-                Center(child: Text('No leave requests found')),
-              ],
-            );
-          }
-
-          final list = controller.leaveRequestList;
-
-          return Column(
-            children: [
-              Row(
-                children: [
-                  _summaryChip(
-                    "Pending",
-                    controller.pendingCount,
-                    Colors.orange.shade700,
-                  ),
-                  _summaryChip(
-                    "Approved",
-                    controller.approvedCount,
-                    Colors.green.shade600,
-                  ),
-                  _summaryChip(
-                    "Rejected",
-                    controller.rejectedCount,
-                    Colors.red.shade600,
-                  ),
-                ],
+    return Column(
+      children: [
+        // ADDED: search bar right below the app bar
+        Padding(
+          padding: EdgeInsets.fromLTRB(16.r, 12.r, 16.r, 0),
+          child: TextField(
+            onChanged: (value) => controller.searchQuery.value = value,
+            decoration: InputDecoration(
+              hintText: "Search leave requests...",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12.r),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
               ),
-              SizedBox(height: 14.h),
-              Expanded(
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: list.length,
-                  itemBuilder: (context, index) {
-                    final leave_apply.LeaveData item = list[index];
+            ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: controller.fetchLeaveRequests,
+            child: Padding(
+              padding: EdgeInsets.all(16.r),
+              child: Obx(() {
+                if (controller.isLoading.value &&
+                    controller.leaveRequestList.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                    final employeeName = (item.employeeName ?? '').trim();
-                    final leaveType = item.leave ?? 'N/A';
-                    final balanceLeave = item.balanceLeave;
-                    final totalLeave = item.totalLeave;
-                    final from = formatDate(item.fromDate);
-                    final to = formatDate(item.toDate);
-                    final reason = item.reasonforLeave ?? 'No reason provided';
-                    final status = item.status ?? 'Pending';
-                    final appliedOn = formatDate(item.createdate);
-                    final isPending = status.toLowerCase() == 'pending';
-                    final daysCount = controller.daysCountForRequest(item);
+                // CHANGED: using filteredLeaveRequestList instead of
+                // leaveRequestList directly
+                final list = controller.filteredLeaveRequestList;
 
-                    return Container(
-                      margin: EdgeInsets.only(bottom: 14.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(14.r),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  height: 34.r,
-                                  width: 34.r,
-                                  decoration: BoxDecoration(
-                                    color: axisMaroon.shade50,
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  ),
-                                  child: Icon(
-                                    Icons.event_note,
-                                    color: axisMaroon[700],
-                                    size: 18.sp,
-                                  ),
+                if (list.isEmpty) {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 120),
+                      Center(child: Text('No leave requests found')),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        _summaryChip(
+                          "Pending",
+                          controller.pendingCount,
+                          Colors.orange.shade700,
+                        ),
+                        _summaryChip(
+                          "Approved",
+                          controller.approvedCount,
+                          Colors.green.shade600,
+                        ),
+                        _summaryChip(
+                          "Rejected",
+                          controller.rejectedCount,
+                          Colors.red.shade600,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 14.h),
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: list.length,
+                        itemBuilder: (context, index) {
+                          final leave_apply.LeaveData item = list[index];
+
+                          final employeeName = (item.employeeName ?? '').trim();
+                          final leaveType = item.leave ?? 'N/A';
+                          final balanceLeave = item.balanceLeave;
+                          final totalLeave = item.totalLeave;
+                          final from = formatDate(item.fromDate);
+                          final to = formatDate(item.toDate);
+                          final reason = item.reasonforLeave ?? 'No reason provided';
+                          final status = item.status ?? 'Pending';
+                          final appliedOn = formatDate(item.createdate);
+                          final isPending = status.toLowerCase() == 'pending';
+                          final daysCount = controller.daysCountForRequest(item);
+
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 14.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.06),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
-                                SizedBox(width: 10.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                              ],
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(14.r),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
                                     children: [
-                                      Text(
-                                        leaveType,
-                                        style: TextStyle(
-                                          fontSize: 15.sp,
-                                          fontWeight: FontWeight.w800,
+                                      Container(
+                                        height: 34.r,
+                                        width: 34.r,
+                                        decoration: BoxDecoration(
+                                          color: axisMaroon.shade50,
+                                          borderRadius: BorderRadius.circular(10.r),
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                        child: Icon(
+                                          Icons.event_note,
+                                          color: axisMaroon[700],
+                                          size: 18.sp,
+                                        ),
                                       ),
-                                      if (employeeName.isNotEmpty)
-                                        Text(
-                                          employeeName,
-                                          style: TextStyle(
-                                            fontSize: 11.sp,
-                                            color: Colors.grey.shade600,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                      SizedBox(width: 10.w),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              leaveType,
+                                              style: TextStyle(
+                                                fontSize: 15.sp,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            if (employeeName.isNotEmpty)
+                                              Text(
+                                                employeeName,
+                                                style: TextStyle(
+                                                  fontSize: 11.sp,
+                                                  color: Colors.grey.shade600,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                          ],
                                         ),
+                                      ),
+                                      Flexible(
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 8.w,
+                                            vertical: 4.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _statusColor(status),
+                                            borderRadius: BorderRadius.circular(8.r),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                _statusIcon(status),
+                                                size: 14.sp,
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(width: 4.w),
+                                              Flexible(
+                                                child: Text(
+                                                  status,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 11.sp,
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                ),
-                                Flexible(
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.w,
-                                      vertical: 4.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(status),
-                                      borderRadius: BorderRadius.circular(8.r),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          _statusIcon(status),
-                                          size: 14.sp,
-                                          color: Colors.white,
+                                  SizedBox(height: 10.h),
+                                  Divider(color: Colors.grey.shade300, height: 1),
+                                  SizedBox(height: 10.h),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          "From: $from   To: $to",
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                        SizedBox(width: 4.w),
-                                        Flexible(
+                                      ),
+                                      if (daysCount > 0)
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 8.w,
+                                            vertical: 3.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: axisMaroon.shade50,
+                                            borderRadius: BorderRadius.circular(8.r),
+                                            border: Border.all(
+                                              color: axisMaroon.shade200,
+                                            ),
+                                          ),
                                           child: Text(
-                                            status,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                            daysCount == 1
+                                                ? "1 Day"
+                                                : "$daysCount Days",
                                             style: TextStyle(
                                               fontSize: 11.sp,
-                                              color: Colors.white,
                                               fontWeight: FontWeight.w700,
+                                              color: axisMaroon.shade700,
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10.h),
-                            Divider(color: Colors.grey.shade300, height: 1),
-                            SizedBox(height: 10.h),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    "From: $from   To: $to",
+                                  if (balanceLeave != null || totalLeave != null) ...[
+                                    // SizedBox(height: 6.h),
+                                    // Text(
+                                    //   "Balance at apply: ${balanceLeave ?? '-'} / ${totalLeave ?? '-'}",
+                                    //   style: TextStyle(
+                                    //     fontSize: 11.sp,
+                                    //     color: axisMaroon.shade600,
+                                    //     fontWeight: FontWeight.w600,
+                                    //   ),
+                                    // ),
+                                  ],
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    reason,
                                     style: TextStyle(
-                                      fontSize: 12.sp,
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13.sp,
+                                      color: Colors.grey.shade800,
+                                      height: 1.35,
                                     ),
                                   ),
-                                ),
-                                if (daysCount > 0)
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.w,
-                                      vertical: 3.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: axisMaroon.shade50,
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      border: Border.all(
-                                        color: axisMaroon.shade200,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      daysCount == 1
-                                          ? "1 Day"
-                                          : "$daysCount Days",
-                                      style: TextStyle(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w700,
-                                        color: axisMaroon.shade700,
-                                      ),
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    "Applied on: $appliedOn",
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: Colors.grey.shade500,
                                     ),
                                   ),
-                              ],
-                            ),
-                            if (balanceLeave != null || totalLeave != null) ...[
-                              SizedBox(height: 6.h),
-                              Text(
-                                "Balance at apply: ${balanceLeave ?? '-'} / ${totalLeave ?? '-'}",
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: axisMaroon.shade600,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                            SizedBox(height: 6.h),
-                            Text(
-                              reason,
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                color: Colors.grey.shade800,
-                                height: 1.35,
+                                  if (isPending) ...[
+                                    SizedBox(height: 10.h),
+                                    // Align(
+                                    //   alignment: Alignment.centerRight,
+                                    //   child: TextButton.icon(
+                                    //     onPressed: () => _confirmCancel(item.leaveId ?? 0),
+                                    //     icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                    //     label: const Text("Cancel Request", style: TextStyle(color: Colors.red)),
+                                    //   ),
+                                    // ),
+                                  ],
+                                ],
                               ),
                             ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              "Applied on: $appliedOn",
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                color: Colors.grey.shade500,
-                              ),
-                            ),
-                            if (isPending) ...[
-                              SizedBox(height: 10.h),
-                              // Align(
-                              //   alignment: Alignment.centerRight,
-                              //   child: TextButton.icon(
-                              //     onPressed: () => _confirmCancel(item.leaveId ?? 0),
-                              //     icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                              //     label: const Text("Cancel Request", style: TextStyle(color: Colors.red)),
-                              //   ),
-                              // ),
-                            ],
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        }),
-      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

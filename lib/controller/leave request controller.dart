@@ -76,6 +76,27 @@ class LeaveRequestController extends GetxController {
   // set when editing/cancelling an existing record
   final editingLeaveId = Rx<int?>(null);
 
+  // ADDED: search query for filtering leave requests in the View tab
+  final searchQuery = ''.obs;
+
+  // ADDED: filtered list based on search query (matches leave type,
+  // employee name, status, or reason)
+  List<leave_apply.LeaveData> get filteredLeaveRequestList {
+    final list = leaveRequestList;
+    final q = searchQuery.value.trim().toLowerCase();
+    if (q.isEmpty) return list;
+    return list.where((item) {
+      final leaveType = (item.leave ?? '').toLowerCase();
+      final employeeName = (item.employeeName ?? '').toLowerCase();
+      final status = (item.status ?? '').toLowerCase();
+      final reasonText = (item.reasonforLeave ?? '').toLowerCase();
+      return leaveType.contains(q) ||
+          employeeName.contains(q) ||
+          status.contains(q) ||
+          reasonText.contains(q);
+    }).toList();
+  }
+
   // ── Auth / school context ────────────────────────────────────────
   String token = "";
   String schoolId = "";
