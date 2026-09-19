@@ -76,6 +76,15 @@ class Staffattendancecontroller extends GetxController {
 
   static const int _autoAbsentLookbackDays = 14;
 
+  // ========= SAVE API SETTINGS =========
+  /// Address ko itne characters tak hi server ko bhejna (SQL truncate error se bachne ke liye).
+  static const int _maxAddressLen = 60;
+
+  /// true  => inTime/outTime "HH:mm" format mein jayega (jaise server view API deta hai)
+  /// false => inTime/outTime "yyyy-MM-dd HH:mm:ss" format mein jayega (purana behaviour)
+  /// Agar naya error aaye (conversion failed / invalid date) to isse false kar do.
+  static const bool _sendTimeAsHm = true;
+
   @override
   void onInit() async {
     super.onInit();
@@ -180,6 +189,19 @@ class Staffattendancecontroller extends GetxController {
     return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
 
+  /// Server ke Save API ko time bhejne ka format (flag `_sendTimeAsHm` se control hota hai).
+  String _timeForSaveApi(DateTime? d) {
+    if (d == null) return "";
+    if (_sendTimeAsHm) return fmtTime(d);
+    return _formatDateTimeApi(d);
+  }
+
+  /// Address ko safe length tak kaat deta hai.
+  String _capAddress(String s) {
+    final t = s.trim();
+    return t.length > _maxAddressLen ? t.substring(0, _maxAddressLen) : t;
+  }
+
   String _normalizeStatus(String? status) {
     if (status == null) return statusPresent;
     final s = status.trim().toUpperCase();
@@ -256,21 +278,23 @@ class Staffattendancecontroller extends GetxController {
         );
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
+          // SHORT address: name/street hata diye kyunki wo poora formatted
+          // address de dete hain jisse duplicates ban ke text bahut lamba ho jata tha.
           final parts = [
-            p.name,
-            p.street,
             p.subLocality,
             p.locality,
             p.administrativeArea,
             p.postalCode,
-            p.country,
           ]
               .where((e) => e != null && e.trim().isNotEmpty)
               .map((e) => e!.trim())
               .toSet()
               .toList();
-          final addr = parts.join(", ");
-          if (addr.trim().isNotEmpty) return addr;
+          var addr = parts.join(", ");
+          if (addr.trim().isEmpty) {
+            addr = (p.name ?? p.street ?? "").trim();
+          }
+          if (addr.trim().isNotEmpty) return _capAddress(addr);
         }
       } catch (_) {}
 
@@ -350,6 +374,29 @@ class Staffattendancecontroller extends GetxController {
 
   bool _handlingCheckInOut = false;
 
+  /// Check-in save fail ho gaya => local state wapas pehle jaisa kar do.
+  Future<void> _rollbackCheckIn(int id) async {
+    todayInTime.value = null;
+    _inTimeMap.remove(id);
+    _inAddressMap.remove(id);
+    await PrefManager().writeValue(key: globalInTimeKey, value: "");
+    await PrefManager().writeValue(key: _inTimeKey(id), value: "");
+    await PrefManager().writeValue(key: _inAddrKey(id), value: "");
+    _bump();
+  }
+
+  /// Check-out save fail ho gaya => local state wapas pehle jaisa kar do.
+  Future<void> _rollbackCheckOut(int id) async {
+    todayOutTime.value = null;
+    _outTimeMap.remove(id);
+    _outAddressMap.remove(id);
+    _inOutMap[id] = "IN";
+    await PrefManager().writeValue(key: globalOutTimeKey, value: "");
+    await PrefManager().writeValue(key: _outTimeKey(id), value: "");
+    await PrefManager().writeValue(key: _outAddrKey(id), value: "");
+    _bump();
+  }
+
   /// FAST PATH: only saves the logged-in user's own attendance record
   /// (no full staff-list save loop, no redundant re-fetch of the whole list).
   Future<void> handleCheckInOut() async {
@@ -402,6 +449,7 @@ class Staffattendancecontroller extends GetxController {
         final address = await _getCurrentAddress();
 
         if (!isCheckedIn.value) {
+          // ---------- CHECK IN ----------
           if (statusForUser(id, currentStaff.status) == statusPresent) {
             _inTimeMap[id] = now;
             _inOutMap[id] = "IN";
@@ -413,11 +461,16 @@ class Staffattendancecontroller extends GetxController {
           todayInTime.value = now;
           await PrefManager().writeValue(key: globalInTimeKey, value: _formatDateTimeApi(now));
 
-          await _saveSingleStaffAttendance(currentStaff);
+          final ok = await _saveSingleStaffAttendance(currentStaff);
+          if (!ok) {
+            await _rollbackCheckIn(id);
+            return;
+          }
 
           isCheckedIn.value = true;
           await _persistFlag(checkInPrefKey, true);
         } else {
+          // ---------- CHECK OUT ----------
           if (statusForUser(id, currentStaff.status) == statusPresent) {
             _outTimeMap[id] = now;
             _inOutMap[id] = "OUT";
@@ -429,7 +482,11 @@ class Staffattendancecontroller extends GetxController {
           todayOutTime.value = now;
           await PrefManager().writeValue(key: globalOutTimeKey, value: _formatDateTimeApi(now));
 
-          await _saveSingleStaffAttendance(currentStaff);
+          final ok = await _saveSingleStaffAttendance(currentStaff);
+          if (!ok) {
+            await _rollbackCheckOut(id);
+            return;
+          }
 
           isCheckedIn.value = false;
           isCheckedOutToday.value = true;
@@ -730,16 +787,36 @@ class Staffattendancecontroller extends GetxController {
     }
   }
 
+  /// Save API ko ek baar call karta hai.
+  /// Return: null => success, warna error message (String).
+  Future<String?> _postSaveOnce(Map<String, dynamic> body) async {
+    final res = await http.post(
+      Uri.parse(saveApi),
+      headers: _headers(),
+      body: jsonEncode(body),
+    );
+    if (res.statusCode != 200) {
+      debugPrint("[ATT-DEBUG] SAVE-HTTP-FAIL statusCode=${res.statusCode} body=${res.body}");
+      return "HTTP ${res.statusCode}";
+    }
+    final respBody = jsonDecode(res.body) as Map<String, dynamic>;
+    debugPrint("[ATT-DEBUG] SAVE-RESPONSE $respBody");
+    if (_isSaveSuccessful(respBody)) return null;
+    return (respBody['messages'] ?? 'Unknown error').toString();
+  }
+
   /// FAST PATH save: saves attendance for ONE staff member only.
   /// Used by handleCheckInOut() so check-in/out doesn't wait on the
   /// entire staff list being posted one-by-one.
-  Future<void> _saveSingleStaffAttendance(StaffUser t) async {
+  ///
+  /// Returns true only if the server confirmed the save.
+  Future<bool> _saveSingleStaffAttendance(StaffUser t) async {
     final int? uId = t.userId;
     final String reg =
     (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "").trim();
     if (uId == null || reg.isEmpty) {
       _showError("Missing registration number for your record.");
-      return;
+      return false;
     }
 
     DateTime? fallbackTime(String? raw) {
@@ -777,42 +854,49 @@ class Staffattendancecontroller extends GetxController {
         t.staffAttendance?.extra?['outAddress']?.toString() ??
         "";
 
-    final body = {
-      "sadid": t.staffAttendance?.attendanceId ?? 0,
-      "staffReg": reg,
-      "status": _statusMap[uId] ?? _normalizeStatus(t.status),
-      "months": selectedDate.value.month,
-      "session": selectedSession.value!.session,
-      "day": selectedDate.value.day.toString(),
-      "adate": _formatDateApi(selectedDate.value),
-      "userAttendance": "admin",
-      "schoolId": schoolId,
-      "inTime": inT != null ? _formatDateTimeApi(inT) : (t.inTime ?? t.staffAttendance?.inTime ?? ""),
-      "outTime": outT != null ? _formatDateTimeApi(outT) : "",
-      "inOut": _inOutMap[uId] ?? "IN",
-      "inAddress": inAddr,
-      "outAddress": outAddr,
-    };
+    Map<String, dynamic> buildBody({required bool withAddress}) {
+      return {
+        "sadid": t.staffAttendance?.attendanceId ?? 0,
+        "staffReg": reg,
+        "status": _statusMap[uId] ?? _normalizeStatus(t.status),
+        "months": selectedDate.value.month,
+        "session": selectedSession.value!.session,
+        "day": selectedDate.value.day.toString(),
+        "adate": _formatDateApi(selectedDate.value),
+        "userAttendance": "admin",
+        "schoolId": schoolId,
+        "inTime": _timeForSaveApi(inT),
+        "outTime": _timeForSaveApi(outT),
+        "inOut": _inOutMap[uId] ?? "IN",
+        "inAddress": withAddress ? _capAddress(inAddr) : "",
+        "outAddress": withAddress ? _capAddress(outAddr) : "",
+      };
+    }
 
-    debugPrint("[ATT-DEBUG] SINGLE-SAVE-BODY staff=$uId body=$body");
+    debugPrint("[ATT-DEBUG] LEN reg=${reg.length} inAddr=${inAddr.length} outAddr=${outAddr.length}");
+    debugPrint("[ATT-DEBUG] SINGLE-SAVE-BODY staff=$uId body=${buildBody(withAddress: true)}");
 
     try {
       isViewSaving(true);
-      final res = await http.post(Uri.parse(saveApi), headers: _headers(), body: jsonEncode(body));
-      if (res.statusCode == 200) {
-        final respBody = jsonDecode(res.body) as Map<String, dynamic>;
-        debugPrint("[ATT-DEBUG] SINGLE-SAVE-RESPONSE staff=$uId response=$respBody");
-        if (_isSaveSuccessful(respBody)) {
-          _showSuccess("Attendance updated");
-        } else {
-          _showError("Save failed: ${respBody['messages'] ?? 'Unknown error'}");
-        }
-      } else {
-        debugPrint("[ATT-DEBUG] SINGLE-SAVE-FAILED staff=$uId statusCode=${res.statusCode} body=${res.body}");
-        _showError("Save failed (${res.statusCode})");
+
+      String? err = await _postSaveOnce(buildBody(withAddress: true));
+
+      // "String or binary data would be truncated" => ek baar bina address ke retry.
+      if (err != null && err.toLowerCase().contains("truncated")) {
+        debugPrint("[ATT-DEBUG] truncated -> retry WITHOUT address");
+        err = await _postSaveOnce(buildBody(withAddress: false));
       }
+
+      if (err == null) {
+        _showSuccess("Attendance updated");
+        return true;
+      }
+
+      _showError("Save failed: $err");
+      return false;
     } catch (e) {
       _showError("Save error: $e");
+      return false;
     } finally {
       isViewSaving(false);
     }
