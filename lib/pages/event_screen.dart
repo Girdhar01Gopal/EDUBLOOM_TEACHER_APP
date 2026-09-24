@@ -568,7 +568,9 @@ class _ViewEventTabState extends State<ViewEventTab> {
   @override
   void initState() {
     super.initState();
-    controller.fetchVEvents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchVEvents();
+    });
   }
 
   @override
@@ -795,7 +797,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                                 borderRadius: BorderRadius.circular(12.r),
                                 child: hasPic
                                     ? Image.network(
-                                  AppUrl.eventFileUrl(pic),
+                                  AppUrl.eventFileUrlTest(pic),
                                   width: 100.w,
                                   height: 100.h,
                                   fit: BoxFit.cover,
@@ -880,7 +882,7 @@ class _ViewEventTabState extends State<ViewEventTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      final fileUrl = AppUrl.eventFileUrl(pic);
+                                      final fileUrl = AppUrl.eventFileUrlTest(pic);
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: pic,

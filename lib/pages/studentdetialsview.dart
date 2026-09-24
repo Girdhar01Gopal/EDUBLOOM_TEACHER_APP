@@ -16,10 +16,52 @@ const _cardBg = Color(0xFFF8FFFE);
 const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
 
-class StudentDetailScreen extends StatelessWidget {
+class StudentDetailScreen extends StatefulWidget {
   final StudentData student;
   final bool showEdit; // Ye line add karein
   const StudentDetailScreen({super.key, required this.student, this.showEdit = true}); // showEdit add karein
+
+  @override
+  State<StudentDetailScreen> createState() => _StudentDetailScreenState();
+}
+
+class _StudentDetailScreenState extends State<StudentDetailScreen> {
+  late StudentData student;
+
+  @override
+  void initState() {
+    super.initState();
+    student = widget.student;
+  }
+
+  bool get showEdit => widget.showEdit;
+
+  // ── Pull to refresh handler ───────────────────────────────
+  Future<void> _onRefresh() async {
+    if (student.studentID == null) return;
+    try {
+      final c = Get.find<StudentController>();
+
+      await c.fetchVStudents();
+
+      final updated = c.listData.firstWhereOrNull(
+            (s) => s.studentID == student.studentID,
+      );
+
+      if (updated != null) {
+        setState(() {
+          student = updated;
+        });
+      } else {
+        Get.snackbar("Info", "Latest data not loaded",
+            backgroundColor: Colors.orange, colorText: Colors.white);
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Failed to refresh: $e",
+          backgroundColor: Colors.red, colorText: Colors.white);
+    }
+  }
+
   // ── helpers ──────────────────────────────────────────────
   static String _fmt(String dateString) {
     try {
@@ -97,61 +139,70 @@ class StudentDetailScreen extends StatelessWidget {
               fontSize: 17),
         ),
         actions: [
-          // Edit icon hata diya gaya hai (comment out kiya gaya)
-          // if (showEdit) // Ye condition add karein
-          //   IconButton(
-          //     icon: const Icon(Icons.edit_outlined, color: Colors.white),
-          //     tooltip: "Edit Student",
-          //     onPressed: () => _openEditDialog(context),
-          //   ),
+          // ── Edit icon sirf 'schoolstaff' login ke liye ──
+          Obx(() {
+            final isStaff = Get.find<StudentController>().isStaffLogin.value;
+            if (showEdit && isStaff) {
+              return IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                tooltip: "Edit Student",
+                onPressed: () => _openEditDialog(context),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile header
-            _profileHeader(context, studentUrl),
-            SizedBox(height: 16.h),
+      body: RefreshIndicator(
+        color: _teal,
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(16.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile header
+              _profileHeader(context, studentUrl),
+              SizedBox(height: 16.h),
 
-            // Info cards
-            _infoCard('Personal Information', [
-              _detailRow('Father', student.fatherName),
-              _detailRow('Mother', student.motherName),
-              _detailRow('Father Occupation', student.fatherOccupation),
-              _detailRow('Gender', student.gender),
-              _detailRow(
-                  'DOB',
-                  student.dateOfBirth != null
-                      ? _fmt(student.dateOfBirth!)
-                      : '-'),
-              _detailRow('Religion', student.religion),
-              _detailRow('Blood Group', student.bloodGroup),
-              _detailRow('Address', student.address),
-              _detailRow('Aadhar No.', student.aAdharNo ?? '-'),
-            ]),
-            SizedBox(height: 12.h),
-            _infoCard('Academic Details', [
-              _detailRow('Class', student.className),
-              _detailRow('Section', student.sectionName),
-              _detailRow('Roll No', student.rollNo),
-              _detailRow('Registration No', student.registrationNo),
-              _detailRow('Admission No', student.admissionNo),
-
-              //   _detailRow('Session', student.session),
-            ]),
-            SizedBox(height: 12.h),
-            _infoCard('Contact Information', [
-              _detailRow('Phone', student.phone),
-              _detailRow('WhatsApp', student.whatsAppNo),
-              _detailRow('Emergency No', student.emergencyNo),
-              _detailRow('Email', student.email),
-            ]),
-            SizedBox(height: 12.h),
-            _imagesCard(context),
-            SizedBox(height: 24.h),
-          ],
+              // Info cards
+              _infoCard('Personal Information', [
+                _detailRow('Father', student.fatherName),
+                _detailRow('Mother', student.motherName),
+                _detailRow('Father Occupation', student.fatherOccupation),
+                _detailRow('Gender', student.gender),
+                _detailRow(
+                    'DOB',
+                    student.dateOfBirth != null
+                        ? _fmt(student.dateOfBirth!)
+                        : '-'),
+                _detailRow('Religion', student.religion),
+                _detailRow('Blood Group', student.bloodGroup),
+                _detailRow('Address', student.address),
+                _detailRow('Aadhar No.', student.aAdharNo ?? '-'),
+              ]),
+              SizedBox(height: 12.h),
+              _infoCard('Academic Details', [
+                _detailRow('Class', student.className),
+                _detailRow('Section', student.sectionName),
+                _detailRow('Roll No', student.rollNo),
+                _detailRow('Registration No', student.registrationNo),
+                _detailRow('Admission No', student.admissionNo),
+                //   _detailRow('Session', student.session),
+              ]),
+              SizedBox(height: 12.h),
+              _infoCard('Contact Information', [
+                _detailRow('Phone', student.phone),
+                _detailRow('WhatsApp', student.whatsAppNo),
+                _detailRow('Emergency No', student.emergencyNo),
+                _detailRow('Email', student.email),
+              ]),
+              SizedBox(height: 12.h),
+              _imagesCard(context),
+              SizedBox(height: 24.h),
+            ],
+          ),
         ),
       ),
     );

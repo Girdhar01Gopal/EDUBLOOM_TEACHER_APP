@@ -55,6 +55,7 @@ class EventController extends GetxController {
   var isStaffLogin = false.obs; // true => "schoolstaff" role
   var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
   var classTeacherList = <ClassTeacherFilterData>[].obs;
+  var roleName = ''.obs;
 
   @override
   void onInit() async {
@@ -73,9 +74,9 @@ class EventController extends GetxController {
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
     final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
         .toString()
-        .trim()
-        .toLowerCase();
-    isStaffLogin.value = role == "schoolstaff";
+        .trim();
+    roleName.value = role; // 🆕 API RoleName param ke liye raw role store
+    isStaffLogin.value = role.toLowerCase() == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (isStaffLogin.value) {
@@ -449,10 +450,12 @@ class EventController extends GetxController {
 
     try {
       final cb =
-      createdBy.value.trim().isNotEmpty ? createdBy.value.trim() : "Admin";
+      createdBy.value.trim().isNotEmpty ? createdBy.value.trim() : "";
 
-      final uri =
-      Uri.parse("${AppUrl.base_url}api/CommumicationApp/PostEventApp");
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final uri = Uri.parse(
+          "https://playschool.edubloom.in/api/CommumicationApp/PostEventApp");
       final request = http.MultipartRequest('POST', uri);
 
       // ── Scalar (single value) fields ──
@@ -462,10 +465,12 @@ class EventController extends GetxController {
       request.fields['Descripation'] = description.value.trim();
       request.fields['Session'] = session.value;
       request.fields['SchoolId'] = schoolId;
-      request.fields['schoolId'] = schoolId; // backend case-insensitive hai, safety ke liye dono
+      request.fields['schoolId'] = schoolId;
       request.fields['CreateBy'] = cb;
       request.fields['Action'] = '1';
       request.fields['action'] = '1';
+      request.fields['UserId'] = (userId ?? '').toString();
+      request.fields['RoleName'] = roleName.value;
 
       // ── Array fields: Class[] aur Section[] ──
       // Same field-name multiple baar files list mein daal rahe hain,
@@ -541,8 +546,6 @@ class EventController extends GetxController {
     }
   }
 
-  // ✅ UPDATED API: TeacherViewEventApp
-  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchVEvents() async {
     try {
       isLoading(true);
@@ -550,16 +553,17 @@ class EventController extends GetxController {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       final uri = Uri.parse(
-        'https://playschool.edubloom.in/api/CommumicationApp/TeacherViewEventApp/$schoolId',
+        'https://playschool.edubloom.in/api/CommumicationApp/ViewEventApp/$schoolId',
       ).replace(queryParameters: {
         'session': session.value,
         'UserId': userId ?? '',
+        'RoleName': roleName.value,
       });
 
       final response = await http.get(uri);
 
-      debugPrint('TeacherViewEventApp status: ${response.statusCode}');
-      debugPrint('TeacherViewEventApp body: ${response.body}');
+      debugPrint('ViewEventApp status: ${response.statusCode}');
+      debugPrint('ViewEventApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);

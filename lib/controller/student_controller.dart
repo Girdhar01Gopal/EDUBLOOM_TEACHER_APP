@@ -441,6 +441,8 @@ class StudentController extends GetxController {
       request.fields['MotherName'] = motherName.value.trim();
       request.fields['FatherOccupation'] = fatherOccupation.value.trim();
       request.fields['Roll'] = rollNo.value.trim();
+      // ✅ FIX: AdmissionNo update me bhi bhejna hai (pehle missing tha isliye null ho jata tha)
+      request.fields['AdmissionNo'] = admissionNo.value.trim();
       request.fields['WhatsAppNo'] = whatsappNo.value.trim();
       request.fields['EmergencyNo'] = emergencyNo.value.trim();
       request.fields['Gender'] = gender.value.trim();
@@ -449,6 +451,8 @@ class StudentController extends GetxController {
       request.fields['Religion'] = religion.value.trim();
       request.fields['Phone'] = phone.value.trim();
       request.fields['Email'] = emailController.text.trim();
+      // ✅ FIX: Address bhi bhejo (edit form me Address field hai)
+      request.fields['Address'] = address.value.trim();
       request.fields['AadharNo'] = aAdharNo.value;
       request.fields['SchoolId'] = schoolId;
       request.fields['Session'] = session.value;
@@ -467,8 +471,11 @@ class StudentController extends GetxController {
         final data = jsonDecode(responseBody.body);
         if (data['isSuccess'] == true) {
           Get.snackbar("Success", "Student updated successfully!");
-          await fetchVStudents();
-          Get.offAllNamed(RouteName.student_screen);
+
+          fetchVStudents();
+
+          // ✅ Admin app jaisa: Student screen tak wapas jao (stack clear nahi hota, back arrow chalta rehta hai)
+          Get.until((route) => route.settings.name == RouteName.student_screen);
         } else {
           final errorMessage = data['popupMessage'] ?? "Unknown error";
           Get.snackbar("Error", errorMessage,

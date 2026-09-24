@@ -128,19 +128,22 @@ class NoteController extends GetxController {
     }
   }
 
-  /// ---------------------- FETCH NOTES ----------------------
-  // ✅ UPDATED API: TeacherViewNoteApp
+
   Future<void> fetchVNotes() async {
     try {
       isLoading(true);
       isNotesLoading(true);
 
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
+      final roleName = await PrefManager().readValue(key: PrefConst.RName);
 
       final uri = Uri.parse(
-        'https://playschool.edubloom.in/api/CommumicationApp/TeacherViewNoteApp/$schoolId'
-            '?session=${Uri.encodeComponent(seassion)}'
-            '&UserId=${Uri.encodeComponent(userId ?? '')}',
+        AppUrl.testViewNoteApp(
+          schoolId,
+          seassion,
+          userId ?? '',
+          roleName ?? '',
+        ),
       );
 
       final headers = <String, String>{
@@ -153,8 +156,15 @@ class NoteController extends GetxController {
       debugPrint("[fetchVNotes] status: ${response.statusCode}");
       debugPrint("[fetchVNotes] body: ${response.body}");
 
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
+      // 🆕 SAFETY CHECK: agar kabhi bhi server login-page ka HTML ya
+      // koi non-JSON response bhej de (session expire, wrong URL,
+      // maintenance page, etc.), to json.decode() crash karne ke bajaye
+      // yahin gracefully rok denge aur list khali kar denge.
+      final body = response.body.trim();
+      final looksLikeJson = body.startsWith('{') || body.startsWith('[');
+
+      if (response.statusCode == 200 && looksLikeJson) {
+        final jsonResponse = json.decode(body);
         final vNoteModel = VNoteModel.fromJson(jsonResponse as Map<String, dynamic>);
 
         final notes = (vNoteModel.listData ?? []).toList();
@@ -181,9 +191,11 @@ class NoteController extends GetxController {
 
         listData.assignAll(notes);
 
-        // 🆕 ADDED: exact fetched count print — Notification jaisa hi debug
         debugPrint("📊 FETCHED NOTES COUNT -> ${listData.length}");
       } else {
+        debugPrint(
+            "⚠️ fetchVNotes: unexpected response (status ${response.statusCode}, looksLikeJson=$looksLikeJson) — check API URL / session.");
+        listData.assignAll([]);
         // Get.snackbar("Error", "Failed to fetch data");
       }
     } catch (e) {
@@ -217,57 +229,65 @@ class NoteController extends GetxController {
 
     isLoading(true);
 
-    int successCount = 0;
-    int failCount = 0;
-
     try {
-      // ✅ Saari class-section-subject combinations ek saath (parallel)
-      // bheji jaati hain, taaki total time sabse slowest single request
-      // jitna hi lage.
-      final futures = <Future<bool>>[];
-      for (final classId in selectedClassIds) {
-        for (final sectionId in selectedSectionIds) {
-          for (final subjectId in selectedSubjectIds) {
-            futures.add(
-              _postSingleNote(
-                classId: classId,
-                sectionId: sectionId,
-                subjectId: subjectId,
-                remarksText: remarksText,
-              ),
-            );
-          }
-        }
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+      final roleName = await PrefManager().readValue(key: PrefConst.RName);
+
+      final uri = Uri.parse("https://playschool.edubloom.in/api/CommumicationApp/PostNoteApp");
+      var request = http.MultipartRequest('POST', uri);
+
+      request.fields.addAll({
+        'NoteId': '',
+        'Session': seassion.toString(),
+        'SchoolId': schoolId.toString(),
+        'Remarks': remarksText,
+        'Action': '1',
+        'UpdateBy': '',
+        'CreateBy': "",
+        'UserId': userId ?? '',
+        'RoleName': roleName ?? '',
+      });
+
+      // ✅ Class/Section/Subject ab arrays hain — indexed keys se bheje
+      for (int i = 0; i < selectedClassIds.length; i++) {
+        request.fields['Class[$i]'] = selectedClassIds[i].toString();
+      }
+      for (int i = 0; i < selectedSectionIds.length; i++) {
+        request.fields['Section[$i]'] = selectedSectionIds[i].toString();
+      }
+      for (int i = 0; i < selectedSubjectIds.length; i++) {
+        request.fields['Subject[$i]'] = selectedSubjectIds[i].toString();
       }
 
-      final results = await Future.wait(futures);
-      for (final ok in results) {
-        if (ok) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      }
+      // ✅ IMAGE VERIFICATION — same as before
+      if (imageFile.value != null) {
+        var file = imageFile.value!;
+        final exists = await file.exists();
+        final length = exists ? await file.length() : 0;
 
-      debugPrint(
-          "📊 POST NOTE MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
+        debugPrint("🖼️ Image path: ${file.path}");
+        debugPrint("🖼️ Exists: $exists | size: $length bytes");
 
-      if (successCount > 0 && failCount == 0) {
-        ShortMessage.toast(
-            title: successCount == 1
-                ? "Note Added Successfully"
-                : "$successCount Notes Added Successfully");
-      } else if (successCount > 0 && failCount > 0) {
-        ShortMessage.toast(
-            title:
-            "$successCount added, $failCount failed. Please check and retry.");
+        var multipartFile = await http.MultipartFile.fromPath('file', file.path);
+        request.files.add(multipartFile);
+
+        debugPrint("🖼️ Attached 'file' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
       } else {
-        ShortMessage.toast(
-            title: "Failed to add note(s). Please try again.");
+        debugPrint("🖼️ No image selected for this note.");
       }
 
-      if (successCount > 0) {
-        // ✅ Reset selections after at least one success
+      debugPrint("📤 POST NOTE -> Class:$selectedClassIds Section:$selectedSectionIds Subject:$selectedSubjectIds");
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      debugPrint("📥 Status: ${response.statusCode}");
+      debugPrint("📥 Body: $responseBody");
+
+      if (response.statusCode == 200) {
+        ShortMessage.toast(title: "Note Added Successfully");
+
+        // ✅ Reset selections after success
         selectedClassIds.clear();
         selectedSectionIds.clear();
         selectedSubjectIds.clear();
@@ -276,7 +296,12 @@ class NoteController extends GetxController {
 
         await fetchVNotes();
         Get.back();
+      } else {
+        ShortMessage.toast(title: "Failed to add note(s). Please try again.");
       }
+    } catch (e) {
+      debugPrint('⚠️ Post Note Exception: $e');
+      ShortMessage.toast(title: "Failed to add note(s). Please try again.");
     } finally {
       isLoading(false);
     }
@@ -292,7 +317,7 @@ class NoteController extends GetxController {
     required String remarksText,
   }) async {
     try {
-      final uri = Uri.parse("${AppUrl.base_url}api/CommumicationApp/PostNoteApp");
+      final uri = Uri.parse("https://playschool.edubloom.in/api/CommumicationApp/PostNoteApp");
       var request = http.MultipartRequest('POST', uri);
 
       request.fields.addAll({

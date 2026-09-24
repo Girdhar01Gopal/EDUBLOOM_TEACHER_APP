@@ -166,6 +166,8 @@ class ViewStaffAttendanceController extends GetxController {
         final newDays = Map<String, String?>.from(existing.attendanceDays);
         final newInT = Map<int, String?>.from(existing.dayInTimes);
         final newOutT = Map<int, String?>.from(existing.dayOutTimes);
+        final newInA = Map<int, String?>.from(existing.dayInAddresses);    // ✅ NEW
+        final newOutA = Map<int, String?>.from(existing.dayOutAddresses);  // ✅ NEW
 
         for (int d = 1; d <= 31; d++) {
           final status = item.attendanceDays['day$d'];
@@ -173,6 +175,8 @@ class ViewStaffAttendanceController extends GetxController {
             newDays['day$d'] = status;
             newInT[d] = item.dayIn(d);
             newOutT[d] = item.dayOut(d);
+            newInA[d] = item.dayInAddress(d);     // ✅ NEW
+            newOutA[d] = item.dayOutAddress(d);   // ✅ NEW
           }
         }
 
@@ -180,6 +184,8 @@ class ViewStaffAttendanceController extends GetxController {
           attendanceDays: newDays,
           dayInTimes: newInT,
           dayOutTimes: newOutT,
+          dayInAddresses: newInA,     // ✅ NEW
+          dayOutAddresses: newOutA,   // ✅ NEW
         );
       }
     }

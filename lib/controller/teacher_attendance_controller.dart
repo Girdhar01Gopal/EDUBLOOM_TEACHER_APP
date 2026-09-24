@@ -60,6 +60,8 @@ class TeacherAttendanceController extends GetxController {
   String token = "";
   String userId = "";
   String roleId = "";
+  String roleName = "";
+
 
   // ========= SESSION =========
   final sessionList = <session_model.sListDdata>[].obs;
@@ -107,8 +109,9 @@ class TeacherAttendanceController extends GetxController {
         .toString();
     userId = (await PrefManager().readValue(key: PrefConst.Userid) ?? "")
         .toString();
-    roleId = (await PrefManager().readValue(key: PrefConst.roleId) ?? "")
-        .toString();
+    roleId = (await PrefManager().readValue(key: PrefConst.roleId) ?? "").toString();
+    roleName = (await PrefManager().readValue(key: PrefConst.RName) ?? "").toString();
+
 
     if (schoolId.trim().isEmpty) {
       _showError("SchoolId not found. Please login again.");
@@ -185,7 +188,7 @@ class TeacherAttendanceController extends GetxController {
 
       final alreadyHandled =
           (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() ==
-          "1";
+              "1";
       if (!alreadyHandled) {
         final wasCheckedIn =
             (await PrefManager().readValue(key: checkInKey))?.toString() == "1";
@@ -204,6 +207,37 @@ class TeacherAttendanceController extends GetxController {
     // set), bas RAM/Rx state ko reload karke UI turant "Check In" dikha do —
     // app restart ka wait nahi karna padta.
     await _loadCheckFlags();
+
+    // FIX: selectedDate + per-teacher maps ko bhi naye din pe le aao, warna
+    // naye din ka save purani date (adate/day/months) ke saath jaata tha.
+    await _syncToTodayIfNeeded();
+  }
+
+  // =========================================================
+  // FIX: DATE SYNC (long-lived permanent controller ke liye)
+  // =========================================================
+  /// Controller Get.put(permanent: true) hai, isliye onInit sirf ek baar
+  /// chalta hai. Agar app din badalne ke baad bhi zinda hai, to selectedDate
+  /// purani reh jaati thi aur save body me kal ki date (adate) chali jaati
+  /// thi. Ye function din badalne par selectedDate, RAM maps aur flags
+  /// naye din ke hisaab se reset karke list dobara fetch karta hai.
+  Future<void> _syncToTodayIfNeeded() async {
+    final now = DateTime.now();
+    if (_formatDateApi(selectedDate.value) == _formatDateApi(now)) return;
+
+    selectedDate.value = now;
+    _statusMap.clear();
+    _inOutMap.clear();
+    _inTimeMap.clear();
+    _outTimeMap.clear();
+    _inAddressMap.clear();
+    _outAddressMap.clear();
+    _bump();
+
+    await _loadCheckFlags();
+    if (!_sessionMissing()) {
+      await fetchTeacherAttendanceList();
+    }
   }
 
   // =========================================================
@@ -254,14 +288,40 @@ class TeacherAttendanceController extends GetxController {
     return statusPresent;
   }
 
+  // FIX: list me se pehli non-empty (trimmed) value uthata hai. "??" chain
+  // sirf null pe fallback karti hai, empty string "" pe nahi — isliye
+  // registrationNo / address "" aane par pehle wo skip ya khaali chala jaata tha.
+  String _pickNonEmpty(List<String?> candidates) {
+    for (final c in candidates) {
+      if (c != null && c.trim().isNotEmpty) return c.trim();
+    }
+    return "";
+  }
+
+  // FIX: Save API ka success response ye aata hai:
+  // {"statusCode":0,"isSuccess":false,"messages":"Attendance saved successfully","data":"SUCCESS"}
+  // yaani isSuccess=false / statusCode=0 hote hue bhi save ho chuka hota hai.
+  // Isliye asli success "data == SUCCESS" ya "messages" se pehchante hain.
+  bool _isSaveSuccess(dynamic body) {
+    if (body is! Map) return false;
+    final data = (body['data'] ?? '').toString().trim().toUpperCase();
+    final msg = (body['messages'] ?? body['message'] ?? '')
+        .toString()
+        .toLowerCase();
+    return body['isSuccess'] == true ||
+        body['statusCode'] == 200 ||
+        data == 'SUCCESS' ||
+        msg.contains('saved successfully');
+  }
+
   // =========================================================
   // LOCATION
   // =========================================================
   /// Fetches the device's current position and reverse-geocodes it into a
   /// human-readable address string. Falls back to "lat, lng" if reverse
   /// geocoding fails, and returns "" (with an error snackbar) if location
-  /// can't be obtained at all — the check-in/out still proceeds, just
-  /// without an address in that case.
+  /// can't be obtained at all — in that case check-in/out ab save nahi
+  /// hota (address kabhi khaali nahi jaana chahiye).
   Future<String> _getCurrentAddress() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -286,9 +346,23 @@ class TeacherAttendanceController extends GetxController {
         return "";
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      // FIX: timeLimit + last-known fallback — warna GPS fix na milne par
+      // button hamesha "Please wait..." pe atka reh sakta tha.
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 20),
+        );
+      } catch (_) {
+        try {
+          position = await Geolocator.getLastKnownPosition();
+        } catch (_) {}
+      }
+      if (position == null) {
+        _showError("Could not fetch current location. Please try again.");
+        return "";
+      }
 
       try {
         final placemarks = await geocoding.Geocoding().placemarkFromCoordinates(
@@ -298,19 +372,19 @@ class TeacherAttendanceController extends GetxController {
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
           final parts =
-              [
-                    p.name,
-                    p.street,
-                    p.subLocality,
-                    p.locality,
-                    p.administrativeArea,
-                    p.postalCode,
-                    p.country,
-                  ]
-                  .where((e) => e != null && e.trim().isNotEmpty)
-                  .map((e) => e!.trim())
-                  .toSet() // drop exact duplicate segments
-                  .toList();
+          [
+            p.name,
+            p.street,
+            p.subLocality,
+            p.locality,
+            p.administrativeArea,
+            p.postalCode,
+            p.country,
+          ]
+              .where((e) => e != null && e.trim().isNotEmpty)
+              .map((e) => e!.trim())
+              .toSet() // drop exact duplicate segments
+              .toList();
           final addr = parts.join(", ");
           if (addr.trim().isNotEmpty) return addr;
         }
@@ -359,10 +433,10 @@ class TeacherAttendanceController extends GetxController {
       "teacher_att_outaddr_${teacherId}_${_todayDateKeyPart()}";
 
   Future<void> _persistInData(
-    int teacherId,
-    DateTime time,
-    String address,
-  ) async {
+      int teacherId,
+      DateTime time,
+      String address,
+      ) async {
     await PrefManager().writeValue(
       key: _inTimeKey(teacherId),
       value: _formatDateTimeApi(time),
@@ -374,10 +448,10 @@ class TeacherAttendanceController extends GetxController {
   }
 
   Future<void> _persistOutData(
-    int teacherId,
-    DateTime time,
-    String address,
-  ) async {
+      int teacherId,
+      DateTime time,
+      String address,
+      ) async {
     await PrefManager().writeValue(
       key: _outTimeKey(teacherId),
       value: _formatDateTimeApi(time),
@@ -420,6 +494,38 @@ class TeacherAttendanceController extends GetxController {
     await PrefManager().writeValue(key: key, value: value ? "1" : "0");
   }
 
+  // FIX: Agar save API fail ho jaye to jo in/out time+address abhi RAM aur
+  // SharedPreferences me stamp kiya tha use wapas hata do. Warna agla
+  // fetch us local (jhooti) value ko "server ka record" maan leta aur
+  // button galat state (Check Out) me chala jaata, jabki server pe kuch
+  // save hi nahi hua tha.
+  Future<void> _rollbackStamp({required bool isCheckIn}) async {
+    for (final t in teacherUsers) {
+      final id = t.userId;
+      if (id == null) continue;
+      if (isCheckIn) {
+        _inTimeMap.remove(id);
+        _inAddressMap.remove(id);
+        await PrefManager().writeValue(key: _inTimeKey(id), value: "");
+        await PrefManager().writeValue(key: _inAddrKey(id), value: "");
+      } else {
+        _outTimeMap.remove(id);
+        _outAddressMap.remove(id);
+        _inOutMap[id] = "IN";
+        await PrefManager().writeValue(key: _outTimeKey(id), value: "");
+        await PrefManager().writeValue(key: _outAddrKey(id), value: "");
+      }
+    }
+    if (isCheckIn) {
+      todayInTime.value = null;
+      await PrefManager().writeValue(key: _globalInTimeKey, value: "");
+    } else {
+      todayOutTime.value = null;
+      await PrefManager().writeValue(key: _globalOutTimeKey, value: "");
+    }
+    _bump();
+  }
+
   /// Single button handler for the whole list:
   /// - not checked in yet today  -> fetches current location, stamps "now"
   ///   as in-time + that address for every Present teacher, saves, sets
@@ -453,6 +559,11 @@ class TeacherAttendanceController extends GetxController {
           return;
         }
       }
+
+      // FIX: agar app din badalne ke baad bhi zinda hai to date/flags/maps
+      // naye din pe sync kar do (save body me hamesha aaj ki date jaani chahiye).
+      await _syncToTodayIfNeeded();
+
       if (isCheckedOutToday.value) return;
 
       if (teacherUsers.isEmpty) {
@@ -472,7 +583,7 @@ class TeacherAttendanceController extends GetxController {
               : (remaining.inSeconds / 60).ceil();
           _showError(
             "You can check out after $remainingMinutes more minute${remainingMinutes == 1 ? '' : 's'} "
-            "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
+                "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
           );
           return;
         }
@@ -502,6 +613,12 @@ class TeacherAttendanceController extends GetxController {
         final now = DateTime.now();
         final address = await _getCurrentAddress();
 
+        // FIX: address khaali ho to check-in/out save hi nahi karenge —
+        // error snackbar _getCurrentAddress() already dikha chuka hota hai.
+        if (address.trim().isEmpty) {
+          return;
+        }
+
         if (!isCheckedIn.value) {
           // ---- CHECK IN: stamp "now" + current address for every present teacher ----
           for (final t in teacherUsers) {
@@ -521,7 +638,12 @@ class TeacherAttendanceController extends GetxController {
             value: _formatDateTimeApi(now),
           );
 
-          await saveAttendanceFromView();
+          // FIX: save successful ho tabhi flag flip karo, warna rollback.
+          final saved = await saveAttendanceFromView();
+          if (!saved) {
+            await _rollbackStamp(isCheckIn: true);
+            return;
+          }
           isCheckedIn.value = true;
           await _persistFlag(_checkInPrefKey, true);
         } else {
@@ -543,7 +665,12 @@ class TeacherAttendanceController extends GetxController {
             value: _formatDateTimeApi(now),
           );
 
-          await saveAttendanceFromView();
+          // FIX: save successful ho tabhi flags flip karo, warna rollback.
+          final saved = await saveAttendanceFromView();
+          if (!saved) {
+            await _rollbackStamp(isCheckIn: false);
+            return;
+          }
           isCheckedIn.value = false;
           isCheckedOutToday.value = true;
           await _persistFlag(_checkInPrefKey, false);
@@ -565,7 +692,7 @@ class TeacherAttendanceController extends GetxController {
 
   bool _sessionMissing() =>
       selectedSession.value == null ||
-      (selectedSession.value!.session ?? "").trim().isEmpty;
+          (selectedSession.value!.session ?? "").trim().isEmpty;
 
   // =========================================================
   // SESSIONS
@@ -704,6 +831,11 @@ class TeacherAttendanceController extends GetxController {
   // VIEW & SAVE (The core logic to keep data persistent)
   // =========================================================
   Future<void> fetchTeacherAttendanceList() async {
+    if (roleName.toLowerCase().trim() == "schoolstaff") {
+      teacherUsers.clear();
+      _bump();
+      return;
+    }
     try {
       isViewLoading(true);
       final res = await http.post(
@@ -759,24 +891,24 @@ class TeacherAttendanceController extends GetxController {
 
         final rawIn =
             t.inTime ??
-            t.teacherAttendance?.inTime ??
-            t.teacherAttendance?.extra?['inTime']?.toString();
+                t.teacherAttendance?.inTime ??
+                t.teacherAttendance?.extra?['inTime']?.toString();
 
         final rawOut =
             t.outTime ??
-            t.teacherAttendance?.outTime ??
-            t.teacherAttendance?.extra?['outTime']?.toString();
+                t.teacherAttendance?.outTime ??
+                t.teacherAttendance?.extra?['outTime']?.toString();
 
         final rawInAddress =
             t.inAddress ?? t.teacherAttendance?.extra?['inAddress']?.toString();
 
         final rawOutAddress =
             t.outAddress ??
-            t.teacherAttendance?.extra?['outAddress']?.toString();
+                t.teacherAttendance?.extra?['outAddress']?.toString();
 
         debugPrint(
           "[ATT-DEBUG] FETCH teacher=$id rawStatus=$rawStatus rawIn=$rawIn rawOut=$rawOut "
-          "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress",
+              "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress",
         );
 
         // Status
@@ -802,24 +934,24 @@ class TeacherAttendanceController extends GetxController {
 
         // Address — server value ho to wahi, warna purani local value, warna persisted value
         final String? persistedInAddr =
-            (rawInAddress == null || rawInAddress.trim().isEmpty) &&
-                (oldInAddressMap[id] == null ||
-                    oldInAddressMap[id]!.trim().isEmpty)
+        (rawInAddress == null || rawInAddress.trim().isEmpty) &&
+            (oldInAddressMap[id] == null ||
+                oldInAddressMap[id]!.trim().isEmpty)
             ? await _readPersistedAddr(_inAddrKey(id))
             : null;
         final String? persistedOutAddr =
-            (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
-                (oldOutAddressMap[id] == null ||
-                    oldOutAddressMap[id]!.trim().isEmpty)
+        (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
+            (oldOutAddressMap[id] == null ||
+                oldOutAddressMap[id]!.trim().isEmpty)
             ? await _readPersistedAddr(_outAddrKey(id))
             : null;
 
         final String? finalInAddress =
-            (rawInAddress != null && rawInAddress.trim().isNotEmpty)
+        (rawInAddress != null && rawInAddress.trim().isNotEmpty)
             ? rawInAddress
             : (oldInAddressMap[id] ?? persistedInAddr);
         final String? finalOutAddress =
-            (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
+        (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
             ? rawOutAddress
             : (oldOutAddressMap[id] ?? persistedOutAddr);
         if (finalInAddress != null && finalInAddress.trim().isNotEmpty) {
@@ -835,7 +967,7 @@ class TeacherAttendanceController extends GetxController {
 
         debugPrint(
           "[ATT-DEBUG] FETCH-RESULT teacher=$id finalIn=${_inTimeMap[id]} finalOut=${_outTimeMap[id]} "
-          "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}",
+              "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}",
         );
       }
       _bump();
@@ -906,8 +1038,12 @@ class TeacherAttendanceController extends GetxController {
     }
   }
 
-  Future<void> saveAttendanceFromView() async {
-    if (_sessionMissing() || teacherUsers.isEmpty) return;
+  /// FIX: ab bool return karta hai — true sirf tab jab saari attempted
+  /// saves server pe successfully ho gayi. Pehle ye hamesha "success"
+  /// snackbar dikhata tha, chahe save fail hua ho, aur check-in/out flags
+  /// phir bhi flip ho jaate the.
+  Future<bool> saveAttendanceFromView() async {
+    if (_sessionMissing() || teacherUsers.isEmpty) return false;
 
     // Yahi wo helper hai jo kabhi bhi khaali/null time nahi jaane dega —
     // agar RAM map me value nahi hai to seedha teacher ke apne record
@@ -925,50 +1061,55 @@ class TeacherAttendanceController extends GetxController {
     try {
       isViewSaving(true);
       int ok = 0;
+      int failed = 0;
       for (final t in teacherUsers) {
         final int? uId = t.userId;
-        final String reg =
-            (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
-                .trim();
+        // FIX: registrationNo "" (empty string) aaye to "??" additionalDetail
+        // pe fallback nahi karta tha aur teacher skip ho jaata tha (kuch save
+        // hi nahi hota tha). UI ke _safeReg jaisa hi non-empty fallback ab yahan bhi.
+        final String reg = _pickNonEmpty([
+          t.registrationNo,
+          t.additionalDetail?.registrationNo,
+        ]);
         if (uId == null || reg.isEmpty) continue;
 
         // ---- IN TIME: local map -> local-persisted (SharedPreferences) -> flat -> nested -> extra -> kabhi null nahi ----
         final DateTime? inT =
             _inTimeMap[uId] ??
-            await _readPersistedTime(_inTimeKey(uId)) ??
-            _fallbackTime(
-              t.inTime ??
-                  t.teacherAttendance?.inTime ??
-                  t.teacherAttendance?.extra?['inTime']?.toString(),
-            );
+                await _readPersistedTime(_inTimeKey(uId)) ??
+                _fallbackTime(
+                  t.inTime ??
+                      t.teacherAttendance?.inTime ??
+                      t.teacherAttendance?.extra?['inTime']?.toString(),
+                );
 
         // ---- OUT TIME: same fallback chain ----
         final DateTime? outT =
             _outTimeMap[uId] ??
-            await _readPersistedTime(_outTimeKey(uId)) ??
-            _fallbackTime(
-              t.outTime ??
-                  t.teacherAttendance?.outTime ??
-                  t.teacherAttendance?.extra?['outTime']?.toString(),
-            );
+                await _readPersistedTime(_outTimeKey(uId)) ??
+                _fallbackTime(
+                  t.outTime ??
+                      t.teacherAttendance?.outTime ??
+                      t.teacherAttendance?.extra?['outTime']?.toString(),
+                );
 
-        // ---- ADDRESS: same fallback chain ----
-        final String inAddr =
-            _inAddressMap[uId] ??
-            (await _readPersistedAddr(_inAddrKey(uId))) ??
-            t.inAddress ??
-            t.teacherAttendance?.extra?['inAddress']?.toString() ??
-            "";
-        final String outAddr =
-            _outAddressMap[uId] ??
-            (await _readPersistedAddr(_outAddrKey(uId))) ??
-            t.outAddress ??
-            t.teacherAttendance?.extra?['outAddress']?.toString() ??
-            "";
+        // ---- ADDRESS: same fallback chain (empty string pe bhi next source try hota hai) ----
+        final String inAddr = _pickNonEmpty([
+          _inAddressMap[uId],
+          await _readPersistedAddr(_inAddrKey(uId)),
+          t.inAddress,
+          t.teacherAttendance?.extra?['inAddress']?.toString(),
+        ]);
+        final String outAddr = _pickNonEmpty([
+          _outAddressMap[uId],
+          await _readPersistedAddr(_outAddrKey(uId)),
+          t.outAddress,
+          t.teacherAttendance?.extra?['outAddress']?.toString(),
+        ]);
 
         debugPrint(
           "[ATT-DEBUG] SAVE teacher=$uId inT=$inT outT=$outT inAddr=$inAddr outAddr=$outAddr "
-          "(fromMap=${_inTimeMap[uId]}, fromServer=${t.inTime ?? t.teacherAttendance?.inTime})",
+              "(fromMap=${_inTimeMap[uId]}, fromServer=${t.inTime ?? t.teacherAttendance?.inTime})",
         );
 
         final body = {
@@ -1004,19 +1145,36 @@ class TeacherAttendanceController extends GetxController {
           debugPrint(
             "[ATT-DEBUG] SAVE-RESPONSE teacher=$uId response=$respBody",
           );
-          if (respBody['isSuccess'] == true || respBody['statusCode'] == 200) {
+          // FIX: API success me bhi isSuccess=false / statusCode=0 bhejti hai,
+          // isliye _isSaveSuccess() (data == "SUCCESS") se check karte hain.
+          if (_isSaveSuccess(respBody)) {
             ok++;
+          } else {
+            failed++;
           }
         } else {
+          failed++;
           debugPrint(
             "[ATT-DEBUG] SAVE-FAILED teacher=$uId statusCode=${res.statusCode} body=${res.body}",
           );
         }
       }
+
+      if (ok + failed == 0) {
+        _showError("Teacher registration no. not found. Attendance not saved.");
+        return false;
+      }
+      if (failed > 0) {
+        _showError("Attendance could not be saved. Please try again.");
+        return false;
+      }
+
       _showSuccess("Attendance updated for teacher");
       await fetchTeacherAttendanceList();
+      return true;
     } catch (e) {
       _showError("Save error: $e");
+      return false;
     } finally {
       isViewSaving(false);
     }
@@ -1053,7 +1211,7 @@ class TeacherAttendanceController extends GetxController {
 
       final alreadyHandled =
           (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() ==
-          "1";
+              "1";
       if (alreadyHandled) continue;
 
       final wasCheckedIn =
@@ -1091,8 +1249,8 @@ class TeacherAttendanceController extends GetxController {
       final parsed = TeacherListResponse.fromJson(jsonDecode(res.body));
       for (final t in parsed.listData) {
         final reg =
-            (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
-                .trim();
+        (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
+            .trim();
         if (reg.isEmpty) continue;
 
         // Agar us din already koi status save hai (present/absent), to overwrite mat karo.

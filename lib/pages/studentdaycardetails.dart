@@ -10,6 +10,8 @@ import '../controller/student_controller daycare.dart' as daycare_controller;
 import '../controller/student_controller.dart';
 
 import 'adddaycarestudentview.dart';
+import '../infrastructures/utils/local_storage/local_storage.dart';
+import '../infrastructures/utils/local_storage/pref_const.dart';
 
 // ─── Palette ───────────────────────────────────────────────
 const _teal = Color(0xFF97144D);
@@ -75,6 +77,15 @@ class StudentDetailScreenday extends StatelessWidget {
       return Get.find<StudentController>();
     }
     return Get.put(StudentController());
+  }
+
+  // ── Role check: sirf 'schoolstaff' ko edit allow ─────────
+  Future<bool> _isStaffLogin() async {
+    final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    return role == "schoolstaff";
   }
 
   // ── Download image URL → temp File ───────────────────────
@@ -922,15 +933,24 @@ class StudentDetailScreenday extends StatelessWidget {
               fontSize: 17),
         ),
         actions: [
-          if (showEdit) // Ye condition add karein
-            Tooltip(
-              message: "Edit Student",
-              child: IconButton(
-                onPressed: () => _openEditDialog(context),
-                icon: const Icon(Icons.edit_outlined,
-                    color: Colors.white),
-              ),
-            ),
+          // ── Edit icon sirf 'schoolstaff' login ke liye ──
+          FutureBuilder<bool>(
+            future: _isStaffLogin(),
+            builder: (context, snapshot) {
+              final isStaff = snapshot.data ?? false;
+              if (showEdit && isStaff) {
+                return Tooltip(
+                  message: "Edit Student",
+                  child: IconButton(
+                    onPressed: () => _openEditDialog(context),
+                    icon: const Icon(Icons.edit_outlined,
+                        color: Colors.white),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
 
       ),

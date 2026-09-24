@@ -39,9 +39,15 @@ class ViewTeacherAttendanceItem {
   /// Day-wise attendance status (1..31)
   final Map<int, String?> days;
 
-  /// Per-day inTime / outTime (populated during merge in controller)
+  /// Per-day inTime / outTime.
+  /// ✅ NEW: ab yeh seedhe API ke "inTime1".."inTime31" / "outTime1".."outTime31"
+  /// fields se fromJson me hi parse ho jaate hain. Controller merge ke time
+  /// agar yeh khaali mile to record-level inTime/outTime fallback ki tarah
+  /// use hota hai (controller me dekho).
   final Map<int, String?> dayInTimes;
   final Map<int, String?> dayOutTimes;
+  final Map<int, String?> dayInAddresses;
+  final Map<int, String?> dayOutAddresses;
 
   ViewTeacherAttendanceItem({
     this.teacherReg,
@@ -57,14 +63,25 @@ class ViewTeacherAttendanceItem {
     required this.days,
     Map<int, String?>? dayInTimes,
     Map<int, String?>? dayOutTimes,
+    Map<int, String?>? dayInAddresses,
+    Map<int, String?>? dayOutAddresses,
   })  : dayInTimes = dayInTimes ?? {},
-        dayOutTimes = dayOutTimes ?? {};
+        dayOutTimes = dayOutTimes ?? {},
+        dayInAddresses = dayInAddresses ?? {},
+        dayOutAddresses = dayOutAddresses ?? {};
 
   factory ViewTeacherAttendanceItem.fromJson(Map<String, dynamic> json) {
     final Map<int, String?> dayMap = {};
+    final Map<int, String?> inTimeMap = {};  // ✅ NEW
+    final Map<int, String?> outTimeMap = {}; // ✅ NEW
+
     for (int i = 1; i <= 31; i++) {
       final key = 'day$i';
       dayMap[i] = json.containsKey(key) ? _asString(json[key]) : null;
+
+      // ✅ NEW: API "inTime1".."inTime31" / "outTime1".."outTime31" seedhe parse
+      inTimeMap[i] = _asString(json['inTime$i']);
+      outTimeMap[i] = _asString(json['outTime$i']);
     }
 
     return ViewTeacherAttendanceItem(
@@ -79,7 +96,8 @@ class ViewTeacherAttendanceItem {
       inAddress: _asString(json['inAddress']),
       outAddress: _asString(json['outAddress']),
       days: dayMap,
-      // dayInTimes / dayOutTimes filled during merge — empty on raw parse
+      dayInTimes: inTimeMap,   // ✅ NEW
+      dayOutTimes: outTimeMap, // ✅ NEW
     );
   }
 
@@ -107,6 +125,8 @@ class ViewTeacherAttendanceItem {
     Map<int, String?>? days,
     Map<int, String?>? dayInTimes,
     Map<int, String?>? dayOutTimes,
+    Map<int, String?>? dayInAddresses,
+    Map<int, String?>? dayOutAddresses,
   }) {
     return ViewTeacherAttendanceItem(
       teacherReg: teacherReg,
@@ -122,6 +142,8 @@ class ViewTeacherAttendanceItem {
       days: days ?? Map.from(this.days),
       dayInTimes: dayInTimes ?? Map.from(this.dayInTimes),
       dayOutTimes: dayOutTimes ?? Map.from(this.dayOutTimes),
+      dayInAddresses: dayInAddresses ?? Map.from(this.dayInAddresses),
+      dayOutAddresses: dayOutAddresses ?? Map.from(this.dayOutAddresses),
     );
   }
 
@@ -129,6 +151,8 @@ class ViewTeacherAttendanceItem {
   String? dayStatus(int day) => days[day];
   String? dayIn(int day) => dayInTimes[day];
   String? dayOut(int day) => dayOutTimes[day];
+  String? dayInAddress(int day) => dayInAddresses[day];
+  String? dayOutAddress(int day) => dayOutAddresses[day];
 
   bool isPresent(int day) =>
       (days[day] ?? '').toLowerCase().trim() == 'present';

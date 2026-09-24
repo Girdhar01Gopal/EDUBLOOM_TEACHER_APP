@@ -14,8 +14,8 @@ class ViewTeacherAttendanceController extends GetxController {
   String schoolId = "";
   String token    = "";
   String session  = "";
-  String userId   = ""; // ✅ NEW: logged-in user's id (dynamic)
-
+  String userId   = "";
+  String roleName = "";
   // ── UI flag ───────────────────────────────────────────────────────────────
   final isLoading = false.obs;
 
@@ -33,7 +33,7 @@ class ViewTeacherAttendanceController extends GetxController {
 
   // ── API ───────────────────────────────────────────────────────────────────
   final String _api =
-      "https://playschool.edubloom.in/api/TeacherApp/TeacherAttendanceDetailsUserIdApp";
+      "https://playschool.edubloom.in/api/TeacherApp/ViewTeacherAttendanceDetailsApp";
 
   int get monthIndex        => months.indexOf(selectedMonth.value) + 1;
   int get daysInSelectedMonth =>
@@ -48,6 +48,7 @@ class ViewTeacherAttendanceController extends GetxController {
     token    = await PrefManager().readValue(key: PrefConst.token)    ?? "";
     session  = await PrefManager().readValue(key: PrefConst.session)  ?? "";
     userId   = await PrefManager().readValue(key: PrefConst.Userid)   ?? "";
+    roleName = await PrefManager().readValue(key: PrefConst.RName) ?? "";
 
     if (schoolId.trim().isEmpty) {
       Get.snackbar("Error", "SchoolId not found");
@@ -61,6 +62,11 @@ class ViewTeacherAttendanceController extends GetxController {
       Get.snackbar("Error", "UserId not found");
       return;
     }
+    if (roleName.toLowerCase().trim() == "schoolstaff") {
+      reportList.clear();
+      return;
+    }
+
 
     selectedMonth.value = months[DateTime.now().month - 1];
     await fetchReport();
@@ -94,7 +100,8 @@ class ViewTeacherAttendanceController extends GetxController {
           "month"   : monthIndex,
           "schoolId": schoolId,
           "session" : session,
-          "userId"  : int.tryParse(userId) ?? 0, // ✅ NEW: dynamic
+          "userId"  : int.tryParse(userId) ?? 0,
+          "roleName": roleName, // ✅ NEW
         }),
       );
 
@@ -139,6 +146,8 @@ class ViewTeacherAttendanceController extends GetxController {
     final Map<String, Map<int, String?>>          statusAcc  = {};
     final Map<String, Map<int, String?>>          inTimeAcc  = {};
     final Map<String, Map<int, String?>>          outTimeAcc = {};
+    final Map<String, Map<int, String?>>          inAddrAcc  = {};
+    final Map<String, Map<int, String?>>          outAddrAcc = {};
 
     for (final item in raw) {
       final key =
@@ -151,20 +160,24 @@ class ViewTeacherAttendanceController extends GetxController {
         statusAcc [key] = {};
         inTimeAcc [key] = {};
         outTimeAcc[key] = {};
+        inAddrAcc [key] = {};
+        outAddrAcc[key] = {};
       }
 
-      // THIS record's check-in / check-out time (may be null if not saved)
       final String? thisInTime  = item.inTime;
       final String? thisOutTime = item.outTime;
-
+      final String? thisInAddr  = item.inAddress;
+      final String? thisOutAddr = item.outAddress;
 
       for (int d = 1; d <= 31; d++) {
         final status = item.dayStatus(d);
         if (status != null && status.trim().isNotEmpty) {
           if (!statusAcc[key]!.containsKey(d)) {
             statusAcc [key]![d] = status.trim();
-            inTimeAcc [key]![d] = thisInTime;
-            outTimeAcc[key]![d] = thisOutTime;
+            inTimeAcc [key]![d] = item.dayIn(d) ?? thisInTime;
+            outTimeAcc[key]![d] = item.dayOut(d) ?? thisOutTime;
+            inAddrAcc [key]![d] = thisInAddr;
+            outAddrAcc[key]![d] = thisOutAddr;
           }
         }
       }
@@ -177,6 +190,8 @@ class ViewTeacherAttendanceController extends GetxController {
         days       : statusAcc [k]!,
         dayInTimes : inTimeAcc [k]!,
         dayOutTimes: outTimeAcc[k]!,
+        dayInAddresses : inAddrAcc [k]!,
+        dayOutAddresses: outAddrAcc[k]!,
       );
     }).toList();
   }

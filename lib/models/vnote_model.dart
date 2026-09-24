@@ -1,10 +1,3 @@
-// vnote_model.dart
-//
-// Model for TeacherViewNoteApp API response.
-// Field types are kept as raw String/int (not DateTime) so they match
-// exactly how NoteController and ViewNoteTab already use them
-// (e.g. DateTime.parse(item.createDate ?? ""), item.subjectId, item.classId).
-
 class VNoteModel {
   final List<Dataa>? listData;
 
@@ -35,7 +28,8 @@ class Dataa {
   final String? message;
   final int? classId;
   final int? sectionId;
-  final int? subjectId; // ✅ added so ViewNoteTab can look up Subject name
+  final int? subjectId;
+  final String? subjectName; // 🆕 added — API ab ye field bhejta hai
   final String? className;
   final String? sectionName;
   final String? session;
@@ -55,6 +49,7 @@ class Dataa {
     this.classId,
     this.sectionId,
     this.subjectId,
+    this.subjectName,
     this.className,
     this.sectionName,
     this.session,
@@ -70,9 +65,10 @@ class Dataa {
 
   factory Dataa.fromJson(Map<String, dynamic> json) {
     return Dataa(
-      noteId: json['noteId'] is int
-          ? json['noteId']
-          : int.tryParse('${json['noteId'] ?? ''}'),
+      // ✅ dono key names handle: purana "nid" aur naya "noteId"
+      noteId: json['nid'] is int
+          ? json['nid']
+          : int.tryParse('${json['nid'] ?? json['noteId'] ?? ''}'),
       title: json['title']?.toString(),
       message: json['message']?.toString(),
       classId: json['classId'] is int
@@ -84,11 +80,14 @@ class Dataa {
       subjectId: json['subjectId'] is int
           ? json['subjectId']
           : int.tryParse('${json['subjectId'] ?? ''}'),
+      subjectName: json['subjectName']?.toString(), // 🆕
       className: json['className']?.toString(),
       sectionName: json['sectionName']?.toString(),
       session: json['session']?.toString(),
       remarks: json['remarks']?.toString(),
-      notesFile: json['notesFile']?.toString(),
+      // ✅ FIX: actual API field "noteFile" hai, "notesFile" nahi.
+      // Dono handle kar liya taaki purana/naya dono response safe rahe.
+      notesFile: (json['noteFile'] ?? json['notesFile'])?.toString(),
       action: json['action']?.toString(),
       createDate: json['createDate']?.toString(),
       updateDate: json['updateDate']?.toString(),
@@ -100,17 +99,18 @@ class Dataa {
 
   Map<String, dynamic> toJson() {
     return {
-      'noteId': noteId,
+      'nid': noteId,
       'title': title,
       'message': message,
       'classId': classId,
       'sectionId': sectionId,
       'subjectId': subjectId,
+      'subjectName': subjectName,
       'className': className,
       'sectionName': sectionName,
       'session': session,
       'remarks': remarks,
-      'notesFile': notesFile,
+      'noteFile': notesFile, // ✅ ab yahan bhi actual API key naam use kiya
       'action': action,
       'createDate': createDate,
       'updateDate': updateDate,

@@ -20,6 +20,8 @@ class StaffAttendanceView {
   /// Per-day in/out times — filled during merge in controller
   final Map<int, String?> dayInTimes;
   final Map<int, String?> dayOutTimes;
+  final Map<int, String?> dayInAddresses;
+  final Map<int, String?> dayOutAddresses;
 
   StaffAttendanceView({
     required this.staffReg,
@@ -35,14 +37,21 @@ class StaffAttendanceView {
     required this.attendanceDays,
     Map<int, String?>? dayInTimes,
     Map<int, String?>? dayOutTimes,
+    Map<int, String?>? dayInAddresses,    // ✅ NEW
+    Map<int, String?>? dayOutAddresses,   // ✅ NEW
   })  : dayInTimes = dayInTimes ?? {},
-        dayOutTimes = dayOutTimes ?? {};
+        dayOutTimes = dayOutTimes ?? {},
+        dayInAddresses = dayInAddresses ?? {},
+        dayOutAddresses = dayOutAddresses ?? {};
 
   // ── FROM JSON ──────────────────────────────────────────────────────────────
   factory StaffAttendanceView.fromJson(Map<String, dynamic> json) {
     final Map<String, String?> days = {};
     final Map<int, String?> inTimes = {};
     final Map<int, String?> outTimes = {};
+    final Map<int, String?> inAddrs = {};    // ✅ NEW
+    final Map<int, String?> outAddrs = {};   // ✅ NEW
+
 
     for (int i = 1; i <= 31; i++) {
       final key = 'day$i';
@@ -52,6 +61,8 @@ class StaffAttendanceView {
       // ✅ NEW: actual in/out time read karo JSON se
       inTimes[i] = _clean(json['day${i}InTime']);
       outTimes[i] = _clean(json['day${i}OutTime']);
+      inAddrs[i] = _clean(json['day${i}InAddress']);    // ✅ NEW
+      outAddrs[i] = _clean(json['day${i}OutAddress']);  // ✅ NEW
     }
 
     return StaffAttendanceView(
@@ -71,7 +82,9 @@ class StaffAttendanceView {
       outAddress: _clean(json['outAddress']),
       attendanceDays: days,
       dayInTimes: inTimes,   // ✅ NEW
-      dayOutTimes: outTimes, // ✅ NEW
+      dayOutTimes: outTimes,
+      dayInAddresses: inAddrs,     // ✅ NEW
+      dayOutAddresses: outAddrs,   // ✅ NEW// ✅ NEW
     );
   }
 
@@ -100,6 +113,8 @@ class StaffAttendanceView {
     Map<String, String?>? attendanceDays,
     Map<int, String?>? dayInTimes,
     Map<int, String?>? dayOutTimes,
+    Map<int, String?>? dayInAddresses,    // ✅ NEW
+    Map<int, String?>? dayOutAddresses,   // ✅ NEW
   }) {
     return StaffAttendanceView(
       staffReg: staffReg,
@@ -115,6 +130,8 @@ class StaffAttendanceView {
       attendanceDays: attendanceDays ?? Map.from(this.attendanceDays),
       dayInTimes: dayInTimes ?? Map.from(this.dayInTimes),
       dayOutTimes: dayOutTimes ?? Map.from(this.dayOutTimes),
+      dayInAddresses: dayInAddresses ?? Map.from(this.dayInAddresses),     // ✅ NEW
+      dayOutAddresses: dayOutAddresses ?? Map.from(this.dayOutAddresses),  // ✅ NEW
     );
   }
 
@@ -126,24 +143,29 @@ class StaffAttendanceView {
 
   String? dayIn(int day) => dayInTimes[day];
   String? dayOut(int day) => dayOutTimes[day];
+  String? dayInAddress(int day) => dayInAddresses[day];
+  String? dayOutAddress(int day) => dayOutAddresses[day];
 
   void setAttendance(int day, String? value) {
     if (day < 1 || day > 31) return;
     attendanceDays['day$day'] = value;
   }
 
-  int get presentCount => attendanceDays.values
-      .where((v) => (v ?? '').toLowerCase().trim() == 'present')
-      .length;
+  // ✅ UPDATED: full word aur short code (P / A / H) dono count honge
+  int get presentCount => attendanceDays.values.where((v) {
+    final s = (v ?? '').toLowerCase().trim();
+    return s == 'present' || s == 'p';
+  }).length;
 
-  int get absentCount => attendanceDays.values
-      .where((v) => (v ?? '').toLowerCase().trim() == 'absent')
-      .length;
+  int get absentCount => attendanceDays.values.where((v) {
+    final s = (v ?? '').toLowerCase().trim();
+    return s == 'absent' || s == 'a';
+  }).length;
 
-  int get holidayCount => attendanceDays.values
-      .where((v) => (v ?? '').toLowerCase().trim() == 'holiday' ||
-      (v ?? '').toLowerCase().trim() == 'hold')
-      .length;
+  int get holidayCount => attendanceDays.values.where((v) {
+    final s = (v ?? '').toLowerCase().trim();
+    return s == 'holiday' || s == 'hold' || s == 'h';
+  }).length;
 }
 
 // ── Safe string helper ────────────────────────────────────────────────────────

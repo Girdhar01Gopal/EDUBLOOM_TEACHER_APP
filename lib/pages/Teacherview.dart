@@ -23,7 +23,7 @@ class Teacherview extends GetView<Teachercontroller> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          "🏫 Attendance Management",
+          "🏫 Teachers Management",
           style: TextStyle(fontSize: 22.sp, color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),

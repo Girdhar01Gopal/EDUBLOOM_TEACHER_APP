@@ -7,6 +7,7 @@ import 'package:teacher_app_edubloom/pages/studentdetialsview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controller/home_page_controller.dart';
 import '../controller/student_controller.dart';
+import '../infrastructures/routes/page_constants.dart';
 import '../models/sectionmodel.dart';
 import '../models/routeno.dart';
 import '../models/student_model.dart';
@@ -23,7 +24,21 @@ const _textPrimary = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
 const _divider = Color(0xFFE0F2F1);
 
- class StudentScreen extends GetView<StudentController> {
+class StudentScreen extends GetView<StudentController> {
+  // ── Back arrow: pichli screen par jao, agar koi pichli screen nahi hai to dashboard par ──
+  Widget _backButton() {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back, color: Colors.white),
+      onPressed: () {
+        if (Get.key.currentState?.canPop() ?? false) {
+          Get.back();
+        } else {
+          Get.offAllNamed(RouteName.dashboard_screen);
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // ── Access check: 'Student' module ke andar konsi child
@@ -54,6 +69,7 @@ const _divider = Color(0xFFE0F2F1);
         appBar: AppBar(
           elevation: 0,
           backgroundColor: _teal,
+          leading: _backButton(),
           title: const Text(
             '🎓 Pre School Students',
             style: TextStyle(
@@ -86,6 +102,7 @@ const _divider = Color(0xFFE0F2F1);
     return AppBar(
       elevation: 0,
       backgroundColor: _teal,
+      leading: _backButton(),
       title: Row(
         children: [
           Container(padding: const EdgeInsets.all(6)),

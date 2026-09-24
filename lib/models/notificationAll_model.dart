@@ -11,9 +11,15 @@ class NotificationAllModel {
     statusCode = json['statusCode'];
     isSuccess = json['isSuccess'];
     messages = json['messages'];
-    if (json['data'] != null) {
+
+    // 🆕 Naya ViewNotificationApp (test server) response seedha
+    // 'listData' key ke andar array deta hai (statusCode/isSuccess
+    // wrapper ke bina). Purana 'data' wrapper bhi support kiya hai
+    // taaki koi purani API kabhi use ho to na tute.
+    final rawList = json['listData'] ?? json['data'];
+    if (rawList != null) {
       data = <Data>[];
-      json['data'].forEach((v) {
+      (rawList as List).forEach((v) {
         data!.add(new Data.fromJson(v));
       });
     }
@@ -43,13 +49,21 @@ class Data {
   String? createDate;
   String? createBy;
 
-
   String? updateDate;
   String? updateBy;
 
   String? action;
   String? notificationfile;
   String? schoolId;
+
+  // 🆕 Naye ViewNotificationApp response ke extra fields — abhi UI me
+  // use nahi ho rahe, future ke liye rakhe gaye hain.
+  dynamic type;
+  dynamic admissionNo;
+  dynamic teacherReg;
+  dynamic status;
+  int? userId;
+  String? roleName;
 
   Data(
       {this.notificationID,
@@ -66,14 +80,25 @@ class Data {
         this.updateBy,
         this.action,
         this.notificationfile,
-        this.schoolId});
+        this.schoolId,
+        this.type,
+        this.admissionNo,
+        this.teacherReg,
+        this.status,
+        this.userId,
+        this.roleName});
 
   Data.fromJson(Map<String, dynamic> json) {
-    notificationID = json['notificationID'];
-    tittle = json['tittle'];
+    // 🆕 Naya API 'notificationId' / 'title' / 'notificationFile' bhejta
+    // hai (camelCase), purana 'notificationID' / 'tittle' /
+    // 'notificationfile' — dono support kiya hai.
+    notificationID = json['notificationId'] ?? json['notificationID'];
+    tittle = json['title'] ?? json['tittle'];
     message = json['message'];
     classId = json['classId'];
     sectionId = json['sectionId'];
+    // 🆕 Naya API className/sectionName nahi bhejta — ye null hi
+    // rahenge jab tak controller classList/sectionList se fill na kare.
     className = json['className'];
     sectionName = json['sectionName'];
     session = json['session'];
@@ -84,8 +109,15 @@ class Data {
     updateDate = json['updateDate']?.toString();
     updateBy = json['updateBy']?.toString();
     action = json['action'];
-    notificationfile = json['notificationfile'];
+    notificationfile = json['notificationFile'] ?? json['notificationfile'];
     schoolId = json['schoolId'];
+
+    type = json['type'];
+    admissionNo = json['admissionNo'];
+    teacherReg = json['teacherReg'];
+    status = json['status'];
+    userId = json['userId'];
+    roleName = json['roleName'];
   }
 
   get subjectName => null;
@@ -107,6 +139,12 @@ class Data {
     data['action'] = this.action;
     data['notificationfile'] = this.notificationfile;
     data['schoolId'] = this.schoolId;
+    data['type'] = this.type;
+    data['admissionNo'] = this.admissionNo;
+    data['teacherReg'] = this.teacherReg;
+    data['status'] = this.status;
+    data['userId'] = this.userId;
+    data['roleName'] = this.roleName;
     return data;
   }
 }

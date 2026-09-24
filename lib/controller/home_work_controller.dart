@@ -42,6 +42,10 @@ class HomeworkController extends GetxController {
 
   var session = "".obs;
 
+  // 🆕 Raw role name (original case, e.g. "SchoolStaff") — naye
+  // Insert/GetHomeworkAsyncApp APIs ko RoleName param chahiye.
+  var roleName = "".obs;
+
   // ✅ CHANGED: single select -> multi select (Note jaisa hi)
   var selectedClassIds = <int>[].obs;
   var selectedSectionIds = <int>[].obs;
@@ -67,11 +71,12 @@ class HomeworkController extends GetxController {
     session.value = await PrefManager().readValue(key: PrefConst.session);
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
-    final role =
+    final rawRole =
     ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
         .toString()
-        .trim()
-        .toLowerCase();
+        .trim();
+    roleName.value = rawRole; // 🆕 original case preserved for RoleName param
+    final role = rawRole.toLowerCase();
     isStaffLogin.value = role == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
@@ -135,8 +140,6 @@ class HomeworkController extends GetxController {
     }
   }
 
-  // ✅ UPDATED API: TeacherGetHomeworkAsyncApp
-  // Ab UserId bhi query param me bhej rahe hai jaise naye endpoint me required hai.
   Future<void> fetchHomework() async {
     try {
       isLoading(true);
@@ -144,10 +147,11 @@ class HomeworkController extends GetxController {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       final url = Uri.parse(
-        'https://playschool.edubloom.in/api/CommumicationApp/TeacherGetHomeworkAsyncApp'
+        '${AppUrl.base_url}${AppUrl.getHomeworkAsyncApp}'
             '?currentSession=${Uri.encodeComponent(session.value)}'
             '&schoolId=${Uri.encodeComponent(schoolId)}'
-            '&UserId=${Uri.encodeComponent(userId ?? '')}',
+            '&UserId=${Uri.encodeComponent(userId ?? '')}'
+            '&RoleName=${Uri.encodeComponent(roleName.value)}',
       );
       print("Fetching homework from URL: $url");
 
@@ -155,8 +159,8 @@ class HomeworkController extends GetxController {
         'Content-Type': 'application/json',
       });
 
-      debugPrint('TeacherGetHomeworkAsyncApp status: ${response.statusCode}');
-      debugPrint('TeacherGetHomeworkAsyncApp body: ${response.body}');
+      debugPrint('GetHomeworkAsyncApp status: ${response.statusCode}');
+      debugPrint('GetHomeworkAsyncApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final homeworkModel =
@@ -544,14 +548,7 @@ class HomeworkController extends GetxController {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // FIX (400-type error prevention): backend har request me sirf 1
-  // class + 1 section + 1 subject expect karta hai (index-wise
-  // pairing), ek saath multiple values array me nahi. Isliye ab har
-  // class-section-subject COMBINATION ke liye ek ALAG request bheji
-  // jaati hai — parallel (Future.wait) taaki speed slow na ho. Har
-  // request me hamesha 1 class + 1 section + 1 subject hota hai.
-  // ─────────────────────────────────────────────────────────────
+
   Future<void> registerHomework() async {
     if (pdfFile.value == null) {
       ShortMessage.toast(title: "Please select a file.");
@@ -580,56 +577,13 @@ class HomeworkController extends GetxController {
 
     isLoading(true);
 
-    int successCount = 0;
-    int failCount = 0;
-
     try {
-      // ✅ Saari class-section-subject combinations ek saath (parallel)
-      // bheji jaati hain, taaki total time sabse slowest single request
-      // jitna hi lage.
-      final futures = <Future<bool>>[];
-      for (final classId in selectedClassIds) {
-        for (final sectionId in selectedSectionIds) {
-          for (final subjectId in selectedSubjectIds) {
-            futures.add(
-              _postSingleHomework(
-                classId: classId,
-                sectionId: sectionId,
-                subjectId: subjectId,
-              ),
-            );
-          }
-        }
-      }
+      final ok = await _postHomework();
 
-      final results = await Future.wait(futures);
-      for (final ok in results) {
-        if (ok) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      }
+      if (ok) {
+        ShortMessage.toast(title: "Homework Added Successfully");
 
-      debugPrint(
-          "📊 POST HOMEWORK MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
-
-      if (successCount > 0 && failCount == 0) {
-        ShortMessage.toast(
-            title: successCount == 1
-                ? "Homework Added Successfully"
-                : "$successCount Homeworks Added Successfully");
-      } else if (successCount > 0 && failCount > 0) {
-        ShortMessage.toast(
-            title:
-            "$successCount added, $failCount failed. Please check and retry.");
-      } else {
-        ShortMessage.toast(
-            title: "Failed to add homework(s). Please try again.");
-      }
-
-      if (successCount > 0) {
-        // ✅ Reset selections after at least one success
+        // ✅ Reset selections after success
         selectedClassIds.clear();
         selectedSectionIds.clear();
         selectedSubjectIds.clear();
@@ -639,22 +593,24 @@ class HomeworkController extends GetxController {
 
         await fetchHomework();
         Get.back();
+      } else {
+        ShortMessage.toast(
+            title: "Failed to add homework. Please try again.");
       }
     } finally {
       isLoading(false);
     }
   }
 
-  /// Helper: posts ONE homework for one class+section+subject combination.
-  /// Returns true on success (status 200), false otherwise.
-  Future<bool> _postSingleHomework({
-    required int classId,
-    required int sectionId,
-    required int subjectId,
-  }) async {
+  /// Helper: posts ONE homework request carrying ALL selected
+  /// class/section/subject ids as arrays (new InsertHomeworkApp
+  /// contract on the test server). Returns true on success (status 200).
+  Future<bool> _postHomework() async {
     try {
-      final url =
-      Uri.parse("${AppUrl.base_url}api/CommumicationApp/InsertHomeworkApp");
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      final url = Uri.parse(
+          "${AppUrl.base_url}${AppUrl.insertHomeworkAppTest}");
 
       final request = http.MultipartRequest('POST', url);
 
@@ -665,19 +621,30 @@ class HomeworkController extends GetxController {
       request.fields.addAll({
         'HomeworkID': "",
         'Remark': description.value,
-        'SubjectId': subjectId.toString(),
-        'SectionId': sectionId.toString(),
-        'ClassID': classId.toString(),
         'CreateDate': getDisplayDate(),
         'UpdateDate': "",
         'Session': session.value,
         'SchoolId': schoolId,
-        'schoolId': schoolId,
         'CreateBy': 'Admin',
         'UpdateBy': "",
         'Action': "1",
-        'action': "1",
+        'UserId': userId ?? '',
+        'RoleName': roleName.value,
       });
+
+
+      for (final subjectId in selectedSubjectIds) {
+        request.files.add(
+            http.MultipartFile.fromString('SubjectId', subjectId.toString()));
+      }
+      for (final sectionId in selectedSectionIds) {
+        request.files.add(
+            http.MultipartFile.fromString('SectionId', sectionId.toString()));
+      }
+      for (final classId in selectedClassIds) {
+        request.files.add(
+            http.MultipartFile.fromString('ClassID', classId.toString()));
+      }
 
       // ✅ FILE VERIFICATION — confirm file exists before attaching
       if (pdfFile.value != null) {
@@ -685,8 +652,8 @@ class HomeworkController extends GetxController {
         final exists = await f.exists();
         final length = exists ? await f.length() : 0;
 
-        debugPrint("📎 [C:$classId S:$sectionId Sub:$subjectId] File path: ${f.path}");
-        debugPrint("📎 [C:$classId S:$sectionId Sub:$subjectId] Exists: $exists | size: $length bytes");
+        debugPrint("📎 File path: ${f.path}");
+        debugPrint("📎 Exists: $exists | size: $length bytes");
 
         final multipartFile = await http.MultipartFile.fromPath(
           'file',
@@ -695,16 +662,18 @@ class HomeworkController extends GetxController {
         );
         request.files.add(multipartFile);
 
-        debugPrint("📎 [C:$classId S:$sectionId Sub:$subjectId] Attached 'file' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
+        debugPrint(
+            "📎 Attached 'file' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
       }
 
-      debugPrint("📤 POST HOMEWORK -> Class:$classId Section:$sectionId Subject:$subjectId");
+      debugPrint(
+          "📤 POST HOMEWORK -> Classes:$selectedClassIds Sections:$selectedSectionIds Subjects:$selectedSubjectIds UserId:$userId RoleName:${roleName.value}");
 
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      debugPrint("📥 [C:$classId S:$sectionId Sub:$subjectId] Status: ${response.statusCode}");
-      debugPrint("📥 [C:$classId S:$sectionId Sub:$subjectId] Body: $responseBody");
+      debugPrint("📥 Status: ${response.statusCode}");
+      debugPrint("📥 Body: $responseBody");
 
       if (response.statusCode == 200) {
         return true;
@@ -712,7 +681,7 @@ class HomeworkController extends GetxController {
         return false;
       }
     } catch (e) {
-      debugPrint('⚠️ [C:$classId S:$sectionId Sub:$subjectId] Exception: $e');
+      debugPrint('⚠️ Exception while posting homework: $e');
       return false;
     }
   }

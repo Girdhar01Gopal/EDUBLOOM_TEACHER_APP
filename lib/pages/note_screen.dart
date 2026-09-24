@@ -657,6 +657,24 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     }
   }
 
+
+  ListDataa? _findClassById(dynamic classId) {
+    try {
+      return controller.listDataa.firstWhere((c) => c.classId == classId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+
+  stListData? _findSectionById(dynamic sectionId) {
+    try {
+      return controller.sectionList.firstWhere((s) => s.sectionId == sectionId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ✅ flutter_file_downloader se download — Notification Page jaisa same logic
   Future<void> _downloadAndShare({
     required String url,
@@ -830,10 +848,15 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
 
                   final subjectItem = _findSubjectById(item.subjectId);
 
-                  final className = item.className ?? 'N/A';
-                  final sectionName = item.sectionName ?? 'N/A';
+                  final classItem = _findClassById(item.classId);
+                  final sectionItem = _findSectionById(item.sectionId);
+
+                  final className = classItem?.className ?? 'N/A';
+                  final sectionName = sectionItem?.section ?? 'N/A';
                   final subjectName = subjectItem?.subject ?? 'N/A';
-                  final noteMessage = item.message ?? 'No Message';
+
+
+                  final noteMessage = item.remarks ?? 'No Remarks';
                   final remarks = item.remarks ?? 'No Remarks';
                   final date = formatDate(item.createDate ?? '');
 
@@ -957,7 +980,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
                                     onPressed: () {
                                       final fileName = item.notesFile!;
                                       final fileUrl =
-                                          AppUrl.notesFileUrl(fileName);
+                                      AppUrl.testNotesFileUrl(fileName);
 
                                       _downloadAndShare(
                                         url: fileUrl,

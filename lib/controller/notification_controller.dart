@@ -43,6 +43,9 @@ class NotificationController extends GetxController {
   var schoolId = "";
   var session = "";
 
+
+  var roleName = "".obs;
+
   var schoolIdController = TextEditingController().obs;
   var sessionController = TextEditingController().obs;
 
@@ -60,11 +63,12 @@ class NotificationController extends GetxController {
     session = await PrefManager().readValue(key: PrefConst.session) ?? "";
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
-    final role =
+    final rawRole =
     ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
         .toString()
-        .trim()
-        .toLowerCase();
+        .trim();
+    roleName.value = rawRole; // 🆕 original case preserved for RoleName param
+    final role = rawRole.toLowerCase();
     isStaffLogin.value = role == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
@@ -117,7 +121,7 @@ class NotificationController extends GetxController {
     }
   }
 
-  // ✅ UPDATED API: TeacherGetAllNotificationAsynsApp
+
   Future<void> fetchAllNotifications() async {
     try {
       isLoading(true);
@@ -125,19 +129,41 @@ class NotificationController extends GetxController {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       final String apiUrl =
-          'https://playschool.edubloom.in/api/CommumicationApp/TeacherGetAllNotificationAsynsApp'
-          '?schoolId=${Uri.encodeComponent(schoolId)}'
-          '&currentSession=${Uri.encodeComponent(session)}'
-          '&UserId=${Uri.encodeComponent(userId ?? '')}';
+          '${AppUrl.base_url}${AppUrl.viewNotificationApp}$schoolId'
+          '?session=${Uri.encodeComponent(session)}'
+          '&UserId=${Uri.encodeComponent(userId ?? '')}'
+          '&RoleName=${Uri.encodeComponent(roleName.value)}';
 
       final response = await http.get(Uri.parse(apiUrl));
 
-      debugPrint('TeacherGetAllNotificationAsynsApp status: ${response.statusCode}');
-      debugPrint('TeacherGetAllNotificationAsynsApp body: ${response.body}');
+      debugPrint('ViewNotificationApp status: ${response.statusCode}');
+      debugPrint('ViewNotificationApp body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        notificationall.value = NotificationAllModel.fromJson(jsonResponse);
+        final model = NotificationAllModel.fromJson(jsonResponse);
+
+        // 🆕 classId/sectionId se className/sectionName resolve karo
+        for (final item in model.data ?? <Data>[]) {
+          if (item.className == null || item.className!.isEmpty) {
+            for (final cls in classList) {
+              if (cls.classId == item.classId) {
+                item.className = cls.className;
+                break;
+              }
+            }
+          }
+          if (item.sectionName == null || item.sectionName!.isEmpty) {
+            for (final sec in sectionList) {
+              if (sec.sectionId == item.sectionId) {
+                item.sectionName = sec.section;
+                break;
+              }
+            }
+          }
+        }
+
+        notificationall.value = model;
         debugPrint("📊 FETCHED NOTIFICATION COUNT -> ${notificationall.value.data?.length}");
       } else {
         throw Exception('Failed to load notifications');
@@ -452,7 +478,6 @@ class NotificationController extends GetxController {
   }
 
 
-  // ─────────────────────────────────────────────────────────────
   Future<void> registerNote() async {
     if (selectedClassIds.isEmpty) {
       ShortMessage.toast(title: "Please select at least one class.");
@@ -471,48 +496,13 @@ class NotificationController extends GetxController {
 
     isLoading(true);
 
-    int successCount = 0;
-    int failCount = 0;
-
     try {
+      final ok = await _postNotification();
 
-      final futures = <Future<bool>>[];
-      for (final classId in selectedClassIds) {
-        for (final sectionId in selectedSectionIds) {
-          futures.add(
-            _postSingleNotification(classId: classId, sectionId: sectionId),
-          );
-        }
-      }
+      if (ok) {
+        ShortMessage.toast(title: "Notification Added Successfully");
 
-      final results = await Future.wait(futures);
-      for (final ok in results) {
-        if (ok) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      }
-
-      debugPrint(
-          "📊 POST NOTIF MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
-
-      if (successCount > 0 && failCount == 0) {
-        ShortMessage.toast(
-            title: successCount == 1
-                ? "Notification Added Successfully"
-                : "$successCount Notifications Added Successfully");
-      } else if (successCount > 0 && failCount > 0) {
-        ShortMessage.toast(
-            title:
-            "$successCount added, $failCount failed. Please check and retry.");
-      } else {
-        ShortMessage.toast(
-            title: "Failed to add notification(s). Please try again.");
-      }
-
-      if (successCount > 0) {
-        // ✅ Reset all fields only when at least one combination succeeded
+        // ✅ Reset all fields after success
         title.value = '';
         message.value = '';
         selectedClassIds.clear();
@@ -522,6 +512,9 @@ class NotificationController extends GetxController {
 
         await fetchAllNotifications();
         Get.back();
+      } else {
+        ShortMessage.toast(
+            title: "Failed to add notification. Please try again.");
       }
     } catch (e) {
       debugPrint('❌ POST NOTIF EXCEPTION -> $e');
@@ -532,31 +525,42 @@ class NotificationController extends GetxController {
     }
   }
 
-
-  Future<bool> _postSingleNotification({
-    required int classId,
-    required int sectionId,
-  }) async {
+  /// Helper: posts ONE notification request carrying ALL selected
+  /// class/section ids as arrays (new PostNotificationApp contract on
+  /// the test server). Returns true on success (status 200).
+  Future<bool> _postNotification() async {
     try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
       final uri = Uri.parse(
-          "${AppUrl.base_url}api/CommumicationApp/PostNotificationApp");
+          "${AppUrl.base_url}${AppUrl.postNotificationAppTest}");
       var request = http.MultipartRequest('POST', uri);
 
+      request.fields['NotificationID'] = "";
       request.fields['Title'] = title.value;
       request.fields['Message'] = message.value;
-      request.fields['SchoolId'] = schoolId.toString();
+      request.fields['CreateDate'] = getFormattedDate(createDate.value);
+      request.fields['UpdateDate'] = "";
       request.fields['Session'] = session.toString();
-      request.fields['Action'] = "1";
+      request.fields['SchoolId'] = schoolId.toString();
       request.fields['CreateBy'] = "Admin";
+      request.fields['UpdateBy'] = "";
+      request.fields['Action'] = "1";
+      request.fields['UserId'] = userId ?? '';
+      request.fields['RoleName'] = roleName.value;
 
-      // Ek hi class aur ek hi section per request -> count hamesha 1 == 1,
-      // isliye backend ka "count must be same" check kabhi fail nahi hoga.
-      request.files.add(
-        http.MultipartFile.fromString('ClassIDs', classId.toString()),
-      );
-      request.files.add(
-        http.MultipartFile.fromString('SectionId', sectionId.toString()),
-      );
+      // 🆕 Arrays: ClassIDs / SectionId — same field name, multiple
+      // parts (Map<String,String> "fields" allows only one value per
+      // key, isliye har id ko MultipartFile.fromString ke through
+      // alag part banaya gaya hai, filename ke bina).
+      for (final classId in selectedClassIds) {
+        request.files.add(
+            http.MultipartFile.fromString('ClassIDs', classId.toString()));
+      }
+      for (final sectionId in selectedSectionIds) {
+        request.files.add(
+            http.MultipartFile.fromString('SectionId', sectionId.toString()));
+      }
 
       // ✅ IMAGE VERIFICATION — confirm file exists before attaching
       if (imageFile.value != null) {
@@ -564,8 +568,8 @@ class NotificationController extends GetxController {
         final exists = await file.exists();
         final length = exists ? await file.length() : 0;
 
-        debugPrint("🖼️ [Class:$classId Section:$sectionId] Image path: ${file.path}");
-        debugPrint("🖼️ [Class:$classId Section:$sectionId] Exists: $exists | size: $length bytes");
+        debugPrint("🖼️ Image path: ${file.path}");
+        debugPrint("🖼️ Exists: $exists | size: $length bytes");
 
         var stream = http.ByteStream(file.openRead().cast());
         var multipartFile = http.MultipartFile(
@@ -576,26 +580,27 @@ class NotificationController extends GetxController {
         );
         request.files.add(multipartFile);
 
-        debugPrint("🖼️ [Class:$classId Section:$sectionId] Attached 'Notificationfile' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
+        debugPrint("🖼️ Attached 'Notificationfile' -> filename: ${multipartFile.filename}, length: ${multipartFile.length}");
       }
 
-      debugPrint("📤 POST NOTIF -> Class:$classId Section:$sectionId");
+      debugPrint(
+          "📤 POST NOTIF -> Classes:$selectedClassIds Sections:$selectedSectionIds UserId:$userId RoleName:${roleName.value}");
 
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      debugPrint("📥 [Class:$classId Section:$sectionId] Status: ${response.statusCode}");
-      debugPrint("📥 [Class:$classId Section:$sectionId] Body: $responseBody");
+      debugPrint("📥 Status: ${response.statusCode}");
+      debugPrint("📥 Body: $responseBody");
 
       if (response.statusCode == 200) {
-        debugPrint("✅ [Class:$classId Section:$sectionId] Success — check next 'TeacherGetAllNotificationAsynsApp' log for the saved notificationfile name to confirm image reached server.");
+        debugPrint("✅ Success — check next 'ViewNotificationApp' log for the saved notificationFile name to confirm image reached server.");
         return true;
       } else {
-        debugPrint("❌ [Class:$classId Section:$sectionId] Failed with status ${response.statusCode}");
+        debugPrint("❌ Failed with status ${response.statusCode}");
         return false;
       }
     } catch (e) {
-      debugPrint('⚠️ [Class:$classId Section:$sectionId] Exception: $e');
+      debugPrint('⚠️ Exception while posting notification: $e');
       return false;
     }
   }
