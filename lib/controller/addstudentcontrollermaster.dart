@@ -39,9 +39,9 @@ const List<_TileSpec> _tileSpecs = [
       Color(0xFFFCE4EC), RouteName.adddaycarestudent, ['AddDaycareStudent', 'ViewDaycareStudent']),
   _TileSpec("Take Daycare Attendance", Icons.alarm_on_rounded, Color(0xFFF4511E),
       Color(0xFFFBE9E7), RouteName.daycaretakeattendanceview, ['DaycareAttendance']),
-  _TileSpec("View Daycare Attendance ", Icons.fact_check_rounded, Color(0xFF00ACC1),
+  _TileSpec("Monthly Daycare Attendance ", Icons.fact_check_rounded, Color(0xFF00ACC1),
       Color(0xFFE0F7FA), RouteName.viewdaycareattendance, ['ViewDaycareAttendance']),
-  _TileSpec("Daycare Attendance Detail", Icons.assignment_turned_in_rounded, Color(0xFF1E88E5),
+  _TileSpec("Monthly Daycare Attendance Student-wise", Icons.assignment_turned_in_rounded, Color(0xFF1E88E5),
       Color(0xFFE3F2FD), RouteName.attendancedetailsdaycareview, ['DaycareAttendanceDetail']),
 ];
 

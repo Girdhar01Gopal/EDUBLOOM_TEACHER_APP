@@ -9,16 +9,22 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
-import '../models/classmodel.dart';
+import '../models/classmodel.dart'; // ListDataa, ClassItem (Notification jaisa hi)
+import '../models/pre school student teach stu filter api model.dart';
+import '../models/sectionmodel.dart'; // ListDatta (Notification jaisa hi)
+import '../models/new model teacher section attendance.dart'; // SectionForAttendanceModel (class teacher ke sections ke liye)
 import '../models/curriculum model.dart';
-import '../models/viewsectionmodel.dart';
 import '../models/session_model.dart' as session_model;
-
 import '../res/app_url.dart';
+import 'student_controller.dart'
+    show ClassTeacherFilterModel, ClassTeacherFilterData; // ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
 class CurriculumController extends GetxController {
   final curriculumList = <CurriculumData>[].obs;
   final isLoading = false.obs;
+
+  // shows progress while multiple curriculum entries are being posted one by one
+  final isSubmitting = false.obs;
 
   // ── Fields ─────────────────────────────────────────────────────────
   final curriculumName = ''.obs; // maps to "CurriculumName" in API
@@ -30,11 +36,12 @@ class CurriculumController extends GetxController {
   // set when editing an existing record, null when creating a new one
   final editingCurriculumId = Rx<int?>(null);
 
-  final listDataa = <ListDataa>[].obs;
-  final selectedClass = Rx<ListDataa?>(null);
+  // 🆕 CHANGED: single select -> multi select (Notification jaisa hi)
+  var classList = <ListDataa>[].obs;
+  var selectedClasses = <ListDataa>[].obs;
 
-  final selectedSection = Rx<stListData?>(null);
-  final sectionList = <stListData>[].obs;
+  var sectionList = <ListDatta>[].obs;
+  var selectedSections = <ListDatta>[].obs;
 
   // ── Session (Dynamic API) ─────────────────────────────────────────
   RxList<session_model.sListDdata> sessionList =
@@ -47,17 +54,48 @@ class CurriculumController extends GetxController {
   String token = "";
   String schoolId = "";
 
+  // 🆕 teacher/staff APIs ke liye stored Session (PrefConst.session) — curriculum
+  // ke dynamic "session" dropdown se alag, wahi Notification me use hota hai
+  String prefSession = "";
+
+  var roleName = "".obs;
+
+  // 🆕 Role / Teacher-type detection (class & section fetch ke liye) — Notification jaisa hi
+  var isStaffLogin = false.obs; // true => "schoolstaff" role
+  var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
+  var classTeacherList = <ClassTeacherFilterData>[].obs;
+
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     super.onInit();
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+    prefSession = await PrefManager().readValue(key: PrefConst.session) ?? "";
+
+    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    final rawRole =
+    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim();
+    roleName.value = rawRole;
+    final role = rawRole.toLowerCase();
+    isStaffLogin.value = role == "schoolstaff";
+    debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
+
+    if (isStaffLogin.value) {
+      // 🟢 STAFF — direct staff APIs
+      fetchClasses();
+      fetchSections();
+    } else {
+      // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class/section
+      await fetchClassTeacherFilter();
+      fetchClasses();
+      fetchSections();
+    }
 
     await fetchSessions(); // session pehle load hogi
     fetchCurriculum();
-    fetchClasses();
-    fetchSections();
   }
 
   // ── Fetch Session List (Dynamic API) ────────────────────────────────
@@ -132,7 +170,40 @@ class CurriculumController extends GetxController {
     }
   }
 
+  // 🆕 3-way class fetch: Staff -> existing API | Class Teacher -> ClassTeacher API
+  // | Normal Teacher -> GetClassTeacher API | fallback -> existing (staff) API
   Future<void> fetchClasses() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchClassesStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classList.value = classTeacherList.map((e) {
+          return ListDataa.fromJson({
+            'classId': e.classId,
+            'class': e.className,
+            'studentClassId': e.studentClassId,
+            'action': e.action,
+            'createDate': e.createDate,
+            'updateDate': e.updateDate,
+            'createBy': e.createBy,
+            'updateBy': e.updateBy,
+            'schoolId': e.schoolId,
+            'sqno': e.sqno,
+          });
+        }).toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        classList.value = [];
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — GetClassTeacher API
     try {
       isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
@@ -140,7 +211,7 @@ class CurriculumController extends GetxController {
       final url = Uri.parse(
         '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
             '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(session.value)}'
+            '&Session=${Uri.encodeComponent(prefSession)}'
             '&userId=${Uri.encodeComponent(userId ?? '')}',
       );
 
@@ -157,47 +228,113 @@ class CurriculumController extends GetxController {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'] as List<dynamic>? ?? [];
 
-        if (jsonResponse['data'] != null) {
-          final List<dynamic> data = jsonResponse['data'] ?? [];
-
-          // ❌ action filter hata diya — GetClassTeacher me action null aata hai
-          listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
-
-          if (listDataa.isNotEmpty) {
-            selectedClass.value = listDataa.first;
-          } else {
-            selectedClass.value = null;
-          }
-        } else {
-          listDataa.value = [];
-          selectedClass.value = null;
-        }
+        classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
       } else {
-        Get.snackbar(
-          "Error",
-          "Failed to fetch classes: ${response.statusCode}",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        classList.value = [];
       }
     } catch (e) {
-      debugPrint("Error fetching classes: $e");
+      debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
+      classList.value = [];
     } finally {
       isLoading(false);
     }
   }
 
-  Future<void> fetchSections() async {
+  // 🔁 Ye wahi ViewClass API hai — Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchClassesStaffApi() async {
     try {
       isLoading(true);
+      final url =
+      Uri.parse("${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId");
+      final response = await http.get(url);
 
+      if (response.statusCode == 200) {
+        final classItem = ClassItem.fromJson(json.decode(response.body));
+
+        classList.value = classItem.listData
+            ?.where((e) => e.action == "1")
+            .toList() ??
+            [];
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching classes: $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // 🆕 3-way section fetch: Staff -> existing API | Class Teacher -> SectionTeacher API
+  // | Normal Teacher -> getSectionTeacher API | fallback -> existing (staff) API
+  Future<void> fetchSections() async {
+    // 1️⃣ STAFF
+    if (isStaffLogin.value) {
+      await _fetchSectionsStaffApi();
+      return;
+    }
+
+    // 2️⃣ CLASS TEACHER — SectionTeacher API
+    if (isClassTeacherLogin.value) {
+      try {
+        isLoading(true);
+        final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+        final url = Uri.parse(
+          '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
+              '?schoolId=${Uri.encodeComponent(schoolId)}'
+              '&Session=${Uri.encodeComponent(prefSession)}'
+              '&userId=${Uri.encodeComponent(userId ?? '')}',
+        );
+
+        final response = await http.get(
+          url,
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        debugPrint('SectionTeacher status: ${response.statusCode}');
+        debugPrint('SectionTeacher body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final decoded = json.decode(response.body);
+          final model = SectionForAttendanceModel.fromJson(decoded);
+
+          sectionList.value = (model.data ?? []).map((e) {
+            return ListDatta.fromJson({
+              'sectionId': e.sectionId,
+              'section': e.section,
+              'action': e.action,
+              'createDate': e.createDate,
+              'updateDate': e.updateDate,
+              'createBy': e.createBy,
+              'updateBy': e.updateBy,
+              'schoolId': e.schoolId,
+            });
+          }).toList();
+        } else {
+          sectionList.value = [];
+        }
+      } catch (e) {
+        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+        sectionList.value = [];
+      } finally {
+        isLoading(false);
+      }
+      return;
+    }
+
+    // 3️⃣ NORMAL TEACHER — getSectionTeacher API
+    try {
+      isLoading(true);
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       final url = Uri.parse(
         '${AppUrl.base_url}${AppUrl.getSectionTeacher}'
             '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(session.value)}'
+            '&Session=${Uri.encodeComponent(prefSession)}'
             '&userId=${Uri.encodeComponent(userId ?? '')}',
       );
 
@@ -214,23 +351,99 @@ class CurriculumController extends GetxController {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        final sectionModel = sectionmodel.fromJson(jsonResponse);
-
-        sectionList.assignAll(sectionModel.listData ?? []);
-
-        selectedSection.value = null;
+        final list = (jsonResponse['data'] as List<dynamic>?) ?? [];
+        sectionList.value = list.map((e) => ListDatta.fromJson(e)).toList();
       } else {
-        Get.snackbar('Error', 'Failed to load sections');
+        sectionList.value = [];
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load sections');
+      debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
+      sectionList.value = [];
     } finally {
       isLoading(false);
     }
   }
 
-  void setSelectedClass(ListDataa? c) => selectedClass.value = c;
-  void setSelectedSection(stListData? s) => selectedSection.value = s;
+  // 🔁 Ye wahi ViewSectionApp API hai — Staff ke liye main path, Teacher ke liye fallback.
+  Future<void> _fetchSectionsStaffApi() async {
+    try {
+      isLoading(true);
+      final url = Uri.parse(
+          "${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        sectionList.value = (json.decode(response.body)['listData'] as List)
+            .map((e) => ListDatta.fromJson(e))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching sections (staff): $e");
+    } finally {
+      isLoading(false);
+    }
+  }
+
+  // 🆕 Logged-in teacher ke assigned classes fetch karo (Notification wala hi logic)
+  Future<void> fetchClassTeacherFilter() async {
+    try {
+      final userId = await PrefManager().readValue(key: PrefConst.Userid);
+
+      if (userId == null || userId.trim().isEmpty) {
+        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+        return;
+      }
+
+      final url = Uri.parse(
+        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
+            '?schoolId=${Uri.encodeComponent(schoolId)}'
+            '&Session=${Uri.encodeComponent(prefSession)}'
+            '&userId=${Uri.encodeComponent(userId)}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('ClassTeacher status: ${response.statusCode}');
+      debugPrint('ClassTeacher body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+
+        classTeacherList.value = model.data ?? [];
+
+        // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
+        isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      }
+    } catch (e) {
+      debugPrint("Error loading ClassTeacher filter: $e");
+    }
+  }
+
+  /// ---------------------- MULTI-SELECT TOGGLES ----------------------
+  void toggleClassSelection(ListDataa item) {
+    final exists = selectedClasses.any((c) => c.classId == item.classId);
+    if (exists) {
+      selectedClasses.removeWhere((c) => c.classId == item.classId);
+    } else {
+      selectedClasses.add(item);
+    }
+  }
+
+  void toggleSectionSelection(ListDatta item) {
+    final exists = selectedSections.any((s) => s.sectionId == item.sectionId);
+    if (exists) {
+      selectedSections.removeWhere((s) => s.sectionId == item.sectionId);
+    } else {
+      selectedSections.add(item);
+    }
+  }
 
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -252,13 +465,11 @@ class CurriculumController extends GetxController {
     file.value = "";
     curriculumName.value = "";
     description.value = "";
-    selectedClass.value = null;
-    selectedSection.value = null;
+    selectedClasses.clear();
+    selectedSections.clear();
     editingCurriculumId.value = null;
   }
 
-  // ── Register / Update Curriculum ────────────────────────────────────
-  // POST https://playschool.edubloom.in/api/MasterApp/PostCurriculum
   Future<void> registerCurriculum() async {
     if (pdfFile.value == null) {
       ShortMessage.toast(title: "Please select an Image or PDF file.");
@@ -272,12 +483,12 @@ class CurriculumController extends GetxController {
       ShortMessage.toast(title: "Please enter Description.");
       return;
     }
-    if (selectedClass.value == null) {
-      ShortMessage.toast(title: "Please select Class.");
+    if (selectedClasses.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one class.");
       return;
     }
-    if (selectedSection.value == null) {
-      ShortMessage.toast(title: "Please select Section.");
+    if (selectedSections.isEmpty) {
+      ShortMessage.toast(title: "Please select at least one section.");
       return;
     }
     final sessionValue =
@@ -287,21 +498,74 @@ class CurriculumController extends GetxController {
       return;
     }
 
-    final classId = selectedClass.value?.classId?.toString() ?? '';
-    final sectionId = selectedSection.value?.sectionId?.toString() ?? '';
-    final className = selectedClass.value?.className ?? '';
-    final sectionName = selectedSection.value?.section ?? '';
+    isSubmitting(true);
+    isLoading(true);
+
+    int successCount = 0;
+    int failCount = 0;
+
+    try {
+      for (var classItem in selectedClasses) {
+        for (var sectionItem in selectedSections) {
+          final ok = await _postSingleCurriculum(
+            classItem: classItem,
+            sectionItem: sectionItem,
+            sessionValue: sessionValue,
+          );
+          if (ok) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        }
+      }
+
+      debugPrint(
+          "POST CURRICULUM MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
+
+      if (successCount > 0 && failCount == 0) {
+        ShortMessage.toast(
+            title: successCount == 1
+                ? "Curriculum Added Successfully"
+                : "$successCount Curriculum Added Successfully");
+      } else if (successCount > 0 && failCount > 0) {
+        ShortMessage.toast(
+            title: "$successCount added, $failCount failed. Check and retry.");
+      } else {
+        ShortMessage.toast(title: "Failed to add curriculum. Please try again.");
+      }
+
+      if (successCount > 0) {
+        resetForm();
+        await fetchCurriculum();
+        Get.back();
+      }
+    } finally {
+      isSubmitting(false);
+      isLoading(false);
+    }
+  }
+
+  /// Helper: posts ONE curriculum for one class+section combination.
+  /// Returns true on success (statusCode 200 AND isSuccess == true), false otherwise.
+  Future<bool> _postSingleCurriculum({
+    required ListDataa classItem,
+    required ListDatta sectionItem,
+    required String sessionValue,
+  }) async {
+    final classId = classItem.classId?.toString() ?? '';
+    final sectionId = sectionItem.sectionId?.toString() ?? '';
+    final className = classItem.className ?? '';
+    final sectionName = sectionItem.section ?? '';
 
     if (classId.isEmpty || sectionId.isEmpty) {
-      ShortMessage.toast(title: "Please select Class and Section.");
-      return;
+      debugPrint(
+          '⚠️ Skipped (invalid ids) -> Class:$classId Section:$sectionId');
+      return false;
     }
 
     try {
-      isLoading(true);
-
-      final url =
-      Uri.parse('${AppUrl.base_url}api/MasterApp/PostCurriculum');
+      final url = Uri.parse('${AppUrl.base_url}api/MasterApp/PostCurriculum');
       final request = http.MultipartRequest('POST', url);
 
       final pickedFileName = pdfFile.value!.path.split('/').last;
@@ -337,6 +601,9 @@ class CurriculumController extends GetxController {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
+      debugPrint(
+          "POST CURRICULUM -> Class:$classId ($className) Section:$sectionId ($sectionName)");
+
       final streamed = await request.send();
       final resBody = await streamed.stream.bytesToString();
 
@@ -348,27 +615,22 @@ class CurriculumController extends GetxController {
 
         final success = decoded['isSuccess'] == true;
         if (success) {
-          ShortMessage.toast(
-            title: decoded['messages']?.toString() ??
-                "Curriculum Added Successfully",
-          );
-
-          resetForm();
-          await fetchCurriculum();
-          Get.back();
+          debugPrint(
+              '✅ Success (C:$classId S:$sectionId): ${decoded['messages'] ?? resBody}');
+          return true;
         } else {
-          ShortMessage.toast(
-            title: decoded['messages']?.toString() ?? "Submit failed",
-          );
+          debugPrint(
+              '❌ API returned failure (C:$classId S:$sectionId): ${decoded['messages'] ?? resBody}');
+          return false;
         }
       } else {
-        ShortMessage.toast(title: "Submit failed (${streamed.statusCode})");
-        print("Server Response: $resBody");
+        debugPrint(
+            '❌ Error (C:$classId S:$sectionId): ${streamed.statusCode}, $resBody');
+        return false;
       }
     } catch (e) {
-      ShortMessage.toast(title: "Something went wrong while submitting");
-    } finally {
-      isLoading(false);
+      debugPrint('⚠️ Exception (C:$classId S:$sectionId): $e');
+      return false;
     }
   }
 

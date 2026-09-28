@@ -3,22 +3,34 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/daycareattendancecontroller2.dart';
 
-class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareController> {
+// ─── Palette (Axis Bank theme) ─────────────
+const _teal = Color(0xFF97144D);
+const _tealLight = Color(0xFFAE275F);
+const _tealPale = Color(0xFFFBE9F1);
+const _surface = Color(0xFFFFFFFF);
+const _cardBg = Color(0xFFFFFAFC);
+const _textPrimary = Color(0xFF1A2B3C);
+const _textSecondary = Color(0xFF6B5B64);
+const _divider = Color(0xFFF3D5E2);
+
+class AttendanceDetailsDayCareView
+    extends GetView<AttendanceDetailsDayCareController> {
   const AttendanceDetailsDayCareView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5F7),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF97144D),
+        backgroundColor: _teal,
         centerTitle: true,
         title: const Text(
-          'Attendance Details Day Care',
+          'Monthly Daycare Attendance Student-wise',
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
           ),
         ),
         leading: IconButton(
@@ -27,85 +39,166 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
         ),
       ),
       body: Obx(() {
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(12.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-
-              _buildFilterCard(),
-              SizedBox(height: 14.h),
-              _buildAttendanceTableCard(),
-            ],
+        return RefreshIndicator(
+          onRefresh: () async {
+            await controller.fetchAllDaycareAttendance();
+          },
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildFilterCard(),
+                SizedBox(height: 16.h),
+                _buildAttendanceTableCard(),
+              ],
+            ),
           ),
         );
       }),
     );
   }
 
-
+  Widget _sectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: _teal),
+          SizedBox(width: 6.w),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+              color: _teal,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildFilterCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.r),
-        boxShadow: const [
+        color: _surface,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _sectionHeader('Search Attendance', Icons.search_rounded),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: _buildStudentDropdown()),
-              SizedBox(width: 14.w),
+              SizedBox(width: 12.w),
               Expanded(child: _buildMonthDropdown()),
             ],
           ),
           SizedBox(height: 18.h),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              height: 42.h,
-              child: ElevatedButton(
+          SizedBox(
+            width: double.infinity,
+            height: 48.h,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFAE275F), Color(0xFF97144D)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: _teal.withOpacity(0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
                 onPressed: controller.isAttendanceLoading.value
                     ? null
                     : controller.onSearchTap,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D6EFD),
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  disabledBackgroundColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6.r),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
                 ),
-                child: controller.isAttendanceLoading.value
+                icon: controller.isAttendanceLoading.value
                     ? SizedBox(
-                  width: 18.w,
-                  height: 18.h,
+                  width: 16.w,
+                  height: 16.h,
                   child: const CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),
                 )
-                    : Text(
+                    : const Icon(Icons.search, color: Colors.white, size: 20),
+                label: Text(
                   'Search',
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  InputDecoration _fieldDeco(String hint, {IconData? icon}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(fontSize: 13.5.sp, color: _textSecondary),
+      prefixIcon: icon != null ? Icon(icon, size: 20, color: _tealLight) : null,
+      filled: true,
+      fillColor: _cardBg,
+      isDense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        borderSide: const BorderSide(color: _divider),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        borderSide: const BorderSide(color: _teal, width: 1.5),
+      ),
+    );
+  }
+
+  Widget _fieldLabel(String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6.h),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12.5.sp,
+          fontWeight: FontWeight.w600,
+          color: _textSecondary,
+        ),
       ),
     );
   }
@@ -115,47 +208,19 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Student Name*',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade800,
-            ),
-          ),
-          SizedBox(height: 8.h),
+          _fieldLabel('Student Name *'),
           DropdownButtonFormField<DayCareStudent>(
             value: controller.selectedStudent.value,
             isExpanded: true,
-            decoration: InputDecoration(
-              hintText: 'Select Student Name',
-              hintStyle: TextStyle(fontSize: 14.sp),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 14.h,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: const BorderSide(color: Color(0xFFD9DDE3)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: const BorderSide(color: Color(0xFFD9DDE3)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: const BorderSide(color: Color(0xFF97144D)),
-              ),
-            ),
+            style: TextStyle(fontSize: 13.5.sp, color: _textPrimary),
+            decoration:
+            _fieldDeco('Select Student', icon: Icons.person_outline),
             items: controller.studentList.map((student) {
               return DropdownMenuItem<DayCareStudent>(
                 value: student,
                 child: Text(
                   student.studentName,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14.sp),
                 ),
               );
             }).toList(),
@@ -175,47 +240,17 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Month *',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade800,
-            ),
-          ),
-          SizedBox(height: 8.h),
+          _fieldLabel('Month *'),
           DropdownButtonFormField<String>(
             value: controller.selectedMonth.value?['name']?.toString(),
             isExpanded: true,
-            decoration: InputDecoration(
-              hintText: 'Please Select Month',
-              hintStyle: TextStyle(fontSize: 14.sp),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 14.h,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: const BorderSide(color: Color(0xFFD9DDE3)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: const BorderSide(color: Color(0xFFD9DDE3)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: const BorderSide(color: Color(0xFF97144D)),
-              ),
-            ),
+            style: TextStyle(fontSize: 13.5.sp, color: _textPrimary),
+            decoration:
+            _fieldDeco('Select Month', icon: Icons.calendar_month_outlined),
             items: controller.monthList.map((month) {
               return DropdownMenuItem<String>(
                 value: month['name'].toString(),
-                child: Text(
-                  month['name'].toString(),
-                  style: TextStyle(fontSize: 14.sp),
-                ),
+                child: Text(month['name'].toString()),
               );
             }).toList(),
             onChanged: (value) {
@@ -232,108 +267,126 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
   Widget _buildAttendanceTableCard() {
     return Container(
       width: double.infinity,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.r),
-        boxShadow: const [
+        color: _surface,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: controller.isAttendanceLoading.value
           ? Padding(
-        padding: EdgeInsets.all(30.w),
-        child: const Center(child: CircularProgressIndicator()),
+        padding: EdgeInsets.all(40.w),
+        child: const Center(
+          child: CircularProgressIndicator(color: _teal),
+        ),
       )
           : controller.attendanceList.isEmpty
           ? Padding(
-        padding: EdgeInsets.all(24.w),
+        padding: EdgeInsets.all(32.w),
         child: Center(
-          child: Text(
-            'No attendance data found',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w500,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.event_busy_outlined,
+                  size: 56, color: Colors.grey.shade300),
+              SizedBox(height: 10.h),
+              Text(
+                'No attendance data found',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: _textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
       )
           : SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Column(
-          children: [
-            DataTable(
-              headingRowColor: MaterialStateProperty.all(const Color(0xFF212529)),
-              columnSpacing: 28.w,
-              dataRowMinHeight: 52.h,
-              dataRowMaxHeight: 56.h,
-              columns: [
-                _buildColumn('S.No'),
-                _buildColumn('Student Name'),
-                _buildColumn('Status'),
-                _buildColumn('From Time'),
-                _buildColumn('To Time'),
-                _buildColumn('Total Hour'),
-                _buildColumn('Date'),
-                _buildColumn('Action'),
-              ],
-              rows: List.generate(
-                controller.attendanceList.length,
-                    (index) {
-                  final item = controller.attendanceList[index];
-                  return _buildRow(
-                    serial: '${index + 1}',
-                    studentName: item.studentName,
-                    status: item.status,
-                    fromTime: item.fromTime,
-                    toTime: item.toTime,
-                    totalHour: item.totalHour,
-                    date: item.date,
-                    actionText: item.actionText,
-                  );
-                },
+        child: IntrinsicWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Theme(
+                data: Theme.of(Get.context!).copyWith(
+                  dividerColor: _divider,
+                ),
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(_teal),
+                  dataRowColor: WidgetStateProperty.resolveWith(
+                        (states) => Colors.transparent,
+                  ),
+                  columnSpacing: 24.w,
+                  horizontalMargin: 16.w,
+                  dataRowMinHeight: 52.h,
+                  dataRowMaxHeight: 56.h,
+                  columns: [
+                    _buildColumn('S.No'),
+                    _buildColumn('Student Name'),
+                    _buildColumn('Status'),
+                    _buildColumn('From Time'),
+                    _buildColumn('To Time'),
+                    _buildColumn('Total Hour'),
+                    _buildColumn('Date'),
+                    _buildColumn('Action'),
+                  ],
+                  rows: List.generate(
+                    controller.attendanceList.length,
+                        (index) {
+                      final item = controller.attendanceList[index];
+                      return _buildRow(
+                        index: index,
+                        serial: '${index + 1}',
+                        studentName: item.studentName,
+                        status: item.status,
+                        fromTime: item.fromTime,
+                        toTime: item.toTime,
+                        totalHour: item.totalHour,
+                        date: item.date,
+                        actionText: item.actionText,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
-            Container(
-              width: 1030.w,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              color: const Color(0xFFD7E8FF),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Align(
-                      alignment: Alignment.centerRight,
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 16.w, vertical: 14.h),
+                color: _tealPale,
+                child: Row(
+                  children: [
+                    Expanded(
                       child: Text(
                         'Total Hours',
+                        textAlign: TextAlign.right,
                         style: TextStyle(
-                          fontSize: 15.sp,
+                          fontSize: 13.5.sp,
                           fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade800,
+                          color: _teal,
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 18.w),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
+                    SizedBox(width: 18.w),
+                    Text(
                       controller.totalHoursText,
-                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 15.sp,
+                        fontSize: 13.5.sp,
                         fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade800,
+                        color: _teal,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -345,14 +398,45 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
         title,
         style: TextStyle(
           color: Colors.white,
-          fontSize: 14.sp,
+          fontSize: 12.5.sp,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 
+  Widget _pill(String text, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(String status) {
+    final s = status.trim().toLowerCase();
+    if (s.contains('present') || s.contains('active'))
+      return const Color(0xFF2E7D32);
+    if (s.contains('absent') || s.contains('inactive'))
+      return const Color(0xFFC62828);
+    if (s.contains('leave') || s.contains('half'))
+      return const Color(0xFFEF6C00);
+    return _textSecondary;
+  }
+
   DataRow _buildRow({
+    required int index,
     required String serial,
     required String studentName,
     required String status,
@@ -362,32 +446,26 @@ class AttendanceDetailsDayCareView extends GetView<AttendanceDetailsDayCareContr
     required String date,
     required String actionText,
   }) {
+    final textStyle = TextStyle(fontSize: 13.sp, color: _textPrimary);
     return DataRow(
+      color: WidgetStateProperty.all(
+        index.isEven ? _cardBg : Colors.white,
+      ),
       cells: [
-        DataCell(Text(serial)),
-        DataCell(Text(studentName)),
-        DataCell(Text(status)),
-        DataCell(Text(fromTime)),
-        DataCell(Text(toTime)),
-        DataCell(Text(totalHour)),
-        DataCell(Text(date)),
-        DataCell(
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-            decoration: BoxDecoration(
-              color: actionText == 'Active' ? Colors.green : Colors.red,
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-            child: Text(
-              actionText,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
+        DataCell(Text(serial, style: textStyle)),
+        DataCell(Text(studentName,
+            style: textStyle.copyWith(fontWeight: FontWeight.w600))),
+        DataCell(_pill(status, _statusColor(status))),
+        DataCell(Text(fromTime, style: textStyle)),
+        DataCell(Text(toTime, style: textStyle)),
+        DataCell(Text(totalHour, style: textStyle)),
+        DataCell(Text(date, style: textStyle)),
+        DataCell(_pill(
+          actionText,
+          actionText == 'Active'
+              ? const Color(0xFF2E7D32)
+              : const Color(0xFFC62828),
+        )),
       ],
     );
   }

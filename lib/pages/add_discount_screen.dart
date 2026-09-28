@@ -9,8 +9,13 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add Discount"),
+        title: Text(
+          "Add Discount",
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
+        backgroundColor: const Color(0xFF97144D),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,7 +61,7 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding:
-                        EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                   ),
                   hint: Text('Select Fees Duration'),
                   items: controller.feesDurationList.map((item) {
@@ -67,9 +72,9 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                   }).toList(),
                   onChanged: (value) {
                     controller.selectedFeesDuration.value =
-                        value!.feesDurationId!;
+                    value!.feesDurationId!;
                     controller.selectedFeesDurationName.value =
-                        value!.feesDuration!;
+                    value!.feesDuration!;
                   },
                 );
               }),
@@ -90,7 +95,7 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding:
-                        EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                   ),
                   hint: Text('Please Select Fees Type'),
                   items: controller.feeTypeList.map((item) {
@@ -120,7 +125,7 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                   border: OutlineInputBorder(),
                   hintText: 'Enter Amount',
                   contentPadding:
-                      EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                  EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                 ),
                 keyboardType: TextInputType.number,
               ),
@@ -139,7 +144,7 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                   border: OutlineInputBorder(),
                   hintText: 'Remarks',
                   contentPadding:
-                      EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                  EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                 ),
               ),
               SizedBox(height: 30),
@@ -151,7 +156,7 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                     // Validate discount amount
                     final discountAmount = int.tryParse(controller.discountController.text) ?? 0;
                     final totalAmount = controller.getTotalAmount(); // You need to implement this method
-                    
+
                     if (discountAmount > totalAmount) {
                       Get.snackbar(
                         'Invalid Discount',
@@ -163,7 +168,7 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                       );
                       return;
                     }
-                    
+
                     if (discountAmount <= 0) {
                       Get.snackbar(
                         'Invalid Discount',
@@ -190,9 +195,9 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.green,
                   ),
-                  child: Text('Submit', style: TextStyle(fontSize: 16)),
+                  child: Text('Submit', style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ],
