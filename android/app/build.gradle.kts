@@ -43,8 +43,8 @@ android {
         applicationId = "com.monteage.teacher_app_edubloom"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "2.0.2"
+        versionCode = 14
+        versionName = "2.0.5"
         multiDexEnabled = true
     }
 

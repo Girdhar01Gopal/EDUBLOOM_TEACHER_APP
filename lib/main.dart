@@ -20,9 +20,7 @@ Future<void> main() async {
   await GetStorage.init(); // ✅ MUST
 
   // Firebase initialization
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Request required permissions (e.g., storage, notifications)
   await Permission.storage.request();
@@ -56,11 +54,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => LoginViewModel(),
-        ),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => LoginViewModel())],
       child: ScreenUtilInit(
         designSize: const Size(480, 800),
         minTextAdapt: true,
@@ -68,7 +62,7 @@ class MyApp extends StatelessWidget {
         builder: (context, child) {
           return GetMaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'TEACHER APP EDUBLOOM',
+            title: 'TEACHER/STAFF APP EDUBLOOM',
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF36474f)),
               useMaterial3: true,
