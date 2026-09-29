@@ -165,7 +165,7 @@ class _HeaderCardState extends State<_HeaderCard> {
           SizedBox(height: 14.h),
 
           Text(
-            "Take Attendanc",
+            "Take Attendance",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,

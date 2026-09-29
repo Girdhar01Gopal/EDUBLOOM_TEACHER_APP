@@ -62,7 +62,6 @@ class TeacherAttendanceController extends GetxController {
   String roleId = "";
   String roleName = "";
 
-
   // ========= SESSION =========
   final sessionList = <session_model.sListDdata>[].obs;
   final selectedSession = Rx<session_model.sListDdata?>(null);
@@ -96,6 +95,8 @@ class TeacherAttendanceController extends GetxController {
       "https://playschool.edubloom.in/api/TeacherApp/SaveTeacherAttendenceApp";
   final String sessionApiBase =
       "https://playschool.edubloom.in/api/MasterApp/ViewSessionApp/";
+  final String detailsApi =
+      "https://playschool.edubloom.in/api/TeacherApp/ViewTeacherAttendanceDetailsApp";
 
   // Kitne purane din tak "auto-absent" check karna hai jab app khule.
   static const int _autoAbsentLookbackDays = 14;
@@ -109,9 +110,10 @@ class TeacherAttendanceController extends GetxController {
         .toString();
     userId = (await PrefManager().readValue(key: PrefConst.Userid) ?? "")
         .toString();
-    roleId = (await PrefManager().readValue(key: PrefConst.roleId) ?? "").toString();
-    roleName = (await PrefManager().readValue(key: PrefConst.RName) ?? "").toString();
-
+    roleId = (await PrefManager().readValue(key: PrefConst.roleId) ?? "")
+        .toString();
+    roleName = (await PrefManager().readValue(key: PrefConst.RName) ?? "")
+        .toString();
 
     if (schoolId.trim().isEmpty) {
       _showError("SchoolId not found. Please login again.");
@@ -188,7 +190,7 @@ class TeacherAttendanceController extends GetxController {
 
       final alreadyHandled =
           (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() ==
-              "1";
+          "1";
       if (!alreadyHandled) {
         final wasCheckedIn =
             (await PrefManager().readValue(key: checkInKey))?.toString() == "1";
@@ -372,19 +374,19 @@ class TeacherAttendanceController extends GetxController {
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
           final parts =
-          [
-            p.name,
-            p.street,
-            p.subLocality,
-            p.locality,
-            p.administrativeArea,
-            p.postalCode,
-            p.country,
-          ]
-              .where((e) => e != null && e.trim().isNotEmpty)
-              .map((e) => e!.trim())
-              .toSet() // drop exact duplicate segments
-              .toList();
+              [
+                    p.name,
+                    p.street,
+                    p.subLocality,
+                    p.locality,
+                    p.administrativeArea,
+                    p.postalCode,
+                    p.country,
+                  ]
+                  .where((e) => e != null && e.trim().isNotEmpty)
+                  .map((e) => e!.trim())
+                  .toSet() // drop exact duplicate segments
+                  .toList();
           final addr = parts.join(", ");
           if (addr.trim().isNotEmpty) return addr;
         }
@@ -433,10 +435,10 @@ class TeacherAttendanceController extends GetxController {
       "teacher_att_outaddr_${teacherId}_${_todayDateKeyPart()}";
 
   Future<void> _persistInData(
-      int teacherId,
-      DateTime time,
-      String address,
-      ) async {
+    int teacherId,
+    DateTime time,
+    String address,
+  ) async {
     await PrefManager().writeValue(
       key: _inTimeKey(teacherId),
       value: _formatDateTimeApi(time),
@@ -448,10 +450,10 @@ class TeacherAttendanceController extends GetxController {
   }
 
   Future<void> _persistOutData(
-      int teacherId,
-      DateTime time,
-      String address,
-      ) async {
+    int teacherId,
+    DateTime time,
+    String address,
+  ) async {
     await PrefManager().writeValue(
       key: _outTimeKey(teacherId),
       value: _formatDateTimeApi(time),
@@ -583,7 +585,7 @@ class TeacherAttendanceController extends GetxController {
               : (remaining.inSeconds / 60).ceil();
           _showError(
             "You can check out after $remainingMinutes more minute${remainingMinutes == 1 ? '' : 's'} "
-                "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
+            "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
           );
           return;
         }
@@ -692,7 +694,7 @@ class TeacherAttendanceController extends GetxController {
 
   bool _sessionMissing() =>
       selectedSession.value == null ||
-          (selectedSession.value!.session ?? "").trim().isEmpty;
+      (selectedSession.value!.session ?? "").trim().isEmpty;
 
   // =========================================================
   // SESSIONS
@@ -891,24 +893,24 @@ class TeacherAttendanceController extends GetxController {
 
         final rawIn =
             t.inTime ??
-                t.teacherAttendance?.inTime ??
-                t.teacherAttendance?.extra?['inTime']?.toString();
+            t.teacherAttendance?.inTime ??
+            t.teacherAttendance?.extra?['inTime']?.toString();
 
         final rawOut =
             t.outTime ??
-                t.teacherAttendance?.outTime ??
-                t.teacherAttendance?.extra?['outTime']?.toString();
+            t.teacherAttendance?.outTime ??
+            t.teacherAttendance?.extra?['outTime']?.toString();
 
         final rawInAddress =
             t.inAddress ?? t.teacherAttendance?.extra?['inAddress']?.toString();
 
         final rawOutAddress =
             t.outAddress ??
-                t.teacherAttendance?.extra?['outAddress']?.toString();
+            t.teacherAttendance?.extra?['outAddress']?.toString();
 
         debugPrint(
           "[ATT-DEBUG] FETCH teacher=$id rawStatus=$rawStatus rawIn=$rawIn rawOut=$rawOut "
-              "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress",
+          "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress",
         );
 
         // Status
@@ -934,24 +936,24 @@ class TeacherAttendanceController extends GetxController {
 
         // Address — server value ho to wahi, warna purani local value, warna persisted value
         final String? persistedInAddr =
-        (rawInAddress == null || rawInAddress.trim().isEmpty) &&
-            (oldInAddressMap[id] == null ||
-                oldInAddressMap[id]!.trim().isEmpty)
+            (rawInAddress == null || rawInAddress.trim().isEmpty) &&
+                (oldInAddressMap[id] == null ||
+                    oldInAddressMap[id]!.trim().isEmpty)
             ? await _readPersistedAddr(_inAddrKey(id))
             : null;
         final String? persistedOutAddr =
-        (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
-            (oldOutAddressMap[id] == null ||
-                oldOutAddressMap[id]!.trim().isEmpty)
+            (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
+                (oldOutAddressMap[id] == null ||
+                    oldOutAddressMap[id]!.trim().isEmpty)
             ? await _readPersistedAddr(_outAddrKey(id))
             : null;
 
         final String? finalInAddress =
-        (rawInAddress != null && rawInAddress.trim().isNotEmpty)
+            (rawInAddress != null && rawInAddress.trim().isNotEmpty)
             ? rawInAddress
             : (oldInAddressMap[id] ?? persistedInAddr);
         final String? finalOutAddress =
-        (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
+            (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
             ? rawOutAddress
             : (oldOutAddressMap[id] ?? persistedOutAddr);
         if (finalInAddress != null && finalInAddress.trim().isNotEmpty) {
@@ -967,7 +969,7 @@ class TeacherAttendanceController extends GetxController {
 
         debugPrint(
           "[ATT-DEBUG] FETCH-RESULT teacher=$id finalIn=${_inTimeMap[id]} finalOut=${_outTimeMap[id]} "
-              "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}",
+          "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}",
         );
       }
       _bump();
@@ -975,11 +977,101 @@ class TeacherAttendanceController extends GetxController {
       // Server ko bhi source of truth maankar check-in/out flags reconcile
       // kar do — sirf local device flags par bharosa nahi karte.
       await _reconcileCheckFlagsFromServer();
+      await syncTodayFromDetailsApi();
     } catch (e) {
       _showError("Error loading: $e");
     } finally {
       isViewLoading(false);
     }
+  }
+
+  // =========================================================
+  // TODAY'S IN/OUT FROM DETAILS API (source of truth for button)
+  // =========================================================
+  /// Details API se aaj ka `inTime{N}` / `outTime{N}` padh ke button set karta hai:
+  ///  - inTime khali            => "Check In"
+  ///  - inTime hai, outTime nahi => "Check Out"
+  ///  - dono hain               => button hide
+  /// API fail ho to local flags waise hi rehte hain.
+  Future<void> syncTodayFromDetailsApi() async {
+    if (_sessionMissing()) return;
+    final today = DateTime.now();
+    try {
+      final res = await http.post(
+        Uri.parse(detailsApi),
+        headers: _headers(),
+        body: jsonEncode({
+          "month": today.month,
+          "schoolId": schoolId,
+          "session": selectedSession.value!.session,
+          "roleName": roleName,
+          "userId": int.tryParse(userId) ?? 0,
+        }),
+      );
+      if (res.statusCode != 200) return;
+
+      final decoded = jsonDecode(res.body);
+      final List rows = decoded is List
+          ? decoded
+          : (decoded is Map && decoded['listData'] is List
+                ? decoded['listData']
+                : const []);
+      if (rows.isEmpty) return;
+
+      final uid = int.tryParse(userId);
+      final d = today.day;
+      String? inRaw;
+      String? outRaw;
+      for (final r in rows) {
+        if (r is! Map) continue;
+        final rowUid = int.tryParse(r['userId']?.toString() ?? "");
+        if (uid != null && rowUid != null && rowUid != uid) continue;
+        final i = r['inTime$d']?.toString().trim();
+        final o = r['outTime$d']?.toString().trim();
+        if ((inRaw == null || inRaw.isEmpty) && i != null && i.isNotEmpty)
+          inRaw = i;
+        if ((outRaw == null || outRaw.isEmpty) && o != null && o.isNotEmpty)
+          outRaw = o;
+      }
+      debugPrint("[ATT-DEBUG] DETAILS day$d inTime=$inRaw outTime=$outRaw");
+
+      final inT = _parseHm(today, inRaw);
+      var outT = _parseHm(today, outRaw);
+      // Server out time 12-hour me aa sakta hai ("01:30" = 1:30 PM) => in se pehle ho to +12h.
+      if (inT != null && outT != null && outT.isBefore(inT)) {
+        outT = outT.add(const Duration(hours: 12));
+      }
+
+      todayInTime.value = inT;
+      todayOutTime.value = inT == null ? null : outT;
+      isCheckedIn.value = inT != null && outT == null;
+      isCheckedOutToday.value = inT != null && outT != null;
+
+      await _persistFlag(_checkInPrefKey, isCheckedIn.value);
+      await _persistFlag(_checkOutPrefKey, isCheckedOutToday.value);
+      await PrefManager().writeValue(
+        key: _globalInTimeKey,
+        value: inT == null ? "" : _formatDateTimeApi(inT),
+      );
+      await PrefManager().writeValue(
+        key: _globalOutTimeKey,
+        value: todayOutTime.value == null
+            ? ""
+            : _formatDateTimeApi(todayOutTime.value!),
+      );
+    } catch (e) {
+      debugPrint("[ATT-DEBUG] DETAILS sync error: $e");
+    }
+  }
+
+  DateTime? _parseHm(DateTime day, String? hm) {
+    if (hm == null || hm.isEmpty) return null;
+    final parts = hm.split(':');
+    if (parts.length < 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return DateTime(day.year, day.month, day.day, h, m);
   }
 
   // =========================================================
@@ -1076,22 +1168,22 @@ class TeacherAttendanceController extends GetxController {
         // ---- IN TIME: local map -> local-persisted (SharedPreferences) -> flat -> nested -> extra -> kabhi null nahi ----
         final DateTime? inT =
             _inTimeMap[uId] ??
-                await _readPersistedTime(_inTimeKey(uId)) ??
-                _fallbackTime(
-                  t.inTime ??
-                      t.teacherAttendance?.inTime ??
-                      t.teacherAttendance?.extra?['inTime']?.toString(),
-                );
+            await _readPersistedTime(_inTimeKey(uId)) ??
+            _fallbackTime(
+              t.inTime ??
+                  t.teacherAttendance?.inTime ??
+                  t.teacherAttendance?.extra?['inTime']?.toString(),
+            );
 
         // ---- OUT TIME: same fallback chain ----
         final DateTime? outT =
             _outTimeMap[uId] ??
-                await _readPersistedTime(_outTimeKey(uId)) ??
-                _fallbackTime(
-                  t.outTime ??
-                      t.teacherAttendance?.outTime ??
-                      t.teacherAttendance?.extra?['outTime']?.toString(),
-                );
+            await _readPersistedTime(_outTimeKey(uId)) ??
+            _fallbackTime(
+              t.outTime ??
+                  t.teacherAttendance?.outTime ??
+                  t.teacherAttendance?.extra?['outTime']?.toString(),
+            );
 
         // ---- ADDRESS: same fallback chain (empty string pe bhi next source try hota hai) ----
         final String inAddr = _pickNonEmpty([
@@ -1109,7 +1201,7 @@ class TeacherAttendanceController extends GetxController {
 
         debugPrint(
           "[ATT-DEBUG] SAVE teacher=$uId inT=$inT outT=$outT inAddr=$inAddr outAddr=$outAddr "
-              "(fromMap=${_inTimeMap[uId]}, fromServer=${t.inTime ?? t.teacherAttendance?.inTime})",
+          "(fromMap=${_inTimeMap[uId]}, fromServer=${t.inTime ?? t.teacherAttendance?.inTime})",
         );
 
         final body = {
@@ -1211,7 +1303,7 @@ class TeacherAttendanceController extends GetxController {
 
       final alreadyHandled =
           (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() ==
-              "1";
+          "1";
       if (alreadyHandled) continue;
 
       final wasCheckedIn =
@@ -1249,8 +1341,8 @@ class TeacherAttendanceController extends GetxController {
       final parsed = TeacherListResponse.fromJson(jsonDecode(res.body));
       for (final t in parsed.listData) {
         final reg =
-        (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
-            .trim();
+            (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
+                .trim();
         if (reg.isEmpty) continue;
 
         // Agar us din already koi status save hai (present/absent), to overwrite mat karo.

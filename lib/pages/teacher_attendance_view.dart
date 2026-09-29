@@ -48,11 +48,7 @@ class TeacherAttendanceView extends StatelessWidget {
             children: [
               SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _HeaderCard(controller: controller),
-                  ],
-                ),
+                child: Column(children: [_HeaderCard(controller: controller)]),
               ),
               if (controller.isPageLoading.value)
                 Positioned(
@@ -171,7 +167,11 @@ class _HeaderCardState extends State<_HeaderCard> {
               color: Colors.white.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.fact_check_rounded, color: Colors.white, size: 42.sp),
+            child: Icon(
+              Icons.fact_check_rounded,
+              color: Colors.white,
+              size: 42.sp,
+            ),
           ),
 
           SizedBox(height: 14.h),
@@ -242,9 +242,13 @@ class _HeaderCardState extends State<_HeaderCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("User Name",
-                                style: TextStyle(
-                                    color: Colors.grey.shade500, fontSize: 11.sp)),
+                            Text(
+                              "User Name",
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 11.sp,
+                              ),
+                            ),
                             SizedBox(height: 2.h),
                             Text(
                               controller.currentTeacherName,
@@ -263,9 +267,13 @@ class _HeaderCardState extends State<_HeaderCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text("User Id",
-                                style: TextStyle(
-                                    color: Colors.grey.shade500, fontSize: 11.sp)),
+                            Text(
+                              "User Id",
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 11.sp,
+                              ),
+                            ),
                             SizedBox(height: 2.h),
                             Text(
                               controller.currentTeacherId,
@@ -292,26 +300,46 @@ class _HeaderCardState extends State<_HeaderCard> {
                     children: [
                       Column(
                         children: [
-                          Text("In Time",
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp)),
+                          Text(
+                            "In Time",
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13.sp,
+                            ),
+                          ),
                           SizedBox(height: 4.h),
                           Text(
                             _fmtTime(controller.todayInTime.value),
                             style: TextStyle(
-                                fontSize: 18.sp, fontWeight: FontWeight.w700, color: kPrimary),
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
+                              color: kPrimary,
+                            ),
                           ),
                         ],
                       ),
-                      Container(width: 1, height: 36.h, color: Colors.grey.shade300),
+                      Container(
+                        width: 1,
+                        height: 36.h,
+                        color: Colors.grey.shade300,
+                      ),
                       Column(
                         children: [
-                          Text("Out Time",
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp)),
+                          Text(
+                            "Out Time",
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13.sp,
+                            ),
+                          ),
                           SizedBox(height: 4.h),
                           Text(
                             _fmtTime(controller.todayOutTime.value),
                             style: TextStyle(
-                                fontSize: 18.sp, fontWeight: FontWeight.w700, color: kPrimary),
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
+                              color: kPrimary,
+                            ),
                           ),
                         ],
                       ),
@@ -324,74 +352,91 @@ class _HeaderCardState extends State<_HeaderCard> {
                     SizedBox(
                       width: double.infinity,
                       height: 48.h,
-                      child: Builder(builder: (context) {
-                        final checkedIn = controller.isCheckedIn.value;
-                        final saving = controller.isCheckInOutSaving.value;
-                        return Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12.r),
-                            gradient: saving
-                                ? LinearGradient(
-                                colors: [Colors.grey.shade300, Colors.grey.shade300])
-                                : LinearGradient(
-                              // Check In = green, Check Out = dark red
-                              colors: checkedIn
-                                  ? [kCheckOutRed, kCheckOutRedDark]
-                                  : [kCheckInGreenLight, kCheckInGreen],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            boxShadow: saving
-                                ? []
-                                : [
-                              BoxShadow(
-                                color: (checkedIn ? kCheckOutRedDark : kCheckInGreen)
-                                    .withOpacity(0.35),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
+                      child: Builder(
+                        builder: (context) {
+                          final checkedIn = controller.isCheckedIn.value;
+                          final saving = controller.isCheckInOutSaving.value;
+                          return Container(
+                            decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12.r),
-                              onTap: saving ? null : controller.handleCheckInOut,
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    saving
-                                        ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white),
+                              gradient: saving
+                                  ? LinearGradient(
+                                      colors: [
+                                        Colors.grey.shade300,
+                                        Colors.grey.shade300,
+                                      ],
                                     )
-                                        : Icon(
-                                      checkedIn ? Icons.logout_rounded : Icons.login_rounded,
-                                      size: 20,
-                                      color: Colors.white,
+                                  : LinearGradient(
+                                      // Check In = green, Check Out = dark red
+                                      colors: checkedIn
+                                          ? [kCheckOutRed, kCheckOutRedDark]
+                                          : [kCheckInGreenLight, kCheckInGreen],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
                                     ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      saving
-                                          ? "Please wait..."
-                                          : (checkedIn ? "Check Out" : "Check In"),
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15.sp,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.2,
+                              boxShadow: saving
+                                  ? []
+                                  : [
+                                      BoxShadow(
+                                        color:
+                                            (checkedIn
+                                                    ? kCheckOutRedDark
+                                                    : kCheckInGreen)
+                                                .withOpacity(0.35),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12.r),
+                                onTap: saving
+                                    ? null
+                                    : controller.handleCheckInOut,
+                                child: Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      saving
+                                          ? const SizedBox(
+                                              height: 18,
+                                              width: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : Icon(
+                                              checkedIn
+                                                  ? Icons.logout_rounded
+                                                  : Icons.login_rounded,
+                                              size: 20,
+                                              color: Colors.white,
+                                            ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        saving
+                                            ? "Please wait..."
+                                            : (checkedIn
+                                                  ? "Check Out"
+                                                  : "Check In"),
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15.sp,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        },
+                      ),
                     )
                   else
                     Padding(
@@ -399,7 +444,10 @@ class _HeaderCardState extends State<_HeaderCard> {
                       child: Text(
                         "Attendance completed for today",
                         style: TextStyle(
-                            color: kSuccess, fontSize: 13.sp, fontWeight: FontWeight.w700),
+                          color: kSuccess,
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                 ],
@@ -466,8 +514,11 @@ class _ListSection extends StatelessWidget {
                     color: kPrimary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
-                  child: const Icon(Icons.list_alt_rounded,
-                      size: 16, color: kPrimary),
+                  child: const Icon(
+                    Icons.list_alt_rounded,
+                    size: 16,
+                    color: kPrimary,
+                  ),
                 ),
                 SizedBox(width: 8.w),
                 Expanded(
@@ -493,13 +544,14 @@ class _ListSection extends StatelessWidget {
                           : controller.refreshListTab,
                       icon: controller.isViewLoading.value
                           ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: kPrimary),
-                      )
-                          : const Icon(Icons.refresh_rounded,
-                          color: kPrimary),
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: kPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.refresh_rounded, color: kPrimary),
                     ),
                   );
                 }),
@@ -516,54 +568,61 @@ class _ListSection extends StatelessWidget {
                 onRefresh: () => controller.refreshListTab(),
                 child: Obx(() {
                   if (controller.isViewLoading.value) {
-                    return LayoutBuilder(builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: constraints.maxHeight,
-                          child: const Center(
-                            child: CircularProgressIndicator(color: kPrimary),
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: constraints.maxHeight,
+                            child: const Center(
+                              child: CircularProgressIndicator(color: kPrimary),
+                            ),
                           ),
-                        ),
-                      );
-                    });
+                        );
+                      },
+                    );
                   }
 
                   if (controller.teacherUsers.isEmpty) {
-                    return LayoutBuilder(builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: constraints.maxHeight,
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(18.w),
-                                  decoration: BoxDecoration(
-                                    color: kBg,
-                                    shape: BoxShape.circle,
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: constraints.maxHeight,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(18.w),
+                                    decoration: BoxDecoration(
+                                      color: kBg,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.list_alt_rounded,
+                                      size: 44,
+                                      color: kPrimary.withOpacity(0.35),
+                                    ),
                                   ),
-                                  child: Icon(Icons.list_alt_rounded,
-                                      size: 44, color: kPrimary.withOpacity(0.35)),
-                                ),
-                                SizedBox(height: 12.h),
-                                Text(
-                                  "Pull down or tap refresh to load attendance",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w500,
+                                  SizedBox(height: 12.h),
+                                  Text(
+                                    "Pull down or tap refresh to load attendance",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    });
+                        );
+                      },
+                    );
                   }
 
                   return SingleChildScrollView(
@@ -581,9 +640,11 @@ class _ListSection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14.r),
                           child: DataTable(
                             headingRowColor: WidgetStateProperty.all(
-                                kPrimary.withOpacity(0.06)),
+                              kPrimary.withOpacity(0.06),
+                            ),
                             dataRowColor: WidgetStateProperty.resolveWith(
-                                    (states) => Colors.white),
+                              (states) => Colors.white,
+                            ),
                             dividerThickness: 0.6,
                             headingTextStyle: TextStyle(
                               fontSize: 13.sp,
@@ -603,56 +664,78 @@ class _ListSection extends StatelessWidget {
                               DataColumn(label: Text("Date")),
                               DataColumn(label: Text("Status")),
                             ],
-                            rows: List.generate(
-                              controller.teacherUsers.length,
-                                  (i) {
-                                final t = controller.teacherUsers[i];
-                                final userId = t.userId;
+                            rows: List.generate(controller.teacherUsers.length, (
+                              i,
+                            ) {
+                              final t = controller.teacherUsers[i];
+                              final userId = t.userId;
 
-                                return DataRow(
-                                  color: WidgetStateProperty.resolveWith(
-                                        (states) => i.isEven
-                                        ? Colors.white
-                                        : kBg.withOpacity(0.4),
-                                  ),
-                                  cells: [
-                                    // S.no
-                                    DataCell(Text("${i + 1}",
-                                        style: TextStyle(
-                                            color: Colors.grey.shade600))),
-
-                                    // Teacher Id
-                                    DataCell(Text(_safeReg(t),
-                                        style:
-                                        const TextStyle(fontWeight: FontWeight.w600))),
-
-                                    // Teacher Name
-                                    DataCell(Text(_safeName(t),
-                                        style:
-                                        const TextStyle(fontWeight: FontWeight.w600))),
-
-                                    // Date
-                                    DataCell(Text(
-                                      controller.displayDate
-                                          .replaceAll("/", "-"),
-                                      style: TextStyle(color: Colors.grey.shade700),
-                                    )),
-
-                                    // Status — ab dropdown nahi, sirf read-only badge.
-                                    // By default "Present" dikhta hai; agar auto-absent
-                                    // logic ne mark kar diya ho to "Absent" dikhega.
-                                    DataCell(
-                                      userId == null
-                                          ? const Text("-")
-                                          : _StatusBadge(
-                                        value: controller.statusForUser(
-                                            userId, t.status),
+                              return DataRow(
+                                color: WidgetStateProperty.resolveWith(
+                                  (states) => i.isEven
+                                      ? Colors.white
+                                      : kBg.withOpacity(0.4),
+                                ),
+                                cells: [
+                                  // S.no
+                                  DataCell(
+                                    Text(
+                                      "${i + 1}",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
                                       ),
                                     ),
-                                  ],
-                                );
-                              },
-                            ),
+                                  ),
+
+                                  // Teacher Id
+                                  DataCell(
+                                    Text(
+                                      _safeReg(t),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Teacher Name
+                                  DataCell(
+                                    Text(
+                                      _safeName(t),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Date
+                                  DataCell(
+                                    Text(
+                                      controller.displayDate.replaceAll(
+                                        "/",
+                                        "-",
+                                      ),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Status — ab dropdown nahi, sirf read-only badge.
+                                  // By default "Present" dikhta hai; agar auto-absent
+                                  // logic ne mark kar diya ho to "Absent" dikhega.
+                                  DataCell(
+                                    userId == null
+                                        ? const Text("-")
+                                        : _StatusBadge(
+                                            value: controller.statusForUser(
+                                              userId,
+                                              t.status,
+                                            ),
+                                          ),
+                                  ),
+                                ],
+                              );
+                            }),
                           ),
                         );
                       }),
