@@ -14,7 +14,7 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../res/app_url.dart';
 
-const String kCurriculumFileBasePath = 'Upload/CurriculumPdf/';
+const String kCurriculumFileBasePath = 'Upload/Curriculum/';
 
 // 🎨 CHANGED: teal -> maroon (Notification jaisa hi)
 const Color axisMaroon = Color(0xFF97144D);
@@ -500,13 +500,10 @@ class _AddCurriculumTabState extends State<AddCurriculumTab> {
 
           // ⚠️ Info banner: multiple selections ke case mein alag-alag curriculum banenge
           Obx(() {
-            final totalCombinations = controller.selectedClasses.isEmpty ||
-                controller.selectedSections.isEmpty
-                ? 0
-                : controller.selectedClasses.length *
-                controller.selectedSections.length;
+            final classCount = controller.selectedClasses.length;
+            final sectionCount = controller.selectedSections.length;
 
-            if (totalCombinations <= 1) return const SizedBox();
+            if (classCount <= 1 && sectionCount <= 1) return const SizedBox();
 
             return Container(
               margin: EdgeInsets.only(bottom: 16.h),
@@ -522,7 +519,7 @@ class _AddCurriculumTabState extends State<AddCurriculumTab> {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      "This will create $totalCombinations separate curriculum entries (one per class-section combination).",
+                      "This curriculum will be linked to $classCount class(es) and $sectionCount section(s).",
                       style: TextStyle(fontSize: 12.sp, color: Colors.amber.shade900),
                     ),
                   ),

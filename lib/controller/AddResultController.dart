@@ -24,6 +24,7 @@ class AddResultController extends GetxController {
   String token = "";
   String session = "";
   String userId = "";
+  String roleName = ""; // 🆕 raw role name (e.g. "Teacher") — API body ke liye
 
 
   // =========================
@@ -227,11 +228,12 @@ class AddResultController extends GetxController {
     userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";   // ✅ naya
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
-    final role =
-    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
-        .toString()
-        .trim()
-        .toLowerCase();
+    // 🆕 raw role name alag se save (API body me roleName ke liye)
+    roleName =
+        ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+            .toString()
+            .trim();
+    final role = roleName.toLowerCase();
     isStaffLogin.value = role == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
@@ -693,13 +695,6 @@ class AddResultController extends GetxController {
     }
   }
 
-  // =========================
-  // SUBMIT — AddResult POST only
-  // ✅ Logic:
-  //   - Agar saare students already submitted hain → "Already Submitted" snackbar
-  //   - Agar kuch naye hain → sirf unhe POST karo
-  //   - POST success ke baad studentId ko submittedStudentIds mein daalo
-  // =========================
   Future<void> submitGrades() async {
     if (studentList.isEmpty) {
       _showSnack("Warning", "No students to submit.",
@@ -746,7 +741,9 @@ class AddResultController extends GetxController {
             "grade": grade,
             "session": session,
             "schoolId": schoolId,
-            "createBy": "Admin",
+            "createBy": roleName.isNotEmpty ? roleName : "", // 🆕 logged-in role
+            "userId": int.tryParse(userId) ?? 0, // 🆕 logged-in user id
+            "roleName": roleName, // 🆕 e.g. "Teacher"
           };
 
           debugPrint(

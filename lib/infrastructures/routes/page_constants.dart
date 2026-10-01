@@ -72,6 +72,8 @@ class RouteName {
 
   static const String studentwiseyearlyreport = '/studentwiseyearlyreport';
 
+  static const String teacherAttendance2 = '/teacher-attendance2';
+
   static const String teacher = '/teacher';
 
   static const String feedailycollection = '/feedailycollection';

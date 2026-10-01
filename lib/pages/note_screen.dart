@@ -675,7 +675,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
     }
   }
 
-  // ✅ flutter_file_downloader se download — Notification Page jaisa same logic
+  // ✅ flutter_file_downloader se download — Admin app jaisa same logic
   Future<void> _downloadAndShare({
     required String url,
     required String fileName,
@@ -691,18 +691,16 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
       _downloadProgress[index] = 0;
     });
 
-    FileDownloader.downloadFile(
+    await FileDownloader.downloadFile(
       url: url,
       name: fileName,
       notificationType: NotificationType.all,
+      downloadDestination: DownloadDestinations.publicDownloads,
       onProgress: (name, progress) {
         if (mounted) {
           setState(() {
-            _downloadProgress[index] = progress / 100;
+            _downloadProgress[index] = (progress ?? 0) / 100;
           });
-        }
-        if (kDebugMode) {
-          print("Downloading: $name $progress");
         }
       },
       onDownloadCompleted: (path) async {
@@ -714,7 +712,7 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
         }
 
         _showSnack(
-            "Downloaded ✓", "Saved to Downloads folder", Colors.green);
+            "Downloaded ✓", "File downloaded successfully", Colors.green);
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -729,14 +727,16 @@ class _ViewNoteTabState extends State<ViewNoteTab> {
         );
       },
       onDownloadError: (errorMessage) {
+        if (kDebugMode) {
+          print("Download Error: $errorMessage");
+        }
         if (mounted) {
           setState(() => _isDownloading[index] = false);
         }
-        _showSnack("Error", "Failed to download file", Colors.red);
+        _showSnack("Error", "Failed to download: $errorMessage", Colors.red);
       },
     );
   }
-
   void _showSnack(String title, String message, Color color) {
     Get.snackbar(
       title,

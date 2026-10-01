@@ -214,7 +214,7 @@ class AppUrl {
   static var notesDownloadUrl = "Upload/Note/";
   static var syllabusDownloadUrl = "Upload/Syllabus/";
   static var notificationDownloadUrl = "Upload/Notification/";
-  static var eventDownloadUrl = "Upload/Event/";
+  static var eventDownloadUrl = "Upload/Event/Images/";
 
 
 
@@ -224,7 +224,7 @@ class AppUrl {
   static var postNotificationAppTest = "api/CommumicationApp/PostNotificationApp";
   static var viewNotificationApp = "api/CommumicationApp/ViewNotificationApp/";
 
-  // static var test_base_url = "https://playschooltest.edubloom.in/";
+   //static var test_base_url = "https://playschooltest.edubloom.in/";
 
   static const _imageExtensions = [
     '.jpg',
@@ -233,6 +233,9 @@ class AppUrl {
     '.gif',
     '.bmp',
     '.webp',
+    '.heic',
+    '.heif',
+    '.jfif',
   ];
 
   static bool isImageFile(String fileName) {
@@ -253,7 +256,8 @@ class AppUrl {
   }
 
   static String testNotesFileUrl(String fileName) {
-    return '$base_url$notesDownloadUrl$fileName';
+    final folder = isImageFile(fileName) ? 'Images' : 'Pdf';
+    return '$base_url$notesDownloadUrl$folder/$fileName';
   }
 
   static String testViewNoteApp(String schoolId, String session, String userId, String roleName) {
@@ -267,7 +271,21 @@ class AppUrl {
 
   // NOTIFICATION KE LIYE HAI YE
   static String notificationFileUrl(String fileName) {
-    return '$base_url${notificationDownloadUrl}Notification/$fileName';
+    final name = fileName.trim();
+
+    // Case 1: API ne full URL diya
+    if (name.startsWith('http://') || name.startsWith('https://')) {
+      return name;
+    }
+
+    // Case 2: API ne path diya (/Upload/Notification/Notification/xxx.png)
+    if (name.contains('/')) {
+      final path = name.startsWith('/') ? name.substring(1) : name;
+      return '$base_url$path';
+    }
+
+    // Case 3: Sirf file name (purane records)
+    return '$base_url${notificationDownloadUrl}Notification/$name';
   }
 
 

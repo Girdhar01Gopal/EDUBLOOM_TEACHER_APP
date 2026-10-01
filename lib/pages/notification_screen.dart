@@ -646,18 +646,16 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
       _downloadProgress[index] = 0;
     });
 
-    FileDownloader.downloadFile(
+    await FileDownloader.downloadFile(
       url: url,
       name: fileName,
       notificationType: NotificationType.all,
+      downloadDestination: DownloadDestinations.publicDownloads,
       onProgress: (name, progress) {
         if (mounted) {
           setState(() {
-            _downloadProgress[index] = progress / 100;
+            _downloadProgress[index] = (progress ?? 0) / 100;
           });
-        }
-        if (kDebugMode) {
-          print("Downloading: $name $progress");
         }
       },
       onDownloadCompleted: (path) async {
@@ -668,7 +666,8 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
           });
         }
 
-        _showSnack("Downloaded ✓", "File downloaded to Downloads", Colors.green);
+        _showSnack(
+            "Downloaded ✓", "File downloaded successfully", Colors.green);
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -683,10 +682,13 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
         );
       },
       onDownloadError: (errorMessage) {
+        if (kDebugMode) {
+          print("Download Error: $errorMessage");
+        }
         if (mounted) {
           setState(() => _isDownloading[index] = false);
         }
-        _showSnack("Error", "Error downloading file", Colors.red);
+        _showSnack("Error", "Failed to download: $errorMessage", Colors.red);
       },
     );
   }
@@ -937,10 +939,15 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      final fileName =
-                                      item.notificationfile!;
+                                      final rawFile = item.notificationfile!;
                                       final fileUrl =
-                                          AppUrl.notificationFileUrl(fileName);
+                                      AppUrl.notificationFileUrl(rawFile);
+                                      // sirf asli file ka naam (path hata ke)
+                                      final fileName = rawFile.split('/').last;
+
+                                      debugPrint("⬇️ rawFile: $rawFile");
+                                      debugPrint("⬇️ fileUrl: $fileUrl");
+
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: fileName,

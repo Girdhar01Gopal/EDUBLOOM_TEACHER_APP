@@ -41,6 +41,8 @@ class CurriculumData {
   String? updateDate;
   String? pdfFile;
   String? pdfFileName;
+  int? userId; // 🆕 naye API response mein aaya
+  String? roleName; // 🆕 naye API response mein aaya
 
   CurriculumData({
     this.curriculumId,
@@ -59,6 +61,8 @@ class CurriculumData {
     this.updateDate,
     this.pdfFile,
     this.pdfFileName,
+    this.userId, // 🆕
+    this.roleName, // 🆕
   });
 
   factory CurriculumData.fromJson(Map<String, dynamic> json) {
@@ -82,6 +86,12 @@ class CurriculumData {
       updateDate: json['updateDate']?.toString(),
       pdfFile: json['pdfFile']?.toString(),
       pdfFileName: json['pdfFileName']?.toString(),
+      // 🆕 userId int ya string kisi bhi form mein aa sakta hai, safe parse
+      userId: json['userId'] is int
+          ? json['userId'] as int
+          : int.tryParse(json['userId']?.toString() ?? ''),
+      // 🆕
+      roleName: json['roleName']?.toString(),
     );
   }
 
@@ -102,6 +112,8 @@ class CurriculumData {
     'updateDate': updateDate,
     'pdfFile': pdfFile,
     'pdfFileName': pdfFileName,
+    'userId': userId, // 🆕
+    'roleName': roleName, // 🆕
   };
 }
 

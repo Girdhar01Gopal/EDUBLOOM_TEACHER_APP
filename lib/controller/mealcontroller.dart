@@ -41,6 +41,10 @@ class Mealcontroller extends GetxController {
   var schoolId = "".obs;
   var session = "".obs;
 
+  // 🆕 NEW: userId + roleName (GET aur POST dono me chahiye)
+  var userId = "".obs;
+  var roleName = "".obs;
+
   // -----------------------
   // VIEW ACTIVITY LIST
   // -----------------------
@@ -62,6 +66,9 @@ class Mealcontroller extends GetxController {
 
     schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
+    // 🆕 NEW: userId + roleName prefs se
+    userId.value = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
+    roleName.value = await PrefManager().readValue(key: PrefConst.RName) ?? "";
     fetchClasses();
     fetchStudents();
     fetchActivityList();
@@ -137,15 +144,19 @@ class Mealcontroller extends GetxController {
 
   // -----------------------
   // FETCH ALL ACTIVITIES (VIEW ACTIVITY)
+  // 🆕 UPDATED URL: ...GetAllMealAsyncApp?schoolId=..&session=..&UserId=..&RoleName=..
   // -----------------------
   Future<void> fetchActivityList() async {
     final url =
-        "https://playschool.edubloom.in/api/DailyActiviesApp/GetAllMealAsyncApp?schoolId=${schoolId.value}&session=${session.value}";
+        "https://playschool.edubloom.in/api/DailyActiviesApp/GetAllMealAsyncApp"
+        "?schoolId=${schoolId.value}&session=${session.value}"
+        "&UserId=${userId.value}&RoleName=${roleName.value}";
 
     debugPrint("📥 Fetching All Meal Activities: $url");
 
     try {
       final res = await http.get(Uri.parse(url));
+      debugPrint("Meal GET STATUS: ${res.statusCode}");
 
       if (res.statusCode == 200) {
         final jsonBody = jsonDecode(res.body);
@@ -191,6 +202,13 @@ class Mealcontroller extends GetxController {
     return dt.toIso8601String();
   }
 
+  // 🆕 NEW: TimeOfDay ko 24-hour "HH:mm" string me badalta hai (e.g. "10:00")
+  String _to24h(TimeOfDay t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return "$h:$m";
+  }
+
   void resetForm() {
     activityController.clear();
     fromTime.value = "";
@@ -205,6 +223,7 @@ class Mealcontroller extends GetxController {
   // SEND MEAL ACTIVITY TO API
   // ==========================
   Future<bool> postActivityToApi(List<int> studentIds) async {
+    // 🆕 UPDATED URL (test server)
     const url = "https://playschool.edubloom.in/api/DailyActiviesApp/PostMealApp";
 
     if (studentIds.isEmpty) {
@@ -264,23 +283,30 @@ class Mealcontroller extends GetxController {
       return false;
     }
 
-    final nowIso = DateTime.now().toIso8601String();
+    // 🆕 24-hour "HH:mm" format (API body me yahi expected hai)
+    final from24 = _to24h(_fromTimeOfDay!);
+    final to24 = _to24h(_toTimeOfDay!);
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
 
     final body = {
       "mealId": 0,
       "meal": activityController.text.trim(),
-      "fromTime": fromIso,
-      "toTime": toIso,
+      "fromTime": from24,
+      "toTime": to24,
       "action": "1",
       "createDate": nowIso,
       "updateDate": nowIso,
-      "createBy": "admin",
-      "updateBy": "admin",
+      "createBy": "Admin",
+      "updateBy": "Admin",
       "schoolId": schoolId.value,
       "studentId": studentIds,
-      "startTime": fromTime.value,
-      "endTime": toTime.value,
+      "startTime": from24,
+      "endTime": to24,
       "session": session.value,
+      "classID": <int>[],                            // 🆕 NEW (class select nahi hoti, isliye khali list)
+      "userId": int.tryParse(userId.value) ?? 0,     // 🆕 NEW
+      "roleName": roleName.value,                    // 🆕 NEW
     };
 
     debugPrint("📤 POST Meal Activity => $url");

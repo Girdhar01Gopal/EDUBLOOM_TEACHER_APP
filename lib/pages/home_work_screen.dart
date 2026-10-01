@@ -642,7 +642,6 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
     super.dispose();
   }
 
-  // ✅ flutter_file_downloader se download — Notification Page jaisa same logic
   Future<void> _downloadAndShare({
     required String url,
     required String fileName,
@@ -658,18 +657,16 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
       _downloadProgress[index] = 0;
     });
 
-    FileDownloader.downloadFile(
+    await FileDownloader.downloadFile(
       url: url,
       name: fileName,
       notificationType: NotificationType.all,
+      downloadDestination: DownloadDestinations.publicDownloads,
       onProgress: (name, progress) {
         if (mounted) {
           setState(() {
-            _downloadProgress[index] = progress / 100;
+            _downloadProgress[index] = (progress ?? 0) / 100;
           });
-        }
-        if (kDebugMode) {
-          print("Downloading: $name $progress");
         }
       },
       onDownloadCompleted: (path) async {
@@ -680,21 +677,26 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
           });
         }
 
-        _showSnack("Downloaded ✓",
-            "Saved to Downloads folder", Colors.green);
+        _showSnack(
+            "Downloaded ✓", "File downloaded successfully", Colors.green);
 
         await Future.delayed(const Duration(milliseconds: 500));
 
-        await Share.share(
-          '📚 Subject: $subjectName\n🏫 Class: $className\n📋 Section: $sectionName\n📝 Description: $description\n🗓️ Date: $date',
+        await Share.shareXFiles(
+          [XFile(path)],
           subject: 'Homework – $subjectName',
+          text:
+          '📚 Subject: $subjectName\n🏫 Class: $className\n📋 Section: $sectionName\n📝 Description: $description\n🗓️ Date: $date',
         );
       },
       onDownloadError: (errorMessage) {
+        if (kDebugMode) {
+          print("Download Error: $errorMessage");
+        }
         if (mounted) {
           setState(() => _isDownloading[index] = false);
         }
-        _showSnack("Error", "Failed to download file", Colors.red);
+        _showSnack("Error", "Failed to download: $errorMessage", Colors.red);
       },
     );
   }
@@ -938,10 +940,17 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      final fileName =
-                                          item.homeworkFile ?? 'homework_$index';
-                                      final fileUrl =
-                                          AppUrl.homeworkFileUrl(fileName);
+                                      final homeworkFile =
+                                          item.homeworkFile ?? '';
+                                      final isPdf = homeworkFile
+                                          .toLowerCase()
+                                          .endsWith('.pdf');
+                                      final fileUrl = isPdf
+                                          ? "https://playschool.edubloom.in/Upload/Homework/Pdf/$homeworkFile"
+                                          : "https://playschool.edubloom.in/Upload/Homework/Images/$homeworkFile";
+                                      final fileName = homeworkFile.isNotEmpty
+                                          ? homeworkFile
+                                          : 'homework_$index';
                                       _downloadAndShare(
                                         url: fileUrl,
                                         fileName: fileName,

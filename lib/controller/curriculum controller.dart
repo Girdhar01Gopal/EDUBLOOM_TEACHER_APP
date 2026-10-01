@@ -22,8 +22,6 @@ import 'student_controller.dart'
 class CurriculumController extends GetxController {
   final curriculumList = <CurriculumData>[].obs;
   final isLoading = false.obs;
-
-  // shows progress while multiple curriculum entries are being posted one by one
   final isSubmitting = false.obs;
 
   // ── Fields ─────────────────────────────────────────────────────────
@@ -35,8 +33,6 @@ class CurriculumController extends GetxController {
 
   // set when editing an existing record, null when creating a new one
   final editingCurriculumId = Rx<int?>(null);
-
-  // 🆕 CHANGED: single select -> multi select (Notification jaisa hi)
   var classList = <ListDataa>[].obs;
   var selectedClasses = <ListDataa>[].obs;
 
@@ -60,6 +56,9 @@ class CurriculumController extends GetxController {
 
   var roleName = "".obs;
 
+  // 🆕 ViewCurriculum GET API ab userId/roleName bhi maangta hai
+  String loggedInUserId = "";
+
   // 🆕 Role / Teacher-type detection (class & section fetch ke liye) — Notification jaisa hi
   var isStaffLogin = false.obs; // true => "schoolstaff" role
   var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
@@ -72,6 +71,9 @@ class CurriculumController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
     prefSession = await PrefManager().readValue(key: PrefConst.session) ?? "";
+    loggedInUserId =
+        (await PrefManager().readValue(key: PrefConst.Userid) ?? "")
+            .toString();
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
     final rawRole =
@@ -137,7 +139,7 @@ class CurriculumController extends GetxController {
   }
 
   // ── Fetch Curriculum List ───────────────────────────────────────────
-  // GET https://playschool.edubloom.in/api/MasterApp/ViewCurriculum/{schoolId}/{session}
+  // GET https://playschool.edubloom.in/api/MasterApp/ViewCurriculum/{schoolId}/{session}/{userId}/{roleName}
   Future<void> fetchCurriculum() async {
     try {
       isLoading(true);
@@ -148,14 +150,23 @@ class CurriculumController extends GetxController {
         return;
       }
 
+      final userIdSegment = loggedInUserId.isNotEmpty ? loggedInUserId : "0";
+      final roleSegment =
+      Uri.encodeComponent(roleName.value.isNotEmpty ? roleName.value : "");
+
       final url = Uri.parse(
-        '${AppUrl.base_url}api/MasterApp/ViewCurriculum/$schoolId/$sessionValue',
+        '${AppUrl.base_url}api/MasterApp/ViewCurriculum/$schoolId/$sessionValue/$userIdSegment/$roleSegment',
       );
+
+      debugPrint("📥 ViewCurriculum URL: $url"); // 🆕 debug
 
       final response = await http.get(
         url,
         headers: {'Content-Type': 'application/json'},
       );
+
+      debugPrint("📥 ViewCurriculum status: ${response.statusCode}"); // 🆕 debug
+      debugPrint("📥 ViewCurriculum body: ${response.body}"); // 🆕 debug
 
       if (response.statusCode == 200) {
         final model = CurriculumModel.fromJson(jsonDecode(response.body));
@@ -164,7 +175,7 @@ class CurriculumController extends GetxController {
         Get.snackbar("Error", "Failed to load curriculum");
       }
     } catch (e) {
-      // handle silently as before
+      debugPrint("⚠️ fetchCurriculum exception: $e"); // 🆕 debug
     } finally {
       isLoading(false);
     }
@@ -470,6 +481,8 @@ class CurriculumController extends GetxController {
     editingCurriculumId.value = null;
   }
 
+  /// 🆕 Ab poori multi-selection EK hi POST call mein jaati hai:
+  /// ClassId[]/SectionId[] arrays ke roop me (naye PostCurriculum API ke hisaab se).
   Future<void> registerCurriculum() async {
     if (pdfFile.value == null) {
       ShortMessage.toast(title: "Please select an Image or PDF file.");
@@ -501,44 +514,16 @@ class CurriculumController extends GetxController {
     isSubmitting(true);
     isLoading(true);
 
-    int successCount = 0;
-    int failCount = 0;
-
     try {
-      for (var classItem in selectedClasses) {
-        for (var sectionItem in selectedSections) {
-          final ok = await _postSingleCurriculum(
-            classItem: classItem,
-            sectionItem: sectionItem,
-            sessionValue: sessionValue,
-          );
-          if (ok) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        }
-      }
+      final ok = await _postCurriculum(sessionValue: sessionValue);
 
-      debugPrint(
-          "POST CURRICULUM MULTI-SUBMIT DONE -> success:$successCount fail:$failCount");
-
-      if (successCount > 0 && failCount == 0) {
-        ShortMessage.toast(
-            title: successCount == 1
-                ? "Curriculum Added Successfully"
-                : "$successCount Curriculum Added Successfully");
-      } else if (successCount > 0 && failCount > 0) {
-        ShortMessage.toast(
-            title: "$successCount added, $failCount failed. Check and retry.");
-      } else {
-        ShortMessage.toast(title: "Failed to add curriculum. Please try again.");
-      }
-
-      if (successCount > 0) {
+      if (ok) {
+        ShortMessage.toast(title: "Curriculum Added Successfully");
         resetForm();
         await fetchCurriculum();
         Get.back();
+      } else {
+        ShortMessage.toast(title: "Failed to add curriculum. Please try again.");
       }
     } finally {
       isSubmitting(false);
@@ -546,24 +531,10 @@ class CurriculumController extends GetxController {
     }
   }
 
-  /// Helper: posts ONE curriculum for one class+section combination.
+  /// Helper: posts ONE curriculum entry carrying ALL selected classes & sections
+  /// as arrays (ClassId[0], ClassId[1]... / SectionId[0], SectionId[1]...).
   /// Returns true on success (statusCode 200 AND isSuccess == true), false otherwise.
-  Future<bool> _postSingleCurriculum({
-    required ListDataa classItem,
-    required ListDatta sectionItem,
-    required String sessionValue,
-  }) async {
-    final classId = classItem.classId?.toString() ?? '';
-    final sectionId = sectionItem.sectionId?.toString() ?? '';
-    final className = classItem.className ?? '';
-    final sectionName = sectionItem.section ?? '';
-
-    if (classId.isEmpty || sectionId.isEmpty) {
-      debugPrint(
-          '⚠️ Skipped (invalid ids) -> Class:$classId Section:$sectionId');
-      return false;
-    }
-
+  Future<bool> _postCurriculum({required String sessionValue}) async {
     try {
       final url = Uri.parse('${AppUrl.base_url}api/MasterApp/PostCurriculum');
       final request = http.MultipartRequest('POST', url);
@@ -574,20 +545,39 @@ class CurriculumController extends GetxController {
           ? pickedFileName.substring(0, pickedFileName.lastIndexOf('.'))
           : pickedFileName;
 
+      final classNamesJoined =
+      selectedClasses.map((c) => c.className ?? '').join(', ');
+      final sectionNamesJoined =
+      selectedSections.map((s) => s.section ?? '').join(', ');
+
       request.fields.addAll({
         'CurriculumId': (editingCurriculumId.value ?? 0).toString(),
         'CurriculumName': curriculumName.value.trim(),
-        'ClassName': className,
-        'Section': sectionName,
-        'ClassId': classId,
-        'SectionId': sectionId,
+        'ClassName': classNamesJoined,
+        'Section': sectionNamesJoined,
         'Session': sessionValue,
         'Description': description.value.trim(),
         'SchoolId': schoolId,
         'Action': "1",
         'CreateBy': 'Admin',
         'PdfFileName': pdfLabel,
+        'UserId': loggedInUserId.isNotEmpty ? loggedInUserId : '0',
+        'RoleName': roleName.value,
       });
+
+      // 🆕 Arrays: ClassId[0], ClassId[1] ... / SectionId[0], SectionId[1] ...
+      for (int i = 0; i < selectedClasses.length; i++) {
+        final classId = selectedClasses[i].classId?.toString() ?? '';
+        if (classId.isNotEmpty) {
+          request.fields['ClassId[$i]'] = classId;
+        }
+      }
+      for (int i = 0; i < selectedSections.length; i++) {
+        final sectionId = selectedSections[i].sectionId?.toString() ?? '';
+        if (sectionId.isNotEmpty) {
+          request.fields['SectionId[$i]'] = sectionId;
+        }
+      }
 
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -602,7 +592,7 @@ class CurriculumController extends GetxController {
       }
 
       debugPrint(
-          "POST CURRICULUM -> Class:$classId ($className) Section:$sectionId ($sectionName)");
+          "POST CURRICULUM -> Classes:${selectedClasses.map((c) => c.classId).toList()} Sections:${selectedSections.map((s) => s.sectionId).toList()}");
 
       final streamed = await request.send();
       final resBody = await streamed.stream.bytesToString();
@@ -615,21 +605,18 @@ class CurriculumController extends GetxController {
 
         final success = decoded['isSuccess'] == true;
         if (success) {
-          debugPrint(
-              '✅ Success (C:$classId S:$sectionId): ${decoded['messages'] ?? resBody}');
+          debugPrint('✅ Success: ${decoded['messages'] ?? resBody}');
           return true;
         } else {
-          debugPrint(
-              '❌ API returned failure (C:$classId S:$sectionId): ${decoded['messages'] ?? resBody}');
+          debugPrint('❌ API returned failure: ${decoded['messages'] ?? resBody}');
           return false;
         }
       } else {
-        debugPrint(
-            '❌ Error (C:$classId S:$sectionId): ${streamed.statusCode}, $resBody');
+        debugPrint('❌ Error: ${streamed.statusCode}, $resBody');
         return false;
       }
     } catch (e) {
-      debugPrint('⚠️ Exception (C:$classId S:$sectionId): $e');
+      debugPrint('⚠️ Exception in _postCurriculum: $e');
       return false;
     }
   }
@@ -658,15 +645,13 @@ class CurriculumController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        // API returns a plain array — parsed here in case you need
-        // the immediate updated record, otherwise we just refetch below.
         try {
           CurriculumStatusModel.fromJson(jsonDecode(response.body));
         } catch (_) {}
 
         ShortMessage.toast(title: "Status updated successfully");
 
-        // refresh list via ViewCurriculum/{schoolId}/{session}
+        // refresh list via ViewCurriculum
         await fetchCurriculum();
       } else {
         Get.snackbar(

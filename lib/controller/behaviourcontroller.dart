@@ -68,6 +68,16 @@ class Behaviourcontroller extends GetxController {
   var schoolId = "".obs;
   var session = "".obs;
 
+  // 🆕 NEW: post chal raha hai ya nahi (double tap rokne ke liye)
+  var isPosting = false.obs;
+
+  // 🆕 NEW: last post error message (agar chahiye to snackbar me dikha sakte ho)
+  String lastError = "";
+
+  // 🆕 NEW: userId + roleName (GET aur POST dono me chahiye)
+  var userId = "".obs;
+  var roleName = "".obs;
+
   var isStaffLogin = false.obs;
   var isClassTeacherLogin = false.obs;
   var classTeacherList = <ClassTeacherFilterData>[].obs;
@@ -103,30 +113,42 @@ class Behaviourcontroller extends GetxController {
     schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     session.value = await PrefManager().readValue(key: PrefConst.session) ?? "";
 
+    // 🆕 NEW: userId + roleName prefs se (API ko original value chahiye,
+    // lowercase nahi)
+    userId.value = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
+    final rawRole = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+        .toString()
+        .trim();
+    roleName.value = rawRole;
+
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
     // (identical detection to NotificationController.onInit).
-    final role =
-    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
-        .toString()
-        .trim()
-        .toLowerCase();
+    final role = rawRole.toLowerCase();
     isStaffLogin.value = role == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
+    // 🆕 Activity list parallel me load hone do — classes ko block na kare
+    fetchActivityList(); // Load view activity on screen open
+
     if (isStaffLogin.value) {
       // 🟢 STAFF — direct staff API
-      fetchClasses();
+      await fetchClasses();
     } else {
       // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class
       await fetchClassTeacherFilter();
-      fetchClasses();
+      await fetchClasses(); // 🆕 await added
     }
-
-    fetchActivityList(); // Load view activity on screen open
 
     // ── NOTE: students are no longer fetched unconditionally here.
     // Student list now depends on the selected Student Type — see
     // onTypeChanged(). ──
+  }
+
+  // 🆕 NEW: classId ke basis pe duplicate classes hatata hai
+  // (ClassTeacher API ne LKG 2 baar bheja tha)
+  List<ListDataa> _dedupeClasses(List<ListDataa> input) {
+    final seen = <Object?>{};
+    return input.where((c) => seen.add(c.classId)).toList();
   }
 
   // 🆕 3-way class fetch: Staff -> existing ViewClass API | Class Teacher ->
@@ -144,7 +166,7 @@ class Behaviourcontroller extends GetxController {
     // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
     if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
       try {
-        listDataa.value = classTeacherList.map((e) {
+        final mapped = classTeacherList.map((e) {
           return ListDataa.fromJson({
             'classId': e.classId,
             'class': e.className,
@@ -158,9 +180,15 @@ class Behaviourcontroller extends GetxController {
             'sqno': e.sqno,
           });
         }).toList();
+        // 🆕 duplicates hatao
+        listDataa.value = _dedupeClasses(mapped);
       } catch (e) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         listDataa.value = [];
+      } finally {
+        // 🆕 FIX: loader band karna zaroori hai (pehle yahan missing tha,
+        // isliye chips ki jagah loader ghumta rehta tha)
+        isLoading(false);
       }
 
       // Reset selection so dropdown/chips show a clean state.
@@ -201,7 +229,9 @@ class Behaviourcontroller extends GetxController {
         final jsonResponse = jsonDecode(response.body);
         final data = jsonResponse['data'] as List<dynamic>? ?? [];
 
-        listDataa.value = data.map((e) => ListDataa.fromJson(e)).toList();
+        // 🆕 duplicates hatao
+        listDataa.value =
+            _dedupeClasses(data.map((e) => ListDataa.fromJson(e)).toList());
       } else {
         listDataa.value = [];
       }
@@ -235,9 +265,10 @@ class Behaviourcontroller extends GetxController {
         final parsed = ClassItem.fromJson(jsonDecode(res.body));
 
         // Filter the listData to include only classes where action == "1"
-        listDataa.value = parsed.listData
+        // 🆕 + duplicates hatao
+        listDataa.value = _dedupeClasses(parsed.listData
             ?.where((e) => e.action == "1")
-            .toList() ?? [];
+            .toList() ?? []);
       } else {
         listDataa.value = [];
       }
@@ -339,6 +370,9 @@ class Behaviourcontroller extends GetxController {
   // onChanged: resets students/classes and fetches the right list) ──
   // -----------------------
   void onTypeChanged(String value) {
+    // 🆕 Same type dobara select hua aur data already loaded hai → skip
+    if (selecttype.value == value && _allStudents.isNotEmpty) return;
+
     selecttype.value = value;
 
     // Reset student & class selection whenever type changes
@@ -354,7 +388,7 @@ class Behaviourcontroller extends GetxController {
     } else {
       // Pre School — class list should already be loaded from onInit,
       // but refresh in case it hasn't loaded yet / school changed.
-      if (listDataa.isEmpty) {
+      if (listDataa.isEmpty && !isLoading.value) {
         fetchClasses();
       }
       fetchStudents();
@@ -500,14 +534,18 @@ class Behaviourcontroller extends GetxController {
 
   // -----------------------
   // FETCH ALL ACTIVITIES (VIEW ACTIVITY)
+  // 🆕 UPDATED URL: ...GetAllBehaviourAsyncApp?schoolId=..&session=..&UserId=..&RoleName=..
   // -----------------------
   Future<void> fetchActivityList() async {
     final url =
-        "https://playschool.edubloom.in/api/DailyActiviesApp/GetAllBehaviourAsyncApp?schoolId=${schoolId.value}&session=${session.value}";
+        "https://playschool.edubloom.in/api/DailyActiviesApp/GetAllBehaviourAsyncApp"
+        "?schoolId=${schoolId.value}&session=${session.value}"
+        "&UserId=${userId.value}&RoleName=${roleName.value}";
 
     debugPrint("Fetching All Activities: $url");
 
     final res = await http.get(Uri.parse(url));
+    debugPrint("Behaviour GET STATUS: ${res.statusCode}");
 
     if (res.statusCode == 200) {
       final jsonBody = jsonDecode(res.body);
@@ -553,59 +591,122 @@ class Behaviourcontroller extends GetxController {
     _applyClassFilter();
   }
 
+  // 🆕 NEW: "hh:mm a" (e.g. "10:00 AM") ko 24-hour "HH:mm" (e.g. "10:00")
+  // me convert karta hai, jaisa API body me expected hai.
+  String _to24h(String timeStr) {
+    try {
+      final parsed = DateFormat("hh:mm a").parse(timeStr);
+      return DateFormat("HH:mm").format(parsed);
+    } catch (e) {
+      debugPrint("⚠️ Time parse failed for '$timeStr' => $e");
+      return timeStr;
+    }
+  }
+
   // -----------------------
 
-// ==========================
-// SEND ACTIVITY TO API (Multiple Student IDs)
-// ==========================
+
   Future<bool> postActivityToApi(List<int> studentIds) async {
+    if (isPosting.value) return false; // already chal raha hai
+    isPosting.value = true;
+    lastError = "";
+
+    // 🆕 UPDATED URL (test server)
     const url = "https://playschool.edubloom.in/api/DailyActiviesApp/PostBehaviourApp";
 
     bool allSuccess = true;  // Track if all requests are successful
 
-    for (int studentId in studentIds) {
-      final body = {
-        "behaviourId": 0,
-        "behaviour": activityController.text,
-        "fromTime": fromTime.value,
-        "toTime": toTime.value,
-        "action": "1",
-        "createDate": DateTime.now().toIso8601String(),
-        "updateDate": DateTime.now().toIso8601String(),
-        "createBy": "admin",
-        "updateBy": "admin",
-        "schoolId": schoolId.value,
-        "studentId": studentId,
-        "admissionNo": "",
-        "startTime": fromTime.value,
-        "endTime": toTime.value,
-        "session": session.value
-      };
+    try {
+      // 🆕 24-hour "HH:mm" format (API body me yahi expected hai)
+      final from24 = _to24h(fromTime.value);
+      final to24 = _to24h(toTime.value);
 
-      try {
-        final res = await http.post(
-          Uri.parse(url),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(body),
-        );
+      final nowIso = DateTime.now().toUtc().toIso8601String();
 
-        if (res.statusCode == 200) {
-          debugPrint("✔ Behaviour posted for student $studentId");
-        } else {
-          debugPrint("❌ Failed for student $studentId → ${res.body}");
-          allSuccess = false;  // Set false if any request fails
+      for (int studentId in studentIds) {
+        final body = {
+          "behaviourId": 0,
+          "behaviour": activityController.text,
+          "fromTime": from24,
+          "toTime": to24,
+          "action": "1",
+          "createDate": nowIso,
+          "updateDate": nowIso,
+          "createBy": "",
+          "updateBy": "",
+          "schoolId": schoolId.value,
+          "studentId": studentId,
+          "admissionNo": "",
+          "startTime": from24,
+          "endTime": to24,
+          "session": session.value,
+          "userId": int.tryParse(userId.value) ?? 0,   // 🆕 NEW
+          "roleName": roleName.value                   // 🆕 NEW
+        };
+
+        bool studentOk = false;
+
+        // 🆕 max 2 attempts per student
+        for (int attempt = 1; attempt <= 2; attempt++) {
+          debugPrint("📤 POST Behaviour (attempt $attempt) => $url");
+          debugPrint("📦 Body => ${jsonEncode(body)}");
+
+          try {
+            final res = await http.post(
+              Uri.parse(url),
+              headers: {"Content-Type": "application/json"},
+              body: jsonEncode(body),
+            );
+
+            debugPrint("Behaviour POST STATUS: ${res.statusCode}");
+            debugPrint("Behaviour POST BODY: ${res.body}");
+
+            if (res.statusCode == 200) {
+              Map<String, dynamic>? json;
+              try {
+                json = jsonDecode(res.body) as Map<String, dynamic>;
+              } catch (_) {
+                json = null;
+              }
+
+              final code = json?['statusCode'];
+              // success: body nahi mila / isSuccess != false / 409 duplicate
+              final ok = json == null ||
+                  json['isSuccess'] != false ||
+                  code == 409;
+
+              if (ok) {
+                debugPrint("✔ Behaviour posted for student $studentId");
+                studentOk = true;
+              } else {
+                // server ne clearly reject kiya (validation etc.) — retry nahi
+                lastError = json['messages']?.toString() ?? "";
+                debugPrint("❌ Rejected for student $studentId → $lastError");
+              }
+              break;
+            } else {
+              // 500 etc. → retry
+              lastError = "Server error ${res.statusCode}";
+              debugPrint("❌ Failed for student $studentId → ${res.body}");
+            }
+          } catch (e) {
+            lastError = e.toString();
+            debugPrint("❌ Exception while posting for student $studentId → $e");
+          }
         }
-      } catch (e) {
-        debugPrint("❌ Exception while posting for student $studentId → $e");
-        allSuccess = false;  // Set false if any request fails
+
+        if (!studentOk) {
+          allSuccess = false;  // Set false if any student failed
+        }
       }
-    }
 
-
-    if (allSuccess) {
-      await fetchActivityList();
-      resetForm();
-      Get.offNamed(RouteName.behaviour);
+      if (allSuccess) {
+        await fetchActivityList();
+        resetForm();
+        Get.offNamed(RouteName.behaviour);
+      }
+    } finally {
+      isPosting.value = false;
     }
 
     return allSuccess;  // Return true if all requests were successful

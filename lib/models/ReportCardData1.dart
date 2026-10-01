@@ -15,6 +15,9 @@ class ReportCardData1 {
   final String session;
   final String? schoolId;
   final String? createBy;
+  final int? userId; // 🆕
+  final String? roleName; // 🆕
+
 
   ReportCardData1({
     required this.id,
@@ -33,6 +36,8 @@ class ReportCardData1 {
     required this.session,
     this.schoolId,
     this.createBy,
+    this.userId, // 🆕
+    this.roleName, // 🆕
   });
 
   factory ReportCardData1.fromJson(Map<String, dynamic> json) {
@@ -53,6 +58,8 @@ class ReportCardData1 {
       session: json['session'] as String,
       schoolId: json['schoolId'] as String?,
       createBy: json['createBy'] as String?,
+      userId: json['userId'] as int?, // 🆕
+      roleName: json['roleName'] as String?, // 🆕
     );
   }
 
@@ -73,6 +80,8 @@ class ReportCardData1 {
     'session': session,
     'schoolId': schoolId,
     'createBy': createBy,
+    'userId': userId, // 🆕
+    'roleName': roleName, // 🆕
   };
 
   static List<ReportCardData1> fromJsonList(List<dynamic> jsonList) {

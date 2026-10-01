@@ -24,6 +24,7 @@ import '../../binding/add_products_binding.dart';
 import '../../binding/addroutemasterbinding.dart';
 import '../../binding/addstudentbinding.dart';
 import '../../binding/addstudentdaycarebinding.dart';
+import '../../binding/all teachers attendance binding.dart';
 import '../../binding/all_fee_report_binding.dart';
 import '../../binding/appdrawer_screen_binding.dart';
 import '../../binding/behaviourbinding.dart';
@@ -136,6 +137,7 @@ import '../../pages/add_products_screen.dart';
 import '../../pages/adddaycarestudentview.dart';
 import '../../pages/addroutemasterscreen.dart';
 import '../../pages/addstudentmaster.dart';
+import '../../pages/all teachers attendance take screen.dart';
 import '../../pages/all_fee_report_screen.dart';
 import '../../pages/attendance_details_day_care_view.dart';
 import '../../pages/behaviourview.dart';
@@ -443,6 +445,14 @@ class AppRoutes {
       page: () => AttendanceDetailsDayCareView(),
       transition: Transition.rightToLeft,
       binding: AttendanceDetailsDayCareBinding(),
+    ),
+
+
+    GetPage(
+      name: RouteName.teacherAttendance2,
+      page: () =>  TeacherAttendanceView2(),
+      transition: Transition.rightToLeft,
+      binding: TeacherAttendanceBinding2(),
     ),
 
 

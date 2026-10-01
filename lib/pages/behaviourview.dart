@@ -692,7 +692,8 @@ Widget _classMultiSelect(Behaviourcontroller controller) {
   return SizedBox(
     height: 42.h,
     child: Obx(() {
-      if (controller.isLoading.value) {
+      // 🆕 FIX: loader sirf tab dikhao jab list khaali ho aur load chal raha ho
+      if (controller.isLoading.value && controller.listDataa.isEmpty) {
         return const Center(child: CircularProgressIndicator());
       }
       if (controller.listDataa.isEmpty) {
@@ -952,6 +953,9 @@ Widget _submitButton(Behaviourcontroller controller) {
     height: 50,
     child: ElevatedButton.icon(
       onPressed: () async {
+        // 🆕 Double tap block — post already chal raha hai
+        if (controller.isPosting.value) return;
+
         // ✅ Same validation style as Meal — block if no student
         // selected before hitting the API.
         if (controller.selectedStudentIds.isEmpty) {

@@ -29,6 +29,10 @@ class Activitycontroller extends GetxController {
   var schoolId = "".obs;
   var session = "".obs;
 
+  // 🆕 NEW: userId + roleName (GET aur POST dono me chahiye)
+  var userId = "".obs;
+  var roleName = "".obs;
+
   // -----------------------
   // VIEW ACTIVITY LIST
   // -----------------------
@@ -55,6 +59,8 @@ class Activitycontroller extends GetxController {
     super.onInit();
     schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     session.value  = await PrefManager().readValue(key: PrefConst.session)  ?? "";
+    userId.value   = await PrefManager().readValue(key: PrefConst.Userid)   ?? "";
+    roleName.value = await PrefManager().readValue(key: PrefConst.RName) ?? "";
     fetchActivityList();
   }
 
@@ -152,14 +158,18 @@ class Activitycontroller extends GetxController {
 
   // -----------------------
   // FETCH ALL ACTIVITIES
+  // 🆕 UPDATED URL: .../GetAllDailyActivityAsynsApp/{schoolId}/{session}/{userId}/{roleName}
   // -----------------------
   Future<void> fetchActivityList() async {
     final url =
         "https://playschool.edubloom.in/api/DailyActiviesApp/GetAllDailyActivityAsynsApp"
-        "/${schoolId.value}/${session.value}";
+        "/${schoolId.value}/${session.value}/${userId.value}/${roleName.value}";
+
+    debugPrint("📥 GET Activities => $url");
 
     try {
       final res = await http.get(Uri.parse(url));
+      debugPrint("GET STATUS: ${res.statusCode}");
       if (res.statusCode == 200) {
         final jsonBody = jsonDecode(res.body);
         if (jsonBody["data"] != null) {
@@ -256,45 +266,44 @@ class Activitycontroller extends GetxController {
       return false;
     }
 
+    // 🆕 UPDATED URL (test server)
     const url =
         "https://playschool.edubloom.in/api/DailyActiviesApp/PostActivitiesApp";
 
-    // ── Combine today's date with the picked "hh:mm a" time so
-    // fromTime/toTime match the working format seen in GET response
-    // (e.g. "2026-09-09T07:55:00") instead of a bare "06:53 AM" string. ──
-    DateTime? _combineTodayWithTime(String timeStr) {
+    // ── 🆕 "hh:mm a" (e.g. "10:00 AM") ko 24-hour "HH:mm" (e.g. "10:00")
+    // me convert karo, jaisa API body me expected hai. ──
+    String _to24h(String timeStr) {
       try {
         final parsed = DateFormat("hh:mm a").parse(timeStr);
-        final now = DateTime.now();
-        return DateTime(now.year, now.month, now.day, parsed.hour, parsed.minute);
+        return DateFormat("HH:mm").format(parsed);
       } catch (e) {
         debugPrint("⚠️ Time parse failed for '$timeStr' => $e");
-        return null;
+        return timeStr;
       }
     }
 
-    final fromDateTime = _combineTodayWithTime(fromTime.value);
-    final toDateTime = _combineTodayWithTime(toTime.value);
+    final from24 = _to24h(fromTime.value);
+    final to24 = _to24h(toTime.value);
 
-    final nowIso = DateTime.now().toIso8601String(); // matches existing records (no Z)
+    final nowIso = DateTime.now().toUtc().toIso8601String();
 
-    // ✅ studentId sent as a LIST — this is what the backend model
-    // binder actually expects (confirmed by the earlier 400 error:
-    // "could not be converted to List<Int32>").
+    // ✅ studentId sent as a LIST — backend List<int> expect karta hai.
     final body = {
       "activityId": 0,
       "activity": activityController.text.trim(),
-      "fromTime": fromDateTime?.toIso8601String() ?? fromTime.value,
-      "toTime": toDateTime?.toIso8601String() ?? toTime.value,
+      "fromTime": from24,
+      "toTime": to24,
       "action": "1",
       "createDate": nowIso,
       "updateDate": nowIso,
-      "createBy": "admin",
-      "updateBy": "admin",
+      "createBy": "",
+      "updateBy": "",
       "schoolId": schoolId.value,
-      "studentId": studentIds,          // ✅ List<int>, single batched call
-      "startTime": fromTime.value,      // keep original "hh:mm a" display strings too
-      "endTime": toTime.value,
+      "studentId": studentIds,                       // ✅ List<int>
+      "userId": int.tryParse(userId.value) ?? 0,     // 🆕 NEW
+      "roleName": roleName.value,                    // 🆕 NEW
+      "startTime": from24,
+      "endTime": to24,
       "session": session.value,
     };
 

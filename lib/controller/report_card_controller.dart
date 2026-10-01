@@ -63,6 +63,7 @@ class ReportCardController extends GetxController {
   String token = "";
   String schoolId = "";
   String userId = "";
+  String roleName = ""; // 🆕 raw role name (e.g. "Teacher") — ReportCard API URL ke liye
 
   // 🆕 Class Teacher filter
   var classTeacherList = <ClassTeacherFilterData>[].obs;
@@ -102,14 +103,16 @@ class ReportCardController extends GetxController {
   String get _sectionStaffUrl =>
       '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
 
-  // ViewStudentRePortCard/{classId}/{session}/{term}/{schoolId}/{sectionId}
+  // ViewStudentRePortCard/{classId}/{session}/{term}/{schoolId}/{sectionId}/{userId}/{roleName}
   String get _reportCardUrl {
     final classId = selectedClass.value?.classId ?? 0;
     final sectionId = selectedSection.value?.sectionId ?? 0;
     final termVal = Uri.encodeComponent(selectedTerm.value?.term ?? "");
     final sessionVal = Uri.encodeComponent(session.value);
+    final userIdVal = Uri.encodeComponent(userId); // 🆕
+    final roleVal = Uri.encodeComponent(roleName); // 🆕
     return '${AppUrl
-        .base_url}api/Result/ViewStudentRePortCard/$classId/$sessionVal/$termVal/$schoolId/$sectionId';
+        .base_url}api/Result/ViewStudentRePortCard/$classId/$sessionVal/$termVal/$schoolId/$sectionId/$userIdVal/$roleVal';
   }
 
   Map<String, String> get _headers =>
@@ -172,11 +175,12 @@ class ReportCardController extends GetxController {
         await PrefManager().readValue(key: PrefConst.Userid) ?? ""; // ✅ naya
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
-    final role =
-    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
-        .toString()
-        .trim()
-        .toLowerCase();
+    // 🆕 raw role name alag se save (ReportCard URL me roleName ke liye)
+    roleName =
+        ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+            .toString()
+            .trim();
+    final role = roleName.toLowerCase();
     isStaffLogin.value = role == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
@@ -494,7 +498,7 @@ class ReportCardController extends GetxController {
 
   // =========================
   // SEARCH REPORT CARDS
-  // API: ViewStudentRePortCard/{classId}/{session}/{term}/{schoolId}/{sectionId}
+  // API: ViewStudentRePortCard/{classId}/{session}/{term}/{schoolId}/{sectionId}/{userId}/{roleName}
   // =========================
   Future<void> searchReportCards() async {
     if (selectedClass.value == null) {
