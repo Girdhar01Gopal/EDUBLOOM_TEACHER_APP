@@ -152,8 +152,8 @@ class ViewTeacherAttendanceController extends GetxController {
   }
 
   List<ViewTeacherAttendanceItem> _mergeByReg(
-    List<ViewTeacherAttendanceItem> raw,
-  ) {
+      List<ViewTeacherAttendanceItem> raw,
+      ) {
     // key = "teacherReg_name"
     final Map<String, ViewTeacherAttendanceItem> firstItem = {};
     final Map<String, Map<int, String?>> statusAcc = {};
@@ -192,6 +192,21 @@ class ViewTeacherAttendanceController extends GetxController {
             inAddrAcc[key]![d] = thisInAddr;
             outAddrAcc[key]![d] = thisOutAddr;
           }
+        }
+      }
+    }
+
+    // Beete hue working day (aaj ko chhodkar) jo mark nahi hua = Absent
+    final daysInMonth = daysInSelectedMonth;
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+    for (final k in firstItem.keys) {
+      for (int d = 1; d <= daysInMonth; d++) {
+        final date = DateTime(selectedYear.value, monthIndex, d);
+        if (date.weekday != DateTime.sunday &&
+            date.isBefore(todayDateOnly) &&
+            !statusAcc[k]!.containsKey(d)) {
+          statusAcc[k]![d] = "Absent";
         }
       }
     }
