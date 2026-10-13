@@ -190,7 +190,31 @@ class ViewStaffAttendanceController extends GetxController {
       }
     }
 
-    return map.values.toList();
+    // ✅ NEW: Beete hue working day (aaj ko chhodkar) jo mark nahi hua = Absent
+    final daysInMonth = daysInSelectedMonth;
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+
+    final List<StaffAttendanceView> result = [];
+    for (final item in map.values) {
+      final newDays = Map<String, String?>.from(item.attendanceDays);
+      bool changed = false;
+
+      for (int d = 1; d <= daysInMonth; d++) {
+        final date = DateTime(selectedYear.value, monthIndex, d);
+        if (date.weekday != DateTime.sunday && date.isBefore(todayDateOnly)) {
+          final s = newDays['day$d'];
+          if (s == null || s.trim().isEmpty) {
+            newDays['day$d'] = "Absent";
+            changed = true;
+          }
+        }
+      }
+
+      result.add(changed ? item.copyWith(attendanceDays: newDays) : item);
+    }
+
+    return result;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import '../../binding/activitybinding.dart';
 import '../../binding/add_discount_binding.dart';
 import '../../binding/add_expenses_binding.dart';
 import '../../binding/add_products_binding.dart';
+import '../../binding/addholdaycalenderbinding.dart';
 import '../../binding/addroutemasterbinding.dart';
 import '../../binding/addstudentbinding.dart';
 import '../../binding/addstudentdaycarebinding.dart';
@@ -135,6 +136,7 @@ import '../../pages/add_discount_screen.dart';
 import '../../pages/add_expenses.dart';
 import '../../pages/add_products_screen.dart';
 import '../../pages/adddaycarestudentview.dart';
+import '../../pages/addholidaycalender.dart';
 import '../../pages/addroutemasterscreen.dart';
 import '../../pages/addstudentmaster.dart';
 import '../../pages/all teachers attendance take screen.dart';
@@ -764,6 +766,14 @@ GetPage(
       transition: Transition.rightToLeft,
       binding: Viewstaffattendance(),
     ),
+
+    GetPage(
+      name: RouteName.holidayCalendar,
+      page: () => AddHolidayCalendarScreen(),
+      transition: Transition.rightToLeft,
+      binding: AddHolidayCalendarBinding(),
+    ),
+
 
     GetPage(
       name: RouteName.paymentmaster,

@@ -117,6 +117,14 @@ class ViewStaffAttendanceScreen
     return count;
   }
 
+  int _absentCountCalc(StaffAttendanceView staff, int daysInMonth) {
+    int count = 0;
+    for (int d = 1; d <= daysInMonth; d++) {
+      if (_isAbsent(staff.attendanceStatus(d))) count++;
+    }
+    return count;
+  }
+
   // ── Holiday helpers ──────────────────────────────────────────────────────
   // ✅ "Holiday" / "HOLIDAY" / "hold" / "H" sab handle honge
   bool _isHoliday(String? s) {
@@ -422,7 +430,7 @@ class ViewStaffAttendanceScreen
                                     ),
                                     Expanded(
                                       child: _statChip("Absent",
-                                          staff.absentCount, Colors.red),
+                                          _absentCountCalc(staff, days), Colors.red),
                                     ),
                                     Expanded(
                                       child: _statChip(

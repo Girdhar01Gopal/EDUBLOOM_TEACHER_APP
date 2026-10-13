@@ -33,6 +33,9 @@ class AttendanceController extends GetxController {
   var isLoading = false.obs;
   var isSubmitting = false.obs;
 
+  // ── NEW: Per-student saving state (for the small Save button on each card) ──
+  var savingStudentIds = <dynamic>{}.obs;
+
   // ── Search ─────────────────────────────────────────────────────────────────
   var isSearching = false.obs;
   var searchQuery = ''.obs;
@@ -681,6 +684,47 @@ class AttendanceController extends GetxController {
     } catch (e) {
       debugPrint("⚠️ Error saving [${student.studentID}]: $e");
       return false;
+    }
+  }
+
+  // ── NEW: Ek particular student ki attendance individually save karne ke liye ──
+  // Ye same _saveOneStudent() (same SaveAttendenceApp POST API) use karta hai,
+  // sirf iss student ke liye — baaki students ko touch nahi karta.
+  Future<void> saveSingleStudent(ListData student) async {
+    if (!_validateFilters()) return;
+
+    final id = student.studentID;
+
+    if (id != null) {
+      savingStudentIds.add(id);
+      savingStudentIds.refresh();
+    }
+
+    try {
+      final bool success = await _saveOneStudent(student);
+
+      if (success) {
+        _snack(
+          "Saved",
+          "${student.studentName ?? 'Student'}'s attendance (${student.action ?? 'Present'}) saved successfully ✓",
+          color: Colors.green.shade600,
+          icon: Icons.check_circle_outline,
+        );
+      } else {
+        _snack(
+          "Save Failed",
+          "Could not save attendance for ${student.studentName ?? 'this student'}. Please retry.",
+          color: Colors.red.shade600,
+          icon: Icons.error_outline,
+        );
+      }
+    } catch (e) {
+      _snack("Error", "Unexpected error: $e", color: Colors.red.shade600);
+    } finally {
+      if (id != null) {
+        savingStudentIds.remove(id);
+        savingStudentIds.refresh();
+      }
     }
   }
 

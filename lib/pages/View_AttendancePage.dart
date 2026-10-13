@@ -238,8 +238,9 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                     final s = filtered[index];
                     final monthId =
                         controller.selectedMonth.value?['id'] as int? ?? 1;
+                    // ✅ Year fix: session 2026-27 me Jan–Mar = 2027
+                    final int year = _yearForMonth(monthId);
                     final daysInMonth = _getDaysInMonth(monthId);
-                    final int year = controller.getYearFromSession();
                     final int firstWeekday =
                         DateTime(year, monthId, 1).weekday;
                     final int startOffset =
@@ -248,15 +249,24 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                     int presentCount = 0,
                         absentCount = 0,
                         halfDayCount = 0,
-                        weekoffCount = 0;
+                        weekoffCount = 0,
+                        holidayCount = 0;
 
                     for (int d = 1; d <= daysInMonth; d++) {
-                      final status =
-                      getNormalizedStatus(getDayStatus(s, d));
-                      if (status == "present") presentCount++;
-                      else if (status == "absent") absentCount++;
-                      else if (status == "halfday") halfDayCount++;
-                      else if (status == "weekoff") weekoffCount++;
+                      // ✅ Effective status: auto Absent / auto Holiday include
+                      final status = getNormalizedStatus(
+                          _effectiveStatus(s, d, year, monthId));
+                      if (status == "present") {
+                        presentCount++;
+                      } else if (status == "absent") {
+                        absentCount++;
+                      } else if (status == "halfday") {
+                        halfDayCount++;
+                      } else if (status == "weekoff") {
+                        weekoffCount++;
+                      } else if (status == "holiday") {
+                        holidayCount++;
+                      }
                     }
 
                     return Container(
@@ -342,6 +352,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                                     Colors.purple.shade400),
                                 _statChip(
                                     "Week Off", weekoffCount, Colors.blueGrey),
+                                _statChip(
+                                    "Holiday", holidayCount, Colors.orange),
                               ],
                             ),
                           ),
@@ -353,8 +365,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
 
                           Padding(
                             padding: const EdgeInsets.all(12),
-                            child: _buildCalendarGrid(
-                                context, s, daysInMonth, startOffset),
+                            child: _buildCalendarGrid(context, s, daysInMonth,
+                                startOffset, year, monthId),
                           ),
                         ],
                       ),
@@ -435,8 +447,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
     );
   }
 
-  Widget _buildCalendarGrid(
-      BuildContext context, student, int daysInMonth, int startOffset) {
+  Widget _buildCalendarGrid(BuildContext context, student, int daysInMonth,
+      int startOffset, int year, int monthId) {
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return Column(
@@ -474,16 +486,20 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
             if (i < startOffset) return const SizedBox.shrink();
 
             final day = i - startOffset + 1;
-            final rawStatus = getDayStatus(student, day);
+            final apiStatus = getDayStatus(student, day).trim();
+            // ✅ API status khaali ho to auto Absent / auto Holiday
+            final rawStatus = _effectiveStatus(student, day, year, monthId);
             final normalized = getNormalizedStatus(rawStatus);
             final code = getStatusCode(normalized);
             final color = getStatusColor(normalized);
             final hasAttendance = rawStatus.trim().isNotEmpty;
+            // true => ye status DB me nahi hai, sirf display ke liye hai
+            final isAuto = apiStatus.isEmpty && hasAttendance;
 
             return GestureDetector(
               onTap: hasAttendance
                   ? () => _showEditBottomSheet(
-                  context, student, day, normalized)
+                  context, student, day, normalized, isAuto, year, monthId)
                   : null,
               child: Container(
                 decoration: BoxDecoration(
@@ -525,8 +541,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
     );
   }
 
-  void _showEditBottomSheet(
-      BuildContext context, student, int day, String currentStatus) {
+  void _showEditBottomSheet(BuildContext context, student, int day,
+      String currentStatus, bool isAuto, int year, int monthId) {
     final List<Map<String, dynamic>> statuses = [
       {"label": "Present", "key": "Present", "color": Colors.green as Color},
       {"label": "Absent", "key": "Absent", "color": Colors.red as Color},
@@ -541,9 +557,6 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
         "color": Colors.blueGrey as Color,
       },
     ];
-
-    final monthId = controller.selectedMonth.value?['id'] as int? ?? 1;
-    final year = controller.getYearFromSession();
 
     showModalBottomSheet(
       context: context,
@@ -563,7 +576,9 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
               ),
               const SizedBox(height: 6),
               Text(
-                "Current: $currentStatus",
+                isAuto
+                    ? "Current: $currentStatus (auto, not saved)"
+                    : "Current: $currentStatus",
                 style:
                 TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
@@ -573,7 +588,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                   final String key = s["key"] as String;
                   final String label = s["label"] as String;
                   final Color color = s["color"] as Color;
-                  final bool isCurrent =
+                  // ✅ Auto status DB me nahi hai, isliye button disable nahi hoga
+                  final bool isCurrent = !isAuto &&
                       currentStatus.toLowerCase() == key.toLowerCase();
 
                   return Expanded(
@@ -583,7 +599,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                         onPressed: isCurrent
                             ? null
                             : () async {
-                          Get.back(); // ← fixed
+                          Get.back();
                           final ok = await controller.editAttendance(
                             studentId: student.studentID ?? 0,
                             status: key,
@@ -649,12 +665,38 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
     return id >= 1 && id <= 12 ? names[id] : '';
   }
 
+  // ✅ Year fix: session "2026-27" => Apr–Dec = 2026, Jan–Mar = 2027
+  int _yearForMonth(int monthId) {
+    final base = controller.getYearFromSession();
+    return monthId <= 3 ? base + 1 : base;
+  }
+
+  // ✅ Effective status (teacher attendance jaisa logic)
+  // 1) API ne status diya => wahi
+  // 2) khaali + Sunday => Holiday
+  // 3) khaali + beeta hua din (aaj nahi) => Absent
+  // 4) baaki => khaali (N/A)
+  String _effectiveStatus(student, int day, int year, int monthId) {
+    final raw = getDayStatus(student, day).trim();
+    if (raw.isNotEmpty) return raw;
+
+    final date = DateTime(year, monthId, day);
+    if (date.weekday == DateTime.sunday) return "Holiday";
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (date.isBefore(today)) return "Absent";
+
+    return "";
+  }
+
   String getNormalizedStatus(String raw) {
     final lower = raw.trim().toLowerCase();
     if (lower == "present") return "present";
     if (lower == "absent") return "absent";
     if (lower == "halfday" || lower == "half day") return "halfday";
     if (lower == "weekoff" || lower == "week off") return "weekoff";
+    if (lower == "holiday") return "holiday";
     return lower;
   }
 
@@ -668,6 +710,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
         return "H/D";
       case "weekoff":
         return "W/O";
+      case "holiday":
+        return "H";
       default:
         return "";
     }
@@ -683,28 +727,29 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
         return Colors.purple.shade400;
       case "weekoff":
         return Colors.blueGrey;
+      case "holiday":
+        return Colors.orange;
       default:
         return Colors.grey.shade400;
     }
   }
 
   int _getDaysInMonth(int monthId) {
-    final year = controller.getYearFromSession();
+    final year = _yearForMonth(monthId);
     return DateTime(year, monthId + 1, 0).day;
   }
 
   Widget _buildLegend() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 4,
       children: [
         _legendDot(Colors.green, "Present"),
-        const SizedBox(width: 10),
         _legendDot(Colors.red, "Absent"),
-        const SizedBox(width: 10),
         _legendDot(Colors.purple.shade400, "Half Day"),
-        const SizedBox(width: 10),
         _legendDot(Colors.blueGrey, "Week Off"),
-        const SizedBox(width: 10),
+        _legendDot(Colors.orange, "Holiday"),
         _legendDot(Colors.grey, "N/A"),
       ],
     );
@@ -712,6 +757,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
 
   Widget _legendDot(Color color, String label) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 10,

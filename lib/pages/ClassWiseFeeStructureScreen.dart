@@ -17,17 +17,45 @@ class ClassWiseFeeStructureScreen extends GetView<ClassWiseFeeStructureControlle
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: Get.back,
         ),
-        title: Text(
+        title: Obx(() => controller.isSearching.value
+            ? TextField(
+          controller: controller.searchTextController,
+          autofocus: true,
+          cursorColor: Colors.white,
+          style: TextStyle(fontSize: 16.sp, color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Search class name...",
+            hintStyle: TextStyle(color: Colors.white70),
+            border: InputBorder.none,
+          ),
+          onChanged: (v) => controller.searchQuery.value = v,
+        )
+            : Text(
           "Class Wise Fee Structure",
           style: TextStyle(
             fontSize: 20.sp,
             color: Colors.white,
             fontWeight: FontWeight.w800,
           ),
-        ),
+        )),
         centerTitle: true,
         backgroundColor: teal,
         elevation: 4,
+        actions: [
+          Obx(() => IconButton(
+            icon: Icon(
+              controller.isSearching.value ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
+            onPressed: controller.toggleSearch,
+          )),
+          // CHANGED: AppBar share -> complete data
+          IconButton(
+            tooltip: "Share all classes",
+            icon: const Icon(Icons.share, color: Colors.white),
+            onPressed: controller.shareAllFeeStructure,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
@@ -88,6 +116,8 @@ class ClassWiseFeeStructureScreen extends GetView<ClassWiseFeeStructureControlle
                 );
               }
 
+              final ids = controller.rowClassIds;
+
               return Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -109,9 +139,15 @@ class ClassWiseFeeStructureScreen extends GetView<ClassWiseFeeStructureControlle
                       DataColumn(label: Text("Fee Type")),
                       DataColumn(label: Text("Fees Duration")),
                       DataColumn(label: Text("Amount")),
+                      // NEW: per-class share column
+                      DataColumn(label: Text("Share")),
                     ],
                     rows: [
-                      ...controller.tableRows.map((r) {
+                      ...controller.tableRows.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final r = entry.value;
+                        final classId = i < ids.length ? ids[i] : null;
+
                         return DataRow(
                           cells: [
                             DataCell(Text(r.sno)),
@@ -119,6 +155,20 @@ class ClassWiseFeeStructureScreen extends GetView<ClassWiseFeeStructureControlle
                             DataCell(Text(r.feeType)),
                             DataCell(Text(r.feeDuration)),
                             DataCell(Text(r.amount)),
+                            // NEW: sirf class ki pehli row par share icon
+                            DataCell(
+                              classId == null
+                                  ? const SizedBox.shrink()
+                                  : IconButton(
+                                tooltip: "Share this class",
+                                icon: const Icon(
+                                  Icons.share,
+                                  color: Colors.green,
+                                ),
+                                onPressed: () => controller
+                                    .shareClassFeeStructure(classId),
+                              ),
+                            ),
                           ],
                         );
                       }),
@@ -139,6 +189,7 @@ class ClassWiseFeeStructureScreen extends GetView<ClassWiseFeeStructureControlle
                                 : controller.grandTotal.toString(),
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           )),
+                          const DataCell(Text("")),
                         ],
                       ),
                     ],

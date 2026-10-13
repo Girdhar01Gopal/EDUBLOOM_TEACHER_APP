@@ -200,19 +200,28 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
                     final s = filtered[index];
                     final monthId =
                         controller.selectedMonth.value?['id'] as int? ?? 1;
+                    // ✅ Year fix: session 2026-27 me Jan–Mar = 2027
+                    final int year = _yearForMonth(monthId);
                     final daysInMonth = _getDaysInMonth(monthId);
-                    final int year = _getYearFromSession();
                     final int firstWeekday =
                         DateTime(year, monthId, 1).weekday;
                     final int startOffset =
                     firstWeekday == 7 ? 0 : firstWeekday;
 
-                    int presentCount = 0, absentCount = 0;
+                    int presentCount = 0,
+                        absentCount = 0,
+                        holidayCount = 0;
                     for (int d = 1; d <= daysInMonth; d++) {
-                      final normalized =
-                      getNormalizedStatus(getDayStatus(s, d));
-                      if (normalized == "present") presentCount++;
-                      else if (normalized == "absent") absentCount++;
+                      // ✅ Effective status: auto Absent / auto Holiday include
+                      final normalized = getNormalizedStatus(
+                          _effectiveStatus(s, d, year, monthId));
+                      if (normalized == "present") {
+                        presentCount++;
+                      } else if (normalized == "absent") {
+                        absentCount++;
+                      } else if (normalized == "holiday") {
+                        holidayCount++;
+                      }
                     }
 
                     return Container(
@@ -301,6 +310,8 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
                                     Colors.green),
                                 _statChip(
                                     "Absent", absentCount, Colors.red),
+                                _statChip(
+                                    "Holiday", holidayCount, Colors.orange),
                               ],
                             ),
                           ),
@@ -314,7 +325,7 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: _buildCalendarGrid(
-                                s, daysInMonth, startOffset),
+                                s, daysInMonth, startOffset, year, monthId),
                           ),
                         ],
                       ),
@@ -399,7 +410,8 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
   }
 
   /// ─── Calendar Grid ────────────────────────────────────────────────────────
-  Widget _buildCalendarGrid(student, int daysInMonth, int startOffset) {
+  Widget _buildCalendarGrid(student, int daysInMonth, int startOffset,
+      int year, int monthId) {
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return Column(
@@ -438,7 +450,8 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
             if (i < startOffset) return const SizedBox.shrink();
 
             final day = i - startOffset + 1;
-            final raw = getDayStatus(student, day);
+            // ✅ API status khaali ho to auto Absent / auto Holiday
+            final raw = _effectiveStatus(student, day, year, monthId);
             final normalized = getNormalizedStatus(raw);
             final code = getStatusCode(normalized);
             final color = getStatusColor(normalized);
@@ -483,10 +496,36 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
     );
   }
 
+  // ✅ Year fix: session "2026-27" => Apr–Dec = 2026, Jan–Mar = 2027
+  int _yearForMonth(int monthId) {
+    final base = _getYearFromSession();
+    return monthId <= 3 ? base + 1 : base;
+  }
+
+  // ✅ Effective status (normal attendance jaisa logic)
+  // 1) API ne status diya => wahi
+  // 2) khaali + Sunday => Holiday
+  // 3) khaali + beeta hua din (aaj nahi) => Absent
+  // 4) baaki => khaali (N/A)
+  String _effectiveStatus(student, int day, int year, int monthId) {
+    final raw = getDayStatus(student, day).trim();
+    if (raw.isNotEmpty) return raw;
+
+    final date = DateTime(year, monthId, day);
+    if (date.weekday == DateTime.sunday) return "Holiday";
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (date.isBefore(today)) return "Absent";
+
+    return "";
+  }
+
   String getNormalizedStatus(String raw) {
     final lower = raw.trim().toLowerCase();
     if (lower == "present") return "present";
     if (lower == "absent") return "absent";
+    if (lower == "holiday") return "holiday";
     return lower;
   }
 
@@ -494,6 +533,7 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
     switch (normalized) {
       case "present": return "P";
       case "absent":  return "A";
+      case "holiday": return "H";
       default:        return "";
     }
   }
@@ -502,12 +542,13 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
     switch (normalized) {
       case "present": return Colors.green;
       case "absent":  return Colors.red;
+      case "holiday": return Colors.orange;
       default:        return Colors.grey.shade400;
     }
   }
 
   int _getDaysInMonth(int monthId) {
-    final year = _getYearFromSession();
+    final year = _yearForMonth(monthId);
     return DateTime(year, monthId + 1, 0).day;
   }
 
@@ -528,6 +569,8 @@ class Viewdaycareattendanceview extends GetView<Viewdaycareattendancecontroller>
         _legendDot(Colors.green, "Present"),
         const SizedBox(width: 14),
         _legendDot(Colors.red, "Absent"),
+        const SizedBox(width: 14),
+        _legendDot(Colors.orange, "Holiday"),
         const SizedBox(width: 14),
         _legendDot(Colors.grey.shade400, "N/A"),
       ],

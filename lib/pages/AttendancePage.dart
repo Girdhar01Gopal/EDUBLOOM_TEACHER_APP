@@ -60,39 +60,39 @@ class AttendancePage extends GetView<AttendanceController> {
           ),
           title: searching
               ? TextField(
-                  controller: controller.searchController,
-                  autofocus: true,
-                  onChanged: controller.onSearchChanged,
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
-                  cursorColor: Colors.white,
-                  decoration: InputDecoration(
-                    hintText: "Search student by name…",
-                    hintStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 14,
-                    ),
-                    border: InputBorder.none,
-                    suffixIcon: Obx(
-                      () => controller.searchQuery.value.isNotEmpty
-                          ? GestureDetector(
-                              onTap: controller.clearSearch,
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
+            controller: controller.searchController,
+            autofocus: true,
+            onChanged: controller.onSearchChanged,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+            cursorColor: Colors.white,
+            decoration: InputDecoration(
+              hintText: "Search student by name…",
+              hintStyle: TextStyle(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 14,
+              ),
+              border: InputBorder.none,
+              suffixIcon: Obx(
+                    () => controller.searchQuery.value.isNotEmpty
+                    ? GestureDetector(
+                  onTap: controller.clearSearch,
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+          )
               : const Text(
-                  "Take Attendance",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            "Take Attendance",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           actions: [
             // Show search icon only when student list is non-empty
             Obx(() {
@@ -130,7 +130,7 @@ class AttendancePage extends GetView<AttendanceController> {
         children: [
           // ── Row 1: Session + Class ────────────────────────────────────
           Obx(
-            () => Row(
+                () => Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<session_model.sListDdata>(
@@ -185,7 +185,7 @@ class AttendancePage extends GetView<AttendanceController> {
 
           // ── Row 2: Section + Date ─────────────────────────────────────
           Obx(
-            () => Row(
+                () => Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<ListDatta>(
@@ -278,7 +278,7 @@ class AttendancePage extends GetView<AttendanceController> {
 
           // ── Manage Attendance Button ──────────────────────────────────
           Obx(
-            () => Align(
+                () => Align(
               alignment: Alignment.centerRight,
               child: Container(
                 decoration: BoxDecoration(
@@ -302,18 +302,18 @@ class AttendancePage extends GetView<AttendanceController> {
                       : () => controller.viewStudent(),
                   icon: controller.isLoading.value
                       ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                       : const Icon(
-                          Icons.manage_search,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+                    Icons.manage_search,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                   label: const Text(
                     "Manage Attendance",
                     style: TextStyle(
@@ -414,12 +414,15 @@ class AttendancePage extends GetView<AttendanceController> {
             onStatusChanged: (status) {
               // Find original index in full list and update
               final origIndex = controller.students.indexWhere(
-                (s) => s.studentID == student.studentID,
+                    (s) => s.studentID == student.studentID,
               );
               if (origIndex != -1) {
                 controller.students[origIndex].action = status;
               }
             },
+            // NEW: single-student save callback → same SaveAttendenceApp API,
+            // sirf iss student ke liye.
+            onSaveTap: () => controller.saveSingleStudent(student),
           );
         },
       );
@@ -449,40 +452,40 @@ class AttendancePage extends GetView<AttendanceController> {
             ],
           ),
           child: Obx(
-            () => ElevatedButton.icon(
+                () => ElevatedButton.icon(
               onPressed: controller.isSubmitting.value
                   ? null
                   : () => controller.manageAttendance(),
               icon: controller.isSubmitting.value
                   ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
                   : const Icon(
-                      Icons.check_circle_outline,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 20,
+              ),
               label: controller.isSubmitting.value
                   ? const Text(
-                      "Submitting…",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
+                "Submitting…",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
                   : const Text(
-                      "Submit Attendance",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                "Submit Attendance",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -513,11 +516,13 @@ class AttendancePage extends GetView<AttendanceController> {
 class _StudentCard extends StatefulWidget {
   final ListData student;
   final ValueChanged<String> onStatusChanged;
+  final VoidCallback onSaveTap; // NEW: single-student save trigger
 
   const _StudentCard({
     super.key,
     required this.student,
     required this.onStatusChanged,
+    required this.onSaveTap,
   });
 
   @override
@@ -526,6 +531,9 @@ class _StudentCard extends StatefulWidget {
 
 class _StudentCardState extends State<_StudentCard> {
   late String selectedStatus;
+
+  // NEW: controller reference to reactively show per-student saving state
+  final AttendanceController _controller = Get.find<AttendanceController>();
 
   static const List<String> options = [
     "Present",
@@ -635,6 +643,44 @@ class _StudentCardState extends State<_StudentCard> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 6),
+                // ── NEW: Chhota Save button — sirf iss student ki attendance
+                // individually save karne ke liye (same SaveAttendenceApp API) ──
+                Obx(() {
+                  final bool saving =
+                  _controller.savingStudentIds.contains(s.studentID);
+                  return Material(
+                    color: Colors.orange.shade600,
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: saving ? null : widget.onSaveTap,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: saving
+                            ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Text(
+                          "Save",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
           ),
@@ -671,12 +717,12 @@ class _StudentCardState extends State<_StudentCard> {
                           ),
                           boxShadow: isSelected
                               ? [
-                                  BoxShadow(
-                                    color: optColor.withOpacity(0.3),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
+                            BoxShadow(
+                              color: optColor.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
                               : [],
                         ),
                         child: Center(

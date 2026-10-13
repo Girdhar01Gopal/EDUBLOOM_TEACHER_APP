@@ -499,7 +499,8 @@ class ViewAttendanceController extends GetxController {
     required int day,
   }) async {
     final monthId = selectedMonth.value?['id'] as int? ?? 1;
-    final year = getYearFromSession();
+    final base = getYearFromSession();
+    final year = monthId <= 3 ? base + 1 : base;
     final dateStr =
         "$year-${monthId.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}";
 

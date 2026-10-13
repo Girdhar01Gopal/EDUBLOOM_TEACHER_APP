@@ -106,6 +106,7 @@ class RouteName {
     static const String staffattendance  = "/staffattendance";
   static const String viewteacherattendance  = "/viewteacherattendance";
     static const String viewstaffattendance  = "/viewstaffattendance";
+  static const String holidayCalendar = '/holidayCalendar';
 
   static const String teachersubject  = "/teachersubject";
   static const String classteacher  = "/classteacher";

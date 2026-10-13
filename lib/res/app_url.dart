@@ -224,6 +224,11 @@ class AppUrl {
   static var postNotificationAppTest = "api/CommumicationApp/PostNotificationApp";
   static var viewNotificationApp = "api/CommumicationApp/ViewNotificationApp/";
 
+  static const addHoliday =
+      "api/CalendarApp/AddHoliday"; // addholidaycalendercontroller.dart
+  static const getHoliday =
+      "api/CalendarApp/GetHoliday/";
+
    //static var test_base_url = "https://playschooltest.edubloom.in/";
 
   static const _imageExtensions = [
