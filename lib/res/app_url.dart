@@ -229,6 +229,11 @@ class AppUrl {
   static const getHoliday =
       "api/CalendarApp/GetHoliday/";
 
+  static const getAllFee =
+      "api/ReportApp/Getallfee/";
+  static const viewClass =
+      "api/MasterApp/ViewClass/";
+
    //static var test_base_url = "https://playschooltest.edubloom.in/";
 
   static const _imageExtensions = [

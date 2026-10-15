@@ -249,6 +249,7 @@ class AttendanceRowModel {
   final String toTime;
   final String totalHour;
   final String date;
+  final String day;
   final String actionText;
 
   AttendanceRowModel({
@@ -260,6 +261,7 @@ class AttendanceRowModel {
     required this.toTime,
     required this.totalHour,
     required this.date,
+    required this.day,
     required this.actionText,
   });
 
@@ -273,6 +275,7 @@ class AttendanceRowModel {
       toTime: (e.toTime == null || e.toTime!.trim().isEmpty) ? '-' : e.toTime!,
       totalHour: (e.totalHour == null || e.totalHour!.trim().isEmpty) ? '-' : e.totalHour!,
       date: formatDate(e.adate),
+      day: formatWeekday(e.adate),
       actionText: (e.action == '1') ? 'Active' : 'Inactive',
     );
   }
@@ -287,6 +290,7 @@ class AttendanceRowModel {
       toTime: (e.toTime == null || e.toTime!.trim().isEmpty) ? '-' : e.toTime!,
       totalHour: (e.totalHour == null || e.totalHour!.trim().isEmpty) ? '-' : e.totalHour!,
       date: formatDate(e.adate),
+      day: formatWeekday(e.adate),
       actionText: (e.action == '1') ? 'Active' : 'Inactive',
     );
   }
@@ -302,5 +306,14 @@ class AttendanceRowModel {
     } catch (_) {
       return input;
     }
+  }
+  static String formatWeekday(String? input) {
+    if (input == null || input.isEmpty) return '-';
+    const weekdays = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+      'Friday', 'Saturday', 'Sunday',
+    ];
+    final dt = DateTime.tryParse(input);
+    return dt == null ? '-' : weekdays[dt.weekday - 1];
   }
 }

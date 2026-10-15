@@ -33,6 +33,8 @@ const List<_TileSpec> _tileSpecs = [
       RouteName.day_care, 'FeePaymentDaycare', ['DayCareFeePayment']),
   _TileSpec("Discount List Fees", CupertinoIcons.tag_fill, Color(0xFF9C27B0),
       RouteName.discountfeelist, 'FeePayments', ['DiscountList']),
+  _TileSpec("All Fees", CupertinoIcons.money_dollar_circle_fill, Color(0xFF1565C0),
+      RouteName.allFees, 'FeePayments', ['All Fees']),
 ];
 
 class Feescontrollermaster extends GetxController {

@@ -27,6 +27,7 @@ import '../../binding/addstudentbinding.dart';
 import '../../binding/addstudentdaycarebinding.dart';
 import '../../binding/all teachers attendance binding.dart';
 import '../../binding/all_fee_report_binding.dart';
+import '../../binding/all_fees_binding.dart';
 import '../../binding/appdrawer_screen_binding.dart';
 import '../../binding/behaviourbinding.dart';
 import '../../binding/change_password_binding.dart';
@@ -141,6 +142,7 @@ import '../../pages/addroutemasterscreen.dart';
 import '../../pages/addstudentmaster.dart';
 import '../../pages/all teachers attendance take screen.dart';
 import '../../pages/all_fee_report_screen.dart';
+import '../../pages/all_fees_screen.dart';
 import '../../pages/attendance_details_day_care_view.dart';
 import '../../pages/behaviourview.dart';
 import '../../pages/change_password_screen.dart';
@@ -765,6 +767,12 @@ GetPage(
       page: () => ViewStaffAttendanceScreen (),
       transition: Transition.rightToLeft,
       binding: Viewstaffattendance(),
+    ),
+    GetPage(
+      name: RouteName.allFees,
+      page: () => AllFeesScreen(),
+      transition: Transition.rightToLeft,
+      binding: AllFeesBinding(),
     ),
 
     GetPage(

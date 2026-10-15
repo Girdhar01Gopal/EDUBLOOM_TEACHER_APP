@@ -11,6 +11,16 @@ class Daycaretakeattendanceview extends GetView<Daycareattendencecontroller> {
   final TextEditingController _searchTextController = TextEditingController();
 
   Daycaretakeattendanceview({super.key});
+  String? _selectedWeekday(String rawDate) {
+    final dt = DateTime.tryParse(rawDate.trim());
+    if (dt == null) return null;
+    const weekdays = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+      'Friday', 'Saturday', 'Sunday',
+    ];
+    return weekdays[dt.weekday - 1];
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +97,39 @@ class Daycaretakeattendanceview extends GetView<Daycareattendencecontroller> {
                   ),
                 ],
               ),
+              if (_selectedWeekday(controller.selectedRawDate.value) != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.pink.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.pink.shade200),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.today_rounded,
+                              size: 16, color: Colors.pink.shade400),
+                          const SizedBox(width: 6),
+                          Text(
+                            _selectedWeekday(
+                                controller.selectedRawDate.value)!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.pink.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 20),
 
               // ── Manage Attendance Button ──────────────────────────────

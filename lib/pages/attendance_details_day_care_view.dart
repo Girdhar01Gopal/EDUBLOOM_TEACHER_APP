@@ -335,6 +335,7 @@ class AttendanceDetailsDayCareView
                     _buildColumn('To Time'),
                     _buildColumn('Total Hour'),
                     _buildColumn('Date'),
+                    _buildColumn('Day'),
                     _buildColumn('Action'),
                   ],
                   rows: List.generate(
@@ -350,6 +351,7 @@ class AttendanceDetailsDayCareView
                         toTime: item.toTime,
                         totalHour: item.totalHour,
                         date: item.date,
+                        day: item.day,
                         actionText: item.actionText,
                       );
                     },
@@ -444,6 +446,7 @@ class AttendanceDetailsDayCareView
     required String toTime,
     required String totalHour,
     required String date,
+    required String day,
     required String actionText,
   }) {
     final textStyle = TextStyle(fontSize: 13.sp, color: _textPrimary);
@@ -460,6 +463,7 @@ class AttendanceDetailsDayCareView
         DataCell(Text(toTime, style: textStyle)),
         DataCell(Text(totalHour, style: textStyle)),
         DataCell(Text(date, style: textStyle)),
+        DataCell(Text(day, style: textStyle)),
         DataCell(_pill(
           actionText,
           actionText == 'Active'
