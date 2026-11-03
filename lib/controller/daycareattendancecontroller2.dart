@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
@@ -7,6 +8,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/AttendanceDatils12.dart';
 import '../models/Attendetail11.dart';
+import '../utils/app_snackbar.dart';
 
 class AttendanceDetailsDayCareController extends GetxController {
   final RxString schoolId = ''.obs;
@@ -87,12 +89,18 @@ class AttendanceDetailsDayCareController extends GetxController {
       } else {
         studentList.clear();
         selectedStudent.value = null;
-        Get.snackbar('Error', 'Unable to load students');
+        debugPrint('❌ fetchDayCareStudents Status ${response.statusCode}');
+        debugPrint('❌ fetchDayCareStudents Body ${response.body}');
+        AppSnackbar.apiError(
+          'Unable to load students => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       studentList.clear();
       selectedStudent.value = null;
-      Get.snackbar('Error', 'Failed to load students: $e');
+      debugPrint('❌ fetchDayCareStudents error => $e');
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isStudentLoading.value = false;
     }
@@ -119,12 +127,18 @@ class AttendanceDetailsDayCareController extends GetxController {
       } else {
         allAttendanceList.clear();
         attendanceList.clear();
-        Get.snackbar('Error', 'Unable to load attendance');
+        debugPrint('❌ fetchAllDaycareAttendance Status ${response.statusCode}');
+        debugPrint('❌ fetchAllDaycareAttendance Body ${response.body}');
+        AppSnackbar.apiError(
+          'Unable to load attendance => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       allAttendanceList.clear();
       attendanceList.clear();
-      Get.snackbar('Error', 'Failed to load attendance: $e');
+      debugPrint('❌ fetchAllDaycareAttendance error => $e');
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isAttendanceLoading.value = false;
     }
@@ -132,12 +146,12 @@ class AttendanceDetailsDayCareController extends GetxController {
 
   Future<void> searchAttendanceData() async {
     if (selectedStudent.value == null) {
-      Get.snackbar('Error', 'Please select student name');
+      AppSnackbar.error('Please select student name');
       return;
     }
 
     if (selectedMonth.value == null) {
-      Get.snackbar('Error', 'Please select month');
+      AppSnackbar.error('Please select month');
       return;
     }
 
@@ -168,15 +182,24 @@ class AttendanceDetailsDayCareController extends GetxController {
         );
 
         if (attendanceList.isEmpty) {
-          Get.snackbar('Info', 'No attendance found for selected student and month');
+          AppSnackbar.error(
+            'No attendance found for selected student and month',
+            title: 'Info',
+          );
         }
       } else {
         attendanceList.clear();
-        Get.snackbar('Error', 'Search attendance failed');
+        debugPrint('❌ searchAttendanceData Status ${response.statusCode}');
+        debugPrint('❌ searchAttendanceData Body ${response.body}');
+        AppSnackbar.apiError(
+          'Search attendance failed => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       attendanceList.clear();
-      Get.snackbar('Error', 'Failed to search attendance: $e');
+      debugPrint('❌ searchAttendanceData error => $e');
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isAttendanceLoading.value = false;
     }

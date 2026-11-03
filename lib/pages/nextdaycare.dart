@@ -390,7 +390,10 @@ class _NextdaycareState extends State<Nextdaycare> {
                   child: Obx(() {
                     return DropdownButtonFormField<
                         session_model.sListDdata>(
-                      value: controller.selectedSession.value,
+                      value: controller.sessionList
+                          .contains(controller.selectedSession.value)
+                          ? controller.selectedSession.value
+                          : null,
                       hint: Text('Select Session',
                           style: TextStyle(
                               color: _textSecondary,

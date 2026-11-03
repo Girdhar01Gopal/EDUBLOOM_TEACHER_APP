@@ -15,6 +15,7 @@ import '../models/new model teacher section attendance.dart'; // 🆕 SectionFor
 import '../res/app_url.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class SubjectClassAssignController extends GetxController {
   String schoolId = "";
@@ -121,7 +122,7 @@ class SubjectClassAssignController extends GetxController {
     userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -157,8 +158,9 @@ class SubjectClassAssignController extends GetxController {
 
       await fetchSubjects();
       await fetchSubjectClassAssignList();
-    } catch (e) {
-      Get.snackbar("Error", e.toString());
+    } catch (e, s) {
+      // Koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -250,8 +252,9 @@ class SubjectClassAssignController extends GetxController {
       classList.assignAll(
         (list as List).map<ClassData>((e) => ClassData.fromJson(e)).toList(),
       );
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
       classList.clear();
     }
 
@@ -276,9 +279,9 @@ class SubjectClassAssignController extends GetxController {
         (list as List).map<ClassData>((e) => ClassData.fromJson(e)).toList(),
       );
       selectedClass.value = null;
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("⚠️ Error fetching classes (staff): $e");
-      Get.snackbar("Error", "Class fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -324,8 +327,9 @@ class SubjectClassAssignController extends GetxController {
             'schoolId': e.schoolId,
           });
         }).toList());
-      } catch (e) {
+      } catch (e, s) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+        AppSnackbar.apiError(e, stackTrace: s);
         sectionList.clear();
       }
 
@@ -346,8 +350,9 @@ class SubjectClassAssignController extends GetxController {
       final sectionModel = sectionmodel.fromJson(decoded);
 
       sectionList.assignAll(sectionModel.listData ?? []);
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
       sectionList.clear();
     }
 
@@ -373,9 +378,9 @@ class SubjectClassAssignController extends GetxController {
         (list as List).map((e) => stListData.fromJson(e)).toList(),
       );
       selectedSection.value = null;
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
-      Get.snackbar("Error", "Section fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -406,8 +411,9 @@ class SubjectClassAssignController extends GetxController {
       subjectList.assignAll(
         (rawList ?? []).map((e) => ListDaataa.fromJson(e)).toList(),
       );
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('Error loading teacher subjects: $e');
+      AppSnackbar.apiError(e, stackTrace: s);
       subjectList.clear();
     }
 
@@ -431,9 +437,9 @@ class SubjectClassAssignController extends GetxController {
       subjectList.assignAll(subjectWrapper.listData ?? []);
       selectedSubject.value = null;
       debugPrint("📊 Staff subjectList length -> ${subjectList.length}");
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('Error loading staff subjects: $e');
-      Get.snackbar("Error", "Subject fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -456,17 +462,18 @@ class SubjectClassAssignController extends GetxController {
         subjectClassAssignList.assignAll(model.data ?? []);
       } else {
         subjectClassAssignList.clear();
-        Get.snackbar(
-          "Failed",
+        // Server ka message technical hua to automatically "Something went wrong" ban jayega
+        AppSnackbar.error(
           model.popupMessage ??
               ((model.messages != null && model.messages!.isNotEmpty)
                   ? model.messages!.join(", ")
                   : "No data found"),
+          title: "Failed",
         );
       }
-    } catch (e) {
+    } catch (e, s) {
       subjectClassAssignList.clear();
-      Get.snackbar("Error", "List fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -511,22 +518,25 @@ class SubjectClassAssignController extends GetxController {
   // =========================
   Future<void> saveSubjectClassAssign() async {
     if (selectedClass.value == null) {
-      Get.snackbar("Validation", "Select Class");
+      AppSnackbar.error("Select Class", title: "Validation");
       return;
     }
 
     if (selectedSection.value == null) {
-      Get.snackbar("Validation", "Select Section");
+      AppSnackbar.error("Select Section", title: "Validation");
       return;
     }
 
     if (selectedSubject.value == null) {
-      Get.snackbar("Validation", "Select Subject");
+      AppSnackbar.error("Select Subject", title: "Validation");
       return;
     }
 
     if (isDuplicateSelection) {
-      Get.snackbar("Warning", "This class, section and subject is already assigned");
+      AppSnackbar.error(
+        "This class, section and subject is already assigned",
+        title: "Warning",
+      );
       return;
     }
 
@@ -569,12 +579,13 @@ class SubjectClassAssignController extends GetxController {
             .toString();
       }
 
-      Get.snackbar("Success", message);
-
       clearForm();
       await fetchSubjectClassAssignList();
-    } catch (e) {
-      Get.snackbar("Error", "Save failed: $e");
+
+      // ✅ Success snackbar list refresh ke baad, taaki list wala snackbar ise replace na kare
+      AppSnackbar.success(message);
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSaving(false);
     }

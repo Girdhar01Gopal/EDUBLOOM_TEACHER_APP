@@ -15,6 +15,7 @@ import '../models/session_model.dart';
 import '../models/viewsectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -138,23 +139,6 @@ class MapFoundationalSkillsController extends GetxController {
     return jsonDecode(body);
   }
 
-  void _showSnack(
-      String title,
-      String message, {
-        Color? backgroundColor,
-        Color? colorText,
-      }) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: backgroundColor ?? Colors.red.shade100,
-      colorText: colorText ?? Colors.black,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-    );
-  }
-
   // =========================
   // INIT
   // =========================
@@ -176,7 +160,7 @@ class MapFoundationalSkillsController extends GetxController {
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
-      _showSnack("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -233,8 +217,8 @@ class MapFoundationalSkillsController extends GetxController {
         fetchFoundationalSkillsDropdown(),
         fetchMapFoundationalSkills(),
       ]);
-    } catch (e) {
-      _showSnack("Error", e.toString());
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -316,8 +300,8 @@ class MapFoundationalSkillsController extends GetxController {
       // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
       classList.assignAll(parsed.listData);
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       classList.value = [];
     }
 
@@ -342,8 +326,8 @@ class MapFoundationalSkillsController extends GetxController {
           .where((e) => e.action == "1")
           .toList();
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isClassLoading(false);
     }
@@ -391,10 +375,10 @@ class MapFoundationalSkillsController extends GetxController {
           }).toList(),
         );
         selectedSection.value = null;
-      } catch (e) {
+      } catch (e, s) {
         sectionList.clear();
         selectedSection.value = null;
-        _showSnack("Error", "Section fetch error: $e");
+        AppSnackbar.apiError(e, stackTrace: s);
       }
 
       // if (sectionList.isEmpty) {
@@ -419,10 +403,10 @@ class MapFoundationalSkillsController extends GetxController {
         );
         selectedSection.value = null;
       }
-    } catch (e) {
+    } catch (e, s) {
       sectionList.clear();
       selectedSection.value = null;
-      _showSnack("Error", "Section fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
 
     // if (sectionList.isEmpty) {
@@ -446,8 +430,8 @@ class MapFoundationalSkillsController extends GetxController {
         rawList.map((e) => stListData.fromJson(e)).toList(),
       );
       selectedSection.value = null;
-    } catch (e) {
-      _showSnack("Error", "Section fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSectionLoading(false);
     }
@@ -474,10 +458,10 @@ class MapFoundationalSkillsController extends GetxController {
         parsed.listData.where((e) => e.action.trim() == "1").toList(),
       );
       selectedSkill.value = null;
-    } catch (e) {
+    } catch (e, s) {
       foundationalSkillList.clear();
       selectedSkill.value = null;
-      _showSnack("Error", "Foundational skill fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -508,11 +492,14 @@ class MapFoundationalSkillsController extends GetxController {
         );
       } else {
         mapFoundationalSkillList.clear();
-        _showSnack("Error", parsed.messages?.toString() ?? "Unable to load data");
+        // Short clean server message is shown; technical text becomes
+        // "Something went wrong" automatically.
+        AppSnackbar.error(parsed.messages?.toString() ?? "Unable to load data");
       }
-    } catch (e) {
+    } catch (e, s) {
       mapFoundationalSkillList.clear();
-      _showSnack("Error", "List fetch error: $e");
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -545,29 +532,25 @@ class MapFoundationalSkillsController extends GetxController {
   // =========================
   Future<void> saveMapFoundationalSkill() async {
     if (selectedClass.value == null) {
-      _showSnack("Validation", "Select Class",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Select Class", title: "Validation");
       return;
     }
     if (selectedSection.value == null) {
-      _showSnack("Validation", "Select Section",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Select Section", title: "Validation");
       return;
     }
     if (selectedSkill.value == null) {
-      _showSnack("Validation", "Select Foundational Skill",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Select Foundational Skill", title: "Validation");
       return;
     }
     if (levelController.text.trim().isEmpty) {
-      _showSnack("Validation", "Enter Level",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Enter Level", title: "Validation");
       return;
     }
     if (isDuplicateSelection) {
-      _showSnack("Warning",
+      AppSnackbar.error(
           "This class, section, foundational skill and level is already mapped",
-          backgroundColor: Colors.orange.shade100);
+          title: "Warning");
       return;
     }
 
@@ -609,21 +592,20 @@ class MapFoundationalSkillsController extends GetxController {
             decoded["messages"]?.toString() ?? "Saved successfully";
 
         if (isSuccess) {
-          _showSnack("Success", message,
-              backgroundColor: Colors.green, colorText: Colors.white);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Saved successfully");
           clearForm();
           await fetchMapFoundationalSkills();
         } else {
-          _showSnack("Error", message);
+          AppSnackbar.error(message);
         }
       } else {
-        _showSnack("Success", "Saved successfully",
-            backgroundColor: Colors.green, colorText: Colors.white);
+        AppSnackbar.success("Saved successfully");
         clearForm();
         await fetchMapFoundationalSkills();
       }
-    } catch (e) {
-      _showSnack("Error", "Save failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSaving(false);
     }

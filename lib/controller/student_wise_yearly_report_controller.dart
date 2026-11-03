@@ -18,6 +18,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/session_model.dart';
 import '../models/student_fee_report_yearly_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class StudentWiseYearlyReportController extends GetxController {
   // ── State ───────────────────────────────────────────────────────────────
@@ -85,19 +86,64 @@ class StudentWiseYearlyReportController extends GetxController {
         if (sessionData.value.listData != null &&
             sessionData.value.listData!.isNotEmpty) {
           sessionList.assignAll(sessionData.value.listData!);
-
-          if (sessionData.value.currentSession != null) {
-            selectedSession.value = sessionList.firstWhereOrNull(
-                  (s) =>
-              s.sessionId ==
-                  sessionData.value.currentSession!.sessionId,
-            );
-          }
-          selectedSession.value ??= sessionList.first;
         }
+
+        // ✅ API ka current session raw JSON se padho
+        // (keys: currentSession = name, currentSessionId = id)
+        String? curName;
+        dynamic curId;
+        dynamic curAction;
+        dynamic curSchoolId;
+        final dynamic cur = data['currentSession'];
+        if (cur is Map) {
+          curName = (cur['currentSession'] ?? cur['session'])?.toString();
+          curId = cur['currentSessionId'] ?? cur['sessionId'];
+          curAction = cur['action'];
+          curSchoolId = cur['schoolId'];
+        }
+
+        sListDdata? match;
+
+        // 1️⃣ Name se match
+        if (curName != null && curName.trim().isNotEmpty) {
+          match = sessionList.firstWhereOrNull(
+                (s) => (s.session ?? '').trim() == curName!.trim(),
+          );
+        }
+
+        // 2️⃣ Id se match
+        if (match == null && curId != null) {
+          match = sessionList.firstWhereOrNull(
+                (s) => s.sessionId?.toString() == curId.toString(),
+          );
+        }
+
+        // 3️⃣ List me nahi mila to current session ko list me add karo
+        if (match == null && curName != null && curName.trim().isNotEmpty) {
+          final created = sListDdata(
+            sessionId: curId,
+            session: curName,
+            action: curAction,
+            schoolId: curSchoolId,
+          );
+          sessionList.insert(0, created);
+          match = created;
+        }
+
+        // ✅ Current session by default select (nahi mila to pehla)
+        selectedSession.value =
+            match ?? (sessionList.isNotEmpty ? sessionList.first : null);
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Session fetch failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('Session fetch error: $e');
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSessionLoading.value = false;
     }
@@ -115,8 +161,7 @@ class StudentWiseYearlyReportController extends GetxController {
   // ── Fetch yearly report ──────────────────────────────────────────────────
   Future<void> search() async {
     if (selectedSession.value == null) {
-      Get.snackbar('Error', 'Please select a session',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.error('Please select a session');
       return;
     }
 
@@ -154,6 +199,7 @@ class StudentWiseYearlyReportController extends GetxController {
         if (body.isEmpty || body == 'null' || body == '[]') {
           errorMessage.value = 'No records found for the selected session.';
           isSearched.value = true;
+          AppSnackbar.error('No data found', title: 'Info');
           return;
         }
 
@@ -174,6 +220,7 @@ class StudentWiseYearlyReportController extends GetxController {
         if (rawList.isEmpty) {
           errorMessage.value = 'No records found for selected session.';
           isSearched.value = true;
+          AppSnackbar.error('No data found', title: 'Info');
           return;
         }
 
@@ -183,20 +230,32 @@ class StudentWiseYearlyReportController extends GetxController {
                   e.value as Map<String, dynamic>, e.key)),
         );
         isSearched.value = true;
+
+        // ✅ Success snackbar
+        AppSnackbar.success('Data loaded successfully');
       } else {
-        errorMessage.value =
-        'Server returned ${response.statusCode}. Please try again.';
+        // ✅ Screen par bhi technical text nahi
+        errorMessage.value = 'Something went wrong. Please try again.';
         isSearched.value = true;
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Server returned ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } on FormatException catch (e) {
+    } on FormatException catch (e, s) {
       debugPrint('JSON parse error: $e');
-      errorMessage.value = 'Invalid response format from server.';
+      errorMessage.value = 'Something went wrong. Please try again.';
       isSearched.value = true;
-    } catch (e) {
+      AppSnackbar.apiError(e, stackTrace: s);
+    } catch (e, s) {
       debugPrint('Report fetch error TYPE: ${e.runtimeType}');
       debugPrint('Report fetch error: $e');
-      errorMessage.value = 'Error: $e';
+      // ✅ Screen ke empty state me raw error / URL na dikhe
+      errorMessage.value = 'Something went wrong. Please try again.';
       isSearched.value = true;
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -442,8 +501,7 @@ class StudentWiseYearlyReportController extends GetxController {
   // ── Save PDF to device Downloads / temp directory ─────────────────────────
   Future<void> downloadPdf() async {
     if (reportList.isEmpty) {
-      Get.snackbar('Error', 'No data to export',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.error('No data to export');
       return;
     }
 
@@ -470,18 +528,17 @@ class StudentWiseYearlyReportController extends GetxController {
 
       await file.writeAsBytes(bytes);
 
-      Get.snackbar(
-        'Downloaded ✅',
+      AppSnackbar.success(
         'Saved to: ${file.path}',
-        backgroundColor: const Color(0xFF2E7D32),
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-        snackPosition: SnackPosition.BOTTOM,
+        title: 'Downloaded',
       );
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('PDF download error: $e');
-      Get.snackbar('Error', 'Failed to save PDF: $e',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.apiError(
+        e,
+        stackTrace: s,
+        fallback: 'Failed to save PDF. Please try again.',
+      );
     } finally {
       isPdfGenerating.value = false;
     }
@@ -490,8 +547,7 @@ class StudentWiseYearlyReportController extends GetxController {
   // ── Share PDF via share sheet ─────────────────────────────────────────────
   Future<void> sharePdf() async {
     if (reportList.isEmpty) {
-      Get.snackbar('Error', 'No data to share',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.error('No data to share');
       return;
     }
 
@@ -517,10 +573,13 @@ class StudentWiseYearlyReportController extends GetxController {
         text:
         'Student Wise Yearly Fee Report for session: $sessionLabel\nTotal Students: $totalStudents',
       );
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('PDF share error: $e');
-      Get.snackbar('Error', 'Failed to share PDF: $e',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.apiError(
+        e,
+        stackTrace: s,
+        fallback: 'Failed to share PDF. Please try again.',
+      );
     } finally {
       isPdfGenerating.value = false;
     }

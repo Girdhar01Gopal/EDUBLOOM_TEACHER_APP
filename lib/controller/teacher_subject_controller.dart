@@ -12,15 +12,23 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/subject_model.dart'; // must contain ListDaataa
 import '../models/teachersubjectmodel.dart'; // TeacherSubjectModel, TeacherSubjectItem
-import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
+import '../models/new model teacher section attendance.dart'; // SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart'
-    show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
+    show ClassTeacherFilterModel, ClassTeacherFilterData;
+
+/// Non-200 response ko status code ke saath throw karne ke liye, taaki
+/// user ko raw "HTTP 500" nahi, friendly line dikhe.
+class _HttpStatusException implements Exception {
+  final int statusCode;
+  const _HttpStatusException(this.statusCode);
+}
 
 class TeacherSubjectController extends GetxController {
   String schoolId = "";
   String token = "";
-  String userId = ""; // 🆕 naya
+  String userId = "";
 
   // =========================
   // SESSION
@@ -52,127 +60,125 @@ class TeacherSubjectController extends GetxController {
   final isPageLoading = false.obs;
   final isSaving = false.obs;
   final isListLoading = false.obs;
-
-  // 🆕 Notes wali logic ke liye alag loading flags
   final isClassLoading = false.obs;
   final isSectionLoading = false.obs;
   final isSubjectLoading = false.obs;
 
-  // 🆕 Class Teacher filter
-  var classTeacherList = <ClassTeacherFilterData>[].obs;
-  var isClassTeacherLogin = false.obs;
+  // Class Teacher filter
+  final classTeacherList = <ClassTeacherFilterData>[].obs;
+  final isClassTeacherLogin = false.obs;
 
-  // 🆕 Role / Teacher-type detection (Notes wali hi logic)
-  var isStaffLogin = false.obs; // true => "schoolstaff" role
+  // true => "schoolstaff" role
+  final isStaffLogin = false.obs;
 
   // =========================
   // URLs
   // =========================
-  String get _sessionUrl => '${AppUrl.base_url}api/MasterApp/ViewSessionApp/$schoolId';
+  String get _session => selectedSession.value?.session ?? "";
+  String get _encodedSession => Uri.encodeComponent(_session);
+  String get _base => AppUrl.base_url;
 
-  // 🆕 STAFF URLs (Notes wali hi logic)
-  String get _classStaffUrl => '${AppUrl.base_url}api/MasterApp/ViewClass/$schoolId';
-  String get _sectionStaffUrl => '${AppUrl.base_url}api/MasterApp/ViewSectionApp/$schoolId';
-  String get _subjectStaffUrl => '${AppUrl.base_url}api/MasterApp/ViewSubjectApp/$schoolId';
+  // Teacher APIs ka common query string
+  String get _teacherQuery => '?schoolId=$schoolId&Session=$_encodedSession&userId=$userId';
 
-  // 🆕 NORMAL TEACHER URLs
-  String get _classTeacherUrl {
-    final session = selectedSession.value?.session ?? "";
-    return '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
-        '?schoolId=$schoolId&Session=${Uri.encodeComponent(session)}&userId=$userId';
-  }
+  String get _sessionUrl => '${_base}api/MasterApp/ViewSessionApp/$schoolId';
 
-  String get _sectionGetTeacherUrl {
-    final session = selectedSession.value?.session ?? "";
-    return '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher'
-        '?schoolId=$schoolId&Session=${Uri.encodeComponent(session)}&userId=$userId';
-  }
+  // STAFF URLs
+  String get _classStaffUrl => '${_base}api/MasterApp/ViewClass/$schoolId';
+  String get _sectionStaffUrl => '${_base}api/MasterApp/ViewSectionApp/$schoolId';
+  String get _subjectStaffUrl => '${_base}api/MasterApp/ViewSubjectApp/$schoolId';
 
-  String get _subjectTeacherUrl {
-    final session = selectedSession.value?.session ?? "";
-    return '${AppUrl.base_url}${AppUrl.get_subject_teacher}'
-        '?schoolId=$schoolId&Session=${Uri.encodeComponent(session)}&userId=$userId';
-  }
+  // NORMAL TEACHER URLs
+  String get _classTeacherUrl => '${_base}api/TeacherApp/GetClassTeacher$_teacherQuery';
+  String get _sectionGetTeacherUrl => '${_base}api/TeacherApp/GetSectionTeacher$_teacherQuery';
+  String get _subjectTeacherUrl => '$_base${AppUrl.get_subject_teacher}$_teacherQuery';
 
-  // 🆕 Class Teacher filter URL
-  String get _classTeacherFilterUrl {
-    final session = selectedSession.value?.session ?? "";
-    return '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
-        '?schoolId=$schoolId&Session=${Uri.encodeComponent(session)}&userId=$userId';
-  }
+  // Class Teacher login URLs
+  String get _classTeacherFilterUrl => '${_base}api/TeacherApp/ClassTeacher$_teacherQuery';
+  String get _sectionTeacherUrl => '${_base}api/TeacherApp/SectionTeacher$_teacherQuery';
 
-  // 🆕 SectionTeacher URL (for class teacher login)
-  String get _sectionTeacherUrl {
-    final session = selectedSession.value?.session ?? "";
-    return '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
-        '?schoolId=$schoolId&Session=${Uri.encodeComponent(session)}&userId=$userId';
-  }
+  String get _teacherUrl =>
+      '${_base}api/TeacherApp/GetAllTeachersAsyncApp'
+          '?schoolId=$schoolId&currentSession=$_encodedSession';
 
-  String get _teacherUrl {
-    final session = selectedSession.value?.session ?? "";
-    return '${AppUrl.base_url}api/TeacherApp/GetAllTeachersAsyncApp'
-        '?schoolId=$schoolId&currentSession=${Uri.encodeComponent(session)}';
-  }
+  String get _saveUrl => '${_base}api/TeacherApp/PostTeacherSubjectAssign';
 
-  // ✅ SAVE endpoint (your existing)
-  String get _saveUrl => '${AppUrl.base_url}api/TeacherApp/PostTeacherSubjectAssign';
+  // List API: POST body {schoolId, session}
+  String get _listUrl => '${_base}api/TeacherApp/ViewTeacherSubjectAssignApp';
 
-  // ✅ LIST endpoint (FIXED: remove the stray `}`)
-  // This controller assumes the list API expects POST body: {schoolId, session}
-  String get _listUrl => '${AppUrl.base_url}api/TeacherApp/ViewTeacherSubjectAssignApp';
-
-  Map<String, String> get _headers {
-    final h = <String, String>{
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    };
-    if (token.trim().isNotEmpty) h["Authorization"] = "Bearer $token";
-    return h;
-  }
+  Map<String, String> get _headers => {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    if (token.trim().isNotEmpty) "Authorization": "Bearer $token",
+  };
 
   // =========================
-  // SAFE JSON DECODER
+  // HELPERS
   // =========================
+  // Raw exception / API text kabhi nahi dikhta — sirf friendly line.
+  void _showError(Object e) => AppSnackbar.error(
+    e is _HttpStatusException
+        ? AppSnackbar.friendlyMessage(null, statusCode: e.statusCode)
+        : AppSnackbar.friendlyMessage(e),
+  );
+
   dynamic _safeDecodeResponse(http.Response res, {required String label}) {
     final ct = (res.headers['content-type'] ?? '').toLowerCase();
     final body = res.body;
-
     final preview = body.substring(0, body.length > 200 ? 200 : body.length);
-    debugPrint("[$label] URL: ${res.request?.url}");
-    debugPrint("[$label] STATUS: ${res.statusCode}");
-    debugPrint("[$label] CONTENT-TYPE: $ct");
-    debugPrint("[$label] BODY(200): $preview");
+
+    debugPrint("[$label] ${res.request?.url} | STATUS: ${res.statusCode} | CT: $ct | BODY(200): $preview");
 
     if (preview.toLowerCase().contains("<!doctype html") || ct.contains("text/html")) {
-      throw Exception("[$label] Server returned HTML (redirect/login/wrong URL).");
+      // Server ne HTML bheja (redirect/login/wrong URL).
+      throw const FormatException("Server returned HTML");
     }
-
-    if (res.statusCode != 200) {
-      throw Exception("[$label] HTTP ${res.statusCode}");
-    }
+    if (res.statusCode != 200) throw _HttpStatusException(res.statusCode);
 
     return jsonDecode(body);
   }
 
+  /// GET + safe decode ek hi call me.
+  Future<dynamic> _get(String url, String label) async =>
+      _safeDecodeResponse(await http.get(Uri.parse(url), headers: _headers), label: label);
+
+  /// Response se pehli available list nikalta hai (keys ke order me) aur model me map karta hai.
+  List<T> _parseList<T>(dynamic decoded, List<String> keys, T Function(dynamic) fromJson) {
+    if (decoded is! Map<String, dynamic>) return <T>[];
+    for (final k in keys) {
+      final v = decoded[k];
+      if (v is List) return v.map<T>(fromJson).toList();
+    }
+    return <T>[];
+  }
+
+  session_model.sListDdata _sessionFrom(Map m, String idKey, String nameKey) =>
+      session_model.sListDdata(
+        sessionId: m[idKey],
+        session: m[nameKey],
+        action: m['action'],
+        schoolId: m['schoolId'],
+      );
+
+  // =========================
+  // INIT
+  // =========================
   @override
   void onInit() async {
     super.onInit();
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? ""; // 🆕 naya
+    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
 
-    // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
+    // Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
     final role =
-    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
-        .toString()
-        .trim()
-        .toLowerCase();
+    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "").toString().trim().toLowerCase();
     isStaffLogin.value = role == "schoolstaff";
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error('School information not found. Please login again.');
       return;
     }
 
@@ -185,10 +191,8 @@ class TeacherSubjectController extends GetxController {
 
       await fetchSessions();
 
-      // 🆕 Notes jaisa hi flow — pehle ClassTeacher filter (agar teacher hai)
-      if (!isStaffLogin.value) {
-        await fetchClassTeacherFilter(); // 🆕 pehle — flag set ho jaye
-      }
+      // Pehle ClassTeacher filter (agar teacher hai) — flag set ho jaye
+      if (!isStaffLogin.value) await fetchClassTeacherFilter();
 
       await Future.wait([
         fetchTeachers(),
@@ -207,41 +211,25 @@ class TeacherSubjectController extends GetxController {
   // =========================
   Future<void> fetchSessions() async {
     try {
-      final res = await http.get(Uri.parse(_sessionUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "Session");
+      final decoded = await _get(_sessionUrl, "Session");
 
       sessionList.clear();
 
+      session_model.sListDdata? cs;
       if (decoded is Map<String, dynamic>) {
-        if (decoded['currentSession'] != null) {
-          final cs = session_model.sListDdata(
-            sessionId: decoded['currentSession']['currentSessionId'],
-            session: decoded['currentSession']['currentSession'],
-            action: decoded['currentSession']['action'],
-            schoolId: decoded['currentSession']['schoolId'],
-          );
-          sessionList.add(cs);
-          selectedSession.value = cs;
-          return;
-        }
-
-        if (decoded['listData'] is List && (decoded['listData'] as List).isNotEmpty) {
-          final first = decoded['listData'][0];
-          final cs = session_model.sListDdata(
-            sessionId: first['sessionId'],
-            session: first['session'],
-            action: first['action'],
-            schoolId: first['schoolId'],
-          );
-          sessionList.add(cs);
-          selectedSession.value = cs;
-          return;
+        final current = decoded['currentSession'];
+        final list = decoded['listData'];
+        if (current != null) {
+          cs = _sessionFrom(current, 'currentSessionId', 'currentSession');
+        } else if (list is List && list.isNotEmpty) {
+          cs = _sessionFrom(list[0], 'sessionId', 'session');
         }
       }
 
-      selectedSession.value = null;
+      if (cs != null) sessionList.add(cs);
+      selectedSession.value = cs;
     } catch (e) {
-      Get.snackbar("Error", "Session error: $e");
+      _showError(e);
     }
   }
 
@@ -249,49 +237,40 @@ class TeacherSubjectController extends GetxController {
   // TEACHERS
   // =========================
   Future<void> fetchTeachers() async {
-    final session = selectedSession.value?.session;
-    if (session == null || session.trim().isEmpty) {
+    if (_session.trim().isEmpty) {
       teacherList.clear();
       selectedTeacher.value = null;
       return;
     }
 
     try {
-      final res = await http.get(Uri.parse(_teacherUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "Teachers");
-
-      final parsed = TeacherListResponse.fromJson(decoded);
+      final parsed = TeacherListResponse.fromJson(await _get(_teacherUrl, "Teachers"));
       if (parsed.isSuccess == true) {
         teacherList.assignAll(parsed.data);
       } else {
         teacherList.clear();
-        Get.snackbar("Failed", (parsed.messages ?? "Teacher fetch failed").toString());
+        // API ka message sanitize hoke dikhega (lamba / technical hua to generic line).
+        AppSnackbar.error((parsed.messages ?? "Teacher fetch failed").toString(), title: 'Failed');
       }
-
       selectedTeacher.value = null;
     } catch (e) {
-      Get.snackbar("Error", "Teacher fetch error: $e");
+      _showError(e);
     }
   }
 
-  // 🆕 Logged-in teacher ke assigned classes fetch karo
+  // Logged-in teacher ke assigned classes fetch karo
   Future<void> fetchClassTeacherFilter() async {
+    if (userId.trim().isEmpty) {
+      debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
+      return;
+    }
+
     try {
-      if (userId.trim().isEmpty) {
-        debugPrint("⚠️ userId empty — skipping class teacher filter fetch");
-        return;
-      }
-
-      final res =
-      await http.get(Uri.parse(_classTeacherFilterUrl), headers: _headers);
-
+      final res = await http.get(Uri.parse(_classTeacherFilterUrl), headers: _headers);
       debugPrint('ClassTeacher status: ${res.statusCode}');
-      debugPrint('ClassTeacher body: ${res.body}');
 
       if (res.statusCode == 200) {
-        final jsonResponse = json.decode(res.body);
-        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
-
+        final model = ClassTeacherFilterModel.fromJson(json.decode(res.body));
         classTeacherList.value = model.data ?? [];
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
@@ -300,214 +279,141 @@ class TeacherSubjectController extends GetxController {
     }
   }
 
-  /// ---------------------- CLASSES (3-way) ----------------------
-  // 1️⃣ STAFF -> ViewClass API | 2️⃣ CLASS TEACHER -> ClassTeacher API
-  // | 3️⃣ NORMAL TEACHER -> GetClassTeacher API | fallback -> staff API
+  // ---------------------- CLASSES ----------------------
+  // 1) STAFF -> ViewClass | 2) CLASS TEACHER -> ClassTeacher | 3) NORMAL TEACHER -> GetClassTeacher
   Future<void> fetchClasses() async {
-    // 1️⃣ STAFF
-    if (isStaffLogin.value) {
-      await _fetchClassesStaffApi();
+    if (isStaffLogin.value) return _fetchClassesStaffApi();
+
+    // CLASS TEACHER — assigned classes ClassTeacher API se hi
+    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+      try {
+        classList.value = classTeacherList
+            .map((e) => ListDataa.fromJson({
+          'classId': e.classId,
+          'class': e.className,
+          'studentClassId': e.studentClassId,
+          'action': e.action,
+          'createDate': e.createDate,
+          'updateDate': e.updateDate,
+          'createBy': e.createBy,
+          'updateBy': e.updateBy,
+          'schoolId': e.schoolId,
+          'sqno': e.sqno,
+        }))
+            .toList();
+      } catch (e) {
+        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+        classList.value = [];
+      }
+      selectedClass.value = null;
       return;
     }
 
-    // 2️⃣ CLASS TEACHER — assigned classes ClassTeacher API se hi
-    if (isClassTeacherLogin.value && classTeacherList.isNotEmpty) {
+    // NORMAL TEACHER — GetClassTeacher API (action null aata hai, isliye filter nahi)
+    try {
+      final decoded = await _get(_classTeacherUrl, "Classes");
+      classList.assignAll(_parseList(decoded, ['data'], (e) => ListDataa.fromJson(e)));
+      selectedClass.value = null;
+    } catch (e) {
+      _showError(e);
+      classList.value = [];
+    }
+  }
+
+  Future<void> _fetchClassesStaffApi() async {
+    try {
+      isClassLoading(true);
+      final parsed = ClassItem.fromJson(await _get(_classStaffUrl, "ClassesStaff"));
+      classList.assignAll(parsed.listData?.where((e) => e.action == "1").toList() ?? []);
+      selectedClass.value = null;
+    } catch (e) {
+      _showError(e);
+    } finally {
+      isClassLoading(false);
+    }
+  }
+
+  // ---------------------- SECTIONS ----------------------
+  // 1) STAFF -> ViewSectionApp | 2) CLASS TEACHER -> SectionTeacher | 3) NORMAL TEACHER -> GetSectionTeacher
+  Future<void> fetchSections() async {
+    if (isStaffLogin.value) return _fetchSectionsStaffApi();
+
+    // CLASS TEACHER — SectionTeacher API
+    if (isClassTeacherLogin.value) {
       try {
-        classList.value = classTeacherList.map((e) {
-          return ListDataa.fromJson({
-            'classId': e.classId,
-            'class': e.className,
-            'studentClassId': e.studentClassId,
+        final model = SectionForAttendanceModel.fromJson(
+            await _get(_sectionTeacherUrl, "SectionTeacher"));
+        sectionList.assignAll(
+          (model.data ?? [])
+              .map((e) => ListDatta.fromJson({
+            'sectionId': e.sectionId,
+            'section': e.section,
             'action': e.action,
             'createDate': e.createDate,
             'updateDate': e.updateDate,
             'createBy': e.createBy,
             'updateBy': e.updateBy,
             'schoolId': e.schoolId,
-            'sqno': e.sqno,
-          });
-        }).toList();
-      } catch (e) {
-        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
-        classList.value = [];
-      }
-      selectedClass.value = null;
-
-      // if (classList.isEmpty) {
-      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-      //   await _fetchClassesStaffApi();
-      // }
-      return;
-    }
-
-    // 3️⃣ NORMAL TEACHER — GetClassTeacher API
-    try {
-      final res = await http.get(Uri.parse(_classTeacherUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "Classes");
-
-      if (decoded is Map<String, dynamic> && decoded['data'] != null) {
-        final List<dynamic> data = decoded['data'] ?? [];
-        // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
-        classList.assignAll(data.map((e) => ListDataa.fromJson(e)).toList());
-      } else {
-        classList.value = [];
-      }
-      selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error: $e");
-      classList.value = [];
-    }
-
-    // if (classList.isEmpty) {
-    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-    //   await _fetchClassesStaffApi();
-    // }
-  }
-
-  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
-  Future<void> _fetchClassesStaffApi() async {
-    try {
-      isClassLoading(true);
-      final res = await http.get(Uri.parse(_classStaffUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "ClassesStaff");
-
-      final parsed = ClassItem.fromJson(decoded);
-      classList.assignAll(parsed.listData?.where((e) => e.action == "1").toList() ?? []);
-      selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error (staff): $e");
-    } finally {
-      isClassLoading(false);
-    }
-  }
-
-  /// ---------------------- SECTIONS (3-way) ----------------------
-  // 1️⃣ STAFF -> ViewSectionApp API | 2️⃣ CLASS TEACHER -> SectionTeacher API
-  // | 3️⃣ NORMAL TEACHER -> GetSectionTeacher API | fallback -> staff API
-  Future<void> fetchSections() async {
-    // 1️⃣ STAFF
-    if (isStaffLogin.value) {
-      await _fetchSectionsStaffApi();
-      return;
-    }
-
-    // 2️⃣ CLASS TEACHER — SectionTeacher API
-    if (isClassTeacherLogin.value) {
-      try {
-        final res =
-        await http.get(Uri.parse(_sectionTeacherUrl), headers: _headers);
-        final decoded = _safeDecodeResponse(res, label: "SectionTeacher");
-        final model = SectionForAttendanceModel.fromJson(decoded);
-        sectionList.assignAll(
-          (model.data ?? []).map((e) {
-            return ListDatta.fromJson({
-              'sectionId': e.sectionId,
-              'section': e.section,
-              'action': e.action,
-              'createDate': e.createDate,
-              'updateDate': e.updateDate,
-              'createBy': e.createBy,
-              'updateBy': e.updateBy,
-              'schoolId': e.schoolId,
-            });
-          }).toList(),
+          }))
+              .toList(),
         );
-        selectedSection.value = null;
       } catch (e) {
         sectionList.clear();
-        selectedSection.value = null;
-        Get.snackbar("Error", "Section fetch error: $e");
+        _showError(e);
       }
-
-      // if (sectionList.isEmpty) {
-      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-      //   await _fetchSectionsStaffApi();
-      // }
+      selectedSection.value = null;
       return;
     }
 
-    // 3️⃣ NORMAL TEACHER — GetSectionTeacher API
+    // NORMAL TEACHER — GetSectionTeacher API
     try {
-      final res = await http.get(Uri.parse(_sectionGetTeacherUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "Sections");
-
-      final list = (decoded is Map<String, dynamic>)
-          ? (decoded['data'] ?? decoded['listData'] ?? [])
-          : [];
-      sectionList.assignAll((list as List).map<ListDatta>((e) => ListDatta.fromJson(e)).toList());
+      final decoded = await _get(_sectionGetTeacherUrl, "Sections");
+      sectionList.assignAll(
+          _parseList(decoded, ['data', 'listData'], (e) => ListDatta.fromJson(e)));
       selectedSection.value = null;
     } catch (e) {
-      Get.snackbar("Error", "Section fetch error: $e");
+      _showError(e);
       sectionList.value = [];
     }
-
-    // if (sectionList.isEmpty) {
-    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-    //   await _fetchSectionsStaffApi();
-    // }
   }
 
-  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
   Future<void> _fetchSectionsStaffApi() async {
     try {
       isSectionLoading(true);
-      final res = await http.get(Uri.parse(_sectionStaffUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "SectionsStaff");
-
-      final list = (decoded is Map<String, dynamic>) ? (decoded['listData'] ?? []) : [];
-      sectionList.assignAll((list as List).map<ListDatta>((e) => ListDatta.fromJson(e)).toList());
+      final decoded = await _get(_sectionStaffUrl, "SectionsStaff");
+      sectionList.assignAll(_parseList(decoded, ['listData'], (e) => ListDatta.fromJson(e)));
       selectedSection.value = null;
     } catch (e) {
-      Get.snackbar("Error", "Section fetch error (staff): $e");
+      _showError(e);
     } finally {
       isSectionLoading(false);
     }
   }
 
-  /// ---------------------- SUBJECTS (2-way) ----------------------
-  // 1️⃣ STAFF -> ViewSubjectApp API | 2️⃣ TEACHER -> GetSubjectTeacher API
-  // fallback -> staff API
+  // ---------------------- SUBJECTS ----------------------
+  // 1) STAFF -> ViewSubjectApp | 2) TEACHER -> GetSubjectTeacher
   Future<void> fetchSubjects() async {
-    // 1️⃣ STAFF
-    if (isStaffLogin.value) {
-      await _fetchSubjectsStaffApi();
-      return;
-    }
+    if (isStaffLogin.value) return _fetchSubjectsStaffApi();
 
-    // 2️⃣ TEACHER
     try {
-      final res = await http.get(Uri.parse(_subjectTeacherUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "Subjects");
-
-      final list = (decoded is Map<String, dynamic>)
-          ? (decoded['data'] ?? decoded['listData'] ?? [])
-          : [];
-      subjectList.assignAll((list as List).map<ListDaataa>((e) => ListDaataa.fromJson(e)).toList());
+      final decoded = await _get(_subjectTeacherUrl, "Subjects");
+      subjectList.assignAll(
+          _parseList(decoded, ['data', 'listData'], (e) => ListDaataa.fromJson(e)));
       selectedSubject.value = null;
     } catch (e) {
-      Get.snackbar("Error", "Subject fetch error: $e");
+      _showError(e);
       subjectList.value = [];
     }
-
-    // if (subjectList.isEmpty) {
-    //   debugPrint("↩️ Teacher subjects empty — falling back to staff API");
-    //   await _fetchSubjectsStaffApi();
-    // }
   }
 
-  // 🆕 Staff subject API (Notes wali hi logic)
   Future<void> _fetchSubjectsStaffApi() async {
     try {
       isSubjectLoading(true);
-      final res = await http.get(Uri.parse(_subjectStaffUrl), headers: _headers);
-      final decoded = _safeDecodeResponse(res, label: "SubjectsStaff");
-
-      // Adjust if your subject API shape differs.
-      final list = (decoded is Map<String, dynamic>) ? (decoded['listData'] ?? []) : [];
-      subjectList.assignAll((list as List).map<ListDaataa>((e) => ListDaataa.fromJson(e)).toList());
+      final decoded = await _get(_subjectStaffUrl, "SubjectsStaff");
+      subjectList.assignAll(_parseList(decoded, ['listData'], (e) => ListDaataa.fromJson(e)));
       selectedSubject.value = null;
     } catch (e) {
-      Get.snackbar("Error", "Subject fetch error (staff): $e");
+      _showError(e);
     } finally {
       isSubjectLoading(false);
     }
@@ -517,7 +423,7 @@ class TeacherSubjectController extends GetxController {
   // LIST (POST body: schoolId + session)
   // =========================
   Future<void> fetchTeacherSubjectList() async {
-    final session = selectedSession.value?.session?.trim() ?? "";
+    final session = _session.trim();
     if (session.isEmpty) {
       teacherSubjectList.clear();
       return;
@@ -526,81 +432,49 @@ class TeacherSubjectController extends GetxController {
     try {
       isListLoading(true);
 
-      final body = {
-        "schoolId": schoolId,
-        "session": session,
-      };
-
       final res = await http.post(
         Uri.parse(_listUrl),
         headers: _headers,
-        body: jsonEncode(body),
+        body: jsonEncode({"schoolId": schoolId, "session": session}),
       );
 
-      final decoded = _safeDecodeResponse(res, label: "TeacherSubjectList");
-      final model = TeacherSubjectModel.fromJson(decoded);
-
+      final model = TeacherSubjectModel.fromJson(
+          _safeDecodeResponse(res, label: "TeacherSubjectList"));
       teacherSubjectList.assignAll(model.listData);
     } catch (e) {
-      Get.snackbar("Error", "List error: $e");
+      _showError(e);
     } finally {
       isListLoading(false);
     }
   }
 
   // =========================
-  // DUPLICATE CHECK
+  // SAVE
   // =========================
-  bool _alreadyAssigned() {
-    final teacherId = selectedTeacher.value?.id;
-    final classId = selectedClass.value?.classId;
-    final sectionId = selectedSection.value?.sectionId;
-    final subjectId = selectedSubject.value?.subjectId;
-    final session = selectedSession.value?.session?.trim();
-
-    if (teacherId == null || classId == null || sectionId == null || subjectId == null || session == null) {
-      return false;
-    }
-
-    // Best case: list returns teacherId (it doesn't in your model).
-    // So we do a pragmatic match: class+section+subject+session and teacherName match.
-    // If your API returns teacherId somewhere, change this to compare IDs.
-    final teacherName = selectedTeacher.value?.name?.trim() ?? "";
-
-    return teacherSubjectList.any((x) {
-      final sameSession = (x.session?.trim() ?? "") == session;
-      final sameClass = x.classId == classId;
-      final sameSection = x.sectionId == sectionId;
-      final sameSubject = x.subjectId == subjectId;
-
-      final listTeacherName = (x.teacherName?.trim() ?? "");
-      final sameTeacher = teacherName.isNotEmpty && listTeacherName == teacherName;
-
-      return sameSession && sameClass && sameSection && sameSubject && sameTeacher;
-    });
-  }
-
   Future<void> saveTeacherSubjectAssign() async {
-    if (selectedTeacher.value == null) {
-      Get.snackbar("Validation", "Select Teacher");
-      return;
-    }
-    if (selectedClass.value == null) {
-      Get.snackbar("Validation", "Select Class");
-      return;
-    }
-    if (selectedSection.value == null) {
-      Get.snackbar("Validation", "Select Section");
-      return;
-    }
-    if (selectedSubject.value == null) {
-      Get.snackbar("Validation", "Select Subject");
-      return;
+    // Pehli missing selection ka validation message
+    final selections = <String, Object?>{
+      'teacher': selectedTeacher.value,
+      'class': selectedClass.value,
+      'section': selectedSection.value,
+      'subject': selectedSubject.value,
+    };
+
+    String? missing;
+    for (final e in selections.entries) {
+      if (e.value == null) {
+        missing = e.key;
+        break;
+      }
     }
 
-    final session = selectedSession.value?.session?.trim() ?? "";
+    if (missing != null) {
+      AppSnackbar.error('Please select a $missing', title: 'Validation');
+      return;
+    }
+    final session = _session.trim();
     if (session.isEmpty) {
-      Get.snackbar("Validation", "Session missing");
+      AppSnackbar.error('Session not loaded. Please refresh and try again.', title: 'Validation');
       return;
     }
 
@@ -613,68 +487,46 @@ class TeacherSubjectController extends GetxController {
     try {
       isSaving(true);
 
-      final uri = Uri.parse(_saveUrl);
-      final request = http.MultipartRequest("POST", uri);
+      // IMPORTANT: Content-Type manually set nahi karna (multipart)
+      final request = http.MultipartRequest("POST", Uri.parse(_saveUrl))
+        ..headers.addAll({
+          "Accept": "application/json",
+          if (token.trim().isNotEmpty) "Authorization": "Bearer $token",
+        })
+      // multipart fields strings hi hone chahiye
+        ..fields.addAll({
+          "Id": "0",
+          "UserId": (t.id ?? 0).toString(),
+          "Session": session,
+          "ClassId": (c.classId ?? 0).toString(),
+          "SectionId": (s.sectionId ?? 0).toString(),
+          "SubjectId": (sub.subjectId ?? 0).toString(),
+          "Action": "1",
+          "CreateDate": nowIso,
+          "UpdateDate": nowIso,
+          "CreateBy": "SchoolAdmin",
+          "UpdateBy": "",
+          "SchoolId": schoolId,
+        });
 
-      // ✅ IMPORTANT: do NOT set Content-Type manually
-      request.headers.addAll({
-        "Accept": "application/json",
-        if (token.trim().isNotEmpty)
-          "Authorization": "Bearer $token",
-      });
+      debugPrint("[FORMDATA SAVE] URL: $_saveUrl | FIELDS: ${request.fields}");
 
-      // ✅ multipart fields MUST be strings
-      request.fields.addAll({
-        "Id": "0",
-        "UserId": (t.id ?? 0).toString(),
-        "Session": session,
-        "ClassId": (c.classId ?? 0).toString(),
-        "SectionId": (s.sectionId ?? 0).toString(),
-        "SubjectId": (sub.subjectId ?? 0).toString(),
-        "Action": "1",
-        "CreateDate": nowIso,
-        "UpdateDate": nowIso,
-        "CreateBy": "SchoolAdmin",
-        "UpdateBy": "",
-        "SchoolId": schoolId,
-      });
-
-      debugPrint("[FORMDATA SAVE] URL: $_saveUrl");
-      debugPrint("[FORMDATA SAVE] FIELDS: ${request.fields}");
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      debugPrint("[FORMDATA SAVE] STATUS: ${response.statusCode}");
-      debugPrint("[FORMDATA SAVE] RESP: ${response.body}");
+      final response = await http.Response.fromStream(await request.send());
+      debugPrint("[FORMDATA SAVE] STATUS: ${response.statusCode} | RESP: ${response.body}");
 
       if (response.statusCode != 200 && response.statusCode != 201) {
-        Get.snackbar(
-          "Error",
-          "Save failed: ${response.statusCode}\n${response.body}",
-        );
+        // Raw status code / response body user ko nahi dikhana.
+        _showError(_HttpStatusException(response.statusCode));
         return;
       }
 
-      String msg = "Saved";
-      final ct = (response.headers['content-type'] ?? '').toLowerCase();
-      if (ct.contains("application/json") && response.body.isNotEmpty) {
-        final decoded = jsonDecode(response.body);
-        if (decoded is Map<String, dynamic>) {
-          msg = decoded['messages'] ??
-              decoded['message'] ??
-              decoded['Messages'] ??
-              decoded['Message'] ??
-              msg;
-        }
-      }
-
-      Get.snackbar("Success", msg.toString());
+      // API ka message nahi dikhana — fixed success line.
+      AppSnackbar.success('Teacher subject assigned successfully');
 
       clearForm();
       await fetchTeacherSubjectList();
     } catch (e) {
-      Get.snackbar("Error", e.toString());
+      _showError(e);
     } finally {
       isSaving(false);
     }
@@ -685,7 +537,7 @@ class TeacherSubjectController extends GetxController {
     final c = selectedClass.value;
     final s = selectedSection.value;
     final sub = selectedSubject.value;
-    final session = selectedSession.value?.session?.trim() ?? "";
+    final session = _session.trim();
 
     if (t == null || c == null || s == null || sub == null || session.isEmpty) return false;
 
@@ -700,7 +552,6 @@ class TeacherSubjectController extends GetxController {
         (x.teacherName?.trim() ?? "") == teacherName);
   }
 
-
   void clearForm() {
     selectedTeacher.value = null;
     selectedClass.value = null;
@@ -709,6 +560,8 @@ class TeacherSubjectController extends GetxController {
   }
 
   void openEditDialog(BuildContext context, TeacherSubjectItem row) {
-    Get.snackbar("Info", "Edit pending (ID: ${row.id ?? 0})");
+    // AppSnackbar me sirf success/error style hain, isliye info bhi
+    // usi card me "Info" title ke saath dikhta hai.
+    AppSnackbar.success('Edit is coming soon', title: 'Info');
   }
 }

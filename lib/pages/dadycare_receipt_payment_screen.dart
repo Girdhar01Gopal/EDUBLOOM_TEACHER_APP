@@ -27,6 +27,10 @@ class DaycareFeeReceiptPrintScreen extends StatefulWidget {
 
 class _DaycareFeeReceiptPrintScreenState
     extends State<DaycareFeeReceiptPrintScreen> {
+  // 🆕 Screen pe sirf ye safe message dikhega (asli error console me print hoga)
+  static const String _genericError =
+      'Something went wrong. Please try again.';
+
   bool _loading = true;
   String? _error;
   List<DaycareReceiptModel> _feeDetails = [];
@@ -93,14 +97,16 @@ class _DaycareFeeReceiptPrintScreenState
           _loading    = false;
         });
       } else {
+        debugPrint("DaycareReceipt HTTP ${res.statusCode}: ${res.body}");
         setState(() {
-          _error   = "Failed to load receipt (${res.statusCode})";
+          _error   = _genericError; // 🔄 raw status code nahi dikhega
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint("DaycareReceipt fetch failed: $e\n$s");
       setState(() {
-        _error   = e.toString();
+        _error   = _genericError; // 🔄 URL / exception nahi dikhega
         _loading = false;
       });
     }

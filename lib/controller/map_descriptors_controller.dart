@@ -15,6 +15,7 @@ import '../models/subject_model.dart';
 import '../models/viewsectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -163,7 +164,7 @@ class MapDescriptorsController extends GetxController {
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -215,8 +216,8 @@ class MapDescriptorsController extends GetxController {
         fetchDescriptorDropdown(),
         fetchMapDescriptors(),
       ]);
-    } catch (e) {
-      Get.snackbar("Error", e.toString());
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -298,8 +299,8 @@ class MapDescriptorsController extends GetxController {
       // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
       classList.assignAll(parsed.listData);
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       classList.value = [];
     }
 
@@ -324,8 +325,8 @@ class MapDescriptorsController extends GetxController {
           .where((e) => e.action == "1")
           .toList();
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isClassLoading(false);
     }
@@ -354,9 +355,9 @@ class MapDescriptorsController extends GetxController {
         list.map<ListDaataa>((e) => ListDaataa.fromJson(e)).toList(),
       );
       selectedSubject.value = null;
-    } catch (e) {
+    } catch (e, s) {
       subjectList.value = [];
-      Get.snackbar("Error", "Subject fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
 
     // if (subjectList.isEmpty) {
@@ -380,8 +381,8 @@ class MapDescriptorsController extends GetxController {
         subjectList.value = [];
       }
       selectedSubject.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Subject fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubjectLoading(false);
     }
@@ -402,10 +403,10 @@ class MapDescriptorsController extends GetxController {
         parsed.listData.where((e) => (e.action ?? "1") == "1").toList(),
       );
       selectedDescriptor.value = null;
-    } catch (e) {
+    } catch (e, s) {
       descriptorList.clear();
       selectedDescriptor.value = null;
-      Get.snackbar("Error", "Descriptor fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -443,10 +444,10 @@ class MapDescriptorsController extends GetxController {
           }).toList(),
         );
         selectedSection.value = null;
-      } catch (e) {
+      } catch (e, s) {
         sectionList.clear();
         selectedSection.value = null;
-        Get.snackbar("Error", "Section fetch error: $e");
+        AppSnackbar.apiError(e, stackTrace: s);
       }
 
       // if (sectionList.isEmpty) {
@@ -467,10 +468,10 @@ class MapDescriptorsController extends GetxController {
             .toList(),
       );
       selectedSection.value = null;
-    } catch (e) {
+    } catch (e, s) {
       sectionList.clear();
       selectedSection.value = null;
-      Get.snackbar("Error", "Section fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
 
     // if (sectionList.isEmpty) {
@@ -494,8 +495,8 @@ class MapDescriptorsController extends GetxController {
         rawList.map((e) => stListData.fromJson(e)).toList(),
       );
       selectedSection.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Section fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSectionLoading(false);
     }
@@ -523,14 +524,16 @@ class MapDescriptorsController extends GetxController {
         mapDescriptorList.assignAll(parsed.data ?? []);
       } else {
         mapDescriptorList.clear();
-        Get.snackbar(
-          "Error",
+        // Short clean server message is shown; technical text becomes
+        // "Something went wrong" automatically.
+        AppSnackbar.error(
           parsed.messages ?? "Unable to load mapped descriptors",
         );
       }
-    } catch (e) {
+    } catch (e, s) {
       mapDescriptorList.clear();
-      Get.snackbar("Error", "View list fetch error: $e");
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -562,25 +565,25 @@ class MapDescriptorsController extends GetxController {
   // =========================
   Future<void> saveMap() async {
     if (selectedClass.value == null) {
-      Get.snackbar("Validation", "Select Class");
+      AppSnackbar.error("Select Class", title: "Validation");
       return;
     }
     if (selectedSection.value == null) {
-      Get.snackbar("Validation", "Select Section");
+      AppSnackbar.error("Select Section", title: "Validation");
       return;
     }
     if (selectedSubject.value == null) {
-      Get.snackbar("Validation", "Select Subject");
+      AppSnackbar.error("Select Subject", title: "Validation");
       return;
     }
     if (selectedDescriptor.value == null) {
-      Get.snackbar("Validation", "Select Descriptor");
+      AppSnackbar.error("Select Descriptor", title: "Validation");
       return;
     }
     if (isDuplicateSelection) {
-      Get.snackbar(
-        "Warning",
+      AppSnackbar.error(
         "This class, section, descriptor and subject is already mapped",
+        title: "Warning",
       );
       return;
     }
@@ -620,15 +623,16 @@ class MapDescriptorsController extends GetxController {
         if (isSuccess) {
           await fetchMapDescriptors();
           clearForm();
-          Get.snackbar("Success", message);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Mapped successfully");
         } else {
-          Get.snackbar("Error", message);
+          AppSnackbar.error(message);
         }
       } else {
-        Get.snackbar("Error", "Invalid server response");
+        AppSnackbar.apiError("Invalid server response");
       }
-    } catch (e) {
-      Get.snackbar("Error", "Save failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSaving(false);
     }

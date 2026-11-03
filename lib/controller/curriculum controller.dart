@@ -16,6 +16,7 @@ import '../models/new model teacher section attendance.dart'; // SectionForAtten
 import '../models/curriculum model.dart';
 import '../models/session_model.dart' as session_model;
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
@@ -124,10 +125,16 @@ class CurriculumController extends GetxController {
           session.value = cs.session ?? "";
         }
       } else {
-        Get.snackbar("Error", "Failed to load session");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar (user ko "Something went wrong",
+        // console me asli error)
+        AppSnackbar.apiError(
+          "ViewSessionApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to load sessions: $e");
+    } catch (e, stack) {
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -172,10 +179,16 @@ class CurriculumController extends GetxController {
         final model = CurriculumModel.fromJson(jsonDecode(response.body));
         curriculumList.value = model.data ?? [];
       } else {
-        Get.snackbar("Error", "Failed to load curriculum");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+        AppSnackbar.apiError(
+          "ViewCurriculum failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ fetchCurriculum exception: $e"); // 🆕 debug
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -207,9 +220,11 @@ class CurriculumController extends GetxController {
             'sqno': e.sqno,
           });
         }).toList();
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         classList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       }
       return;
     }
@@ -244,10 +259,17 @@ class CurriculumController extends GetxController {
         classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
       } else {
         classList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetClassTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
       classList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -268,9 +290,17 @@ class CurriculumController extends GetxController {
             ?.where((e) => e.action == "1")
             .toList() ??
             [];
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewClass failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -327,10 +357,17 @@ class CurriculumController extends GetxController {
           }).toList();
         } else {
           sectionList.value = [];
+          // 🆕 ADDED: user ko "Something went wrong", console me asli error
+          AppSnackbar.apiError(
+            "SectionTeacher failed: ${response.statusCode}",
+            statusCode: response.statusCode,
+          );
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         isLoading(false);
       }
@@ -366,10 +403,17 @@ class CurriculumController extends GetxController {
         sectionList.value = list.map((e) => ListDatta.fromJson(e)).toList();
       } else {
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSectionTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
       sectionList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -387,9 +431,17 @@ class CurriculumController extends GetxController {
         sectionList.value = (json.decode(response.body)['listData'] as List)
             .map((e) => ListDatta.fromJson(e))
             .toList();
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSectionApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -432,8 +484,10 @@ class CurriculumController extends GetxController {
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -465,9 +519,11 @@ class CurriculumController extends GetxController {
     if (result != null && result.files.single.path != null) {
       pdfFile.value = File(result.files.single.path!);
       file.value = result.files.single.name;
-      ShortMessage.toast(title: file.value);
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.success(file.value, title: "File Selected");
     } else {
-      ShortMessage.toast(title: "No file selected");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("No file selected");
     }
   }
 
@@ -485,29 +541,35 @@ class CurriculumController extends GetxController {
   /// ClassId[]/SectionId[] arrays ke roop me (naye PostCurriculum API ke hisaab se).
   Future<void> registerCurriculum() async {
     if (pdfFile.value == null) {
-      ShortMessage.toast(title: "Please select an Image or PDF file.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select an Image or PDF file.");
       return;
     }
     if (curriculumName.value.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter Curriculum Name.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter Curriculum Name.");
       return;
     }
     if (description.value.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter Description.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter Description.");
       return;
     }
     if (selectedClasses.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one class.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one class.");
       return;
     }
     if (selectedSections.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one section.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one section.");
       return;
     }
     final sessionValue =
     (selectedSession.value?.session ?? session.value).trim();
     if (sessionValue.isEmpty) {
-      ShortMessage.toast(title: "Please select Session.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select Session.");
       return;
     }
 
@@ -518,13 +580,16 @@ class CurriculumController extends GetxController {
       final ok = await _postCurriculum(sessionValue: sessionValue);
 
       if (ok) {
-        ShortMessage.toast(title: "Curriculum Added Successfully");
         resetForm();
         await fetchCurriculum();
         Get.back();
-      } else {
-        ShortMessage.toast(title: "Failed to add curriculum. Please try again.");
+
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.
+        // Get.back() ke BAAD dikhaya, taaki back karte waqt snackbar band na ho jaye.
+        AppSnackbar.success("Curriculum Added Successfully");
       }
+      // 🆕 NOTE: fail hone par "Something went wrong" snackbar
+      // _postCurriculum() khud dikha deta hai.
     } finally {
       isSubmitting(false);
       isLoading(false);
@@ -609,14 +674,26 @@ class CurriculumController extends GetxController {
           return true;
         } else {
           debugPrint('❌ API returned failure: ${decoded['messages'] ?? resBody}');
+          // 🆕 ADDED: user ko "Something went wrong", console me asli error
+          AppSnackbar.apiError(
+            "Post curriculum failed: ${decoded['messages'] ?? resBody}",
+            statusCode: streamed.statusCode,
+          );
           return false;
         }
       } else {
         debugPrint('❌ Error: ${streamed.statusCode}, $resBody');
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Post curriculum failed: $resBody",
+          statusCode: streamed.statusCode,
+        );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ Exception in _postCurriculum: $e');
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
       return false;
     }
   }
@@ -625,7 +702,8 @@ class CurriculumController extends GetxController {
   // GET https://playschool.edubloom.in/api/MasterApp/ActiveInactiveCurriculum/{schoolId}/{curriculumId}
   Future<void> toggleCurriculumStatus(int curriculumId) async {
     if (schoolId.isEmpty || curriculumId == 0) {
-      ShortMessage.toast(title: "Invalid curriculum record");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Invalid curriculum record");
       return;
     }
 
@@ -649,18 +727,21 @@ class CurriculumController extends GetxController {
           CurriculumStatusModel.fromJson(jsonDecode(response.body));
         } catch (_) {}
 
-        ShortMessage.toast(title: "Status updated successfully");
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+        AppSnackbar.success("Status updated successfully");
 
         // refresh list via ViewCurriculum
         await fetchCurriculum();
       } else {
-        Get.snackbar(
-          "Error",
-          "Failed to update status (${response.statusCode})",
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+        AppSnackbar.apiError(
+          "ActiveInactiveCurriculum failed: ${response.statusCode}",
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to update status: $e");
+    } catch (e, stack) {
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }

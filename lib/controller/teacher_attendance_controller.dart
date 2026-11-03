@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:geolocator/geolocator.dart';
@@ -12,6 +11,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/teacher_attendance.dart';
+import '../utils/app_snackbar.dart';
 
 class TeacherAttendanceController extends GetxController {
   static const String statusPresent = "PRESENT";
@@ -47,8 +47,8 @@ class TeacherAttendanceController extends GetxController {
   // 2) Check-in/Check-out flags reload kar deta hai taaki naye din ka
   //    cycle turant "Check In" se shuru ho jaaye — app restart ka wait
   //    nahi karna padta.
-  // NOTE: Mobile app background me 24x7 nahi chal sakta, isliye jab tak
-  // app kill/force-close nahi hoti tab tak hi ye timer chalega. App band
+  // NOTE: Mobile app background me 24x7 nahi chal sakta, isliye jab tak app
+  // kill/force-close nahi hoti tab tak hi ye timer chalega. App band
   // hone ke baad bhi missed din agli baar app khulne par
   // _autoMarkAbsentForMissedDays() (neeche) se cover ho jaate hain.
   // Guaranteed midnight-exact marking ke liye backend pe daily cron job
@@ -116,7 +116,7 @@ class TeacherAttendanceController extends GetxController {
         .toString();
 
     if (schoolId.trim().isEmpty) {
-      _showError("SchoolId not found. Please login again.");
+      _showError("School information not found. Please login again.");
       return;
     }
 
@@ -182,15 +182,14 @@ class TeacherAttendanceController extends GetxController {
     // chhodkar), to use turant Absent mark karke server pe save kar do.
     final justEndedDay = DateTime.now().subtract(const Duration(minutes: 1));
     if (justEndedDay.weekday != DateTime.sunday) {
-      final dateKey =
-          "${justEndedDay.year.toString().padLeft(4, '0')}-${justEndedDay.month.toString().padLeft(2, '0')}-${justEndedDay.day.toString().padLeft(2, '0')}";
+      final dateKey = _formatDateApi(justEndedDay);
       final checkInKey = "teacher_att_checkin_${userId}_$dateKey";
       final autoAbsentDoneKey =
           "teacher_att_autoabsent_done_${userId}_$dateKey";
 
       final alreadyHandled =
           (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() ==
-          "1";
+              "1";
       if (!alreadyHandled) {
         final wasCheckedIn =
             (await PrefManager().readValue(key: checkInKey))?.toString() == "1";
@@ -250,7 +249,7 @@ class TeacherAttendanceController extends GetxController {
   }
 
   String _formatDateTimeApi(DateTime d) {
-    return "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')}";
+    return "${_formatDateApi(d)} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')}";
   }
 
   String _formatDateUI(DateTime d) {
@@ -285,8 +284,7 @@ class TeacherAttendanceController extends GetxController {
     final s = status.trim().toUpperCase();
     if (s.isEmpty) return statusPresent;
     if (s == statusAbsent || s == "A" || s.contains("ABS")) return statusAbsent;
-    if (s == statusHold || s == "HOLIDAY" || s == "H" || s.contains("HOL"))
-      return statusHold;
+    if (s == statusHold || s == "H" || s.contains("HOL")) return statusHold;
     return statusPresent;
   }
 
@@ -374,19 +372,19 @@ class TeacherAttendanceController extends GetxController {
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
           final parts =
-              [
-                    p.name,
-                    p.street,
-                    p.subLocality,
-                    p.locality,
-                    p.administrativeArea,
-                    p.postalCode,
-                    p.country,
-                  ]
-                  .where((e) => e != null && e.trim().isNotEmpty)
-                  .map((e) => e!.trim())
-                  .toSet() // drop exact duplicate segments
-                  .toList();
+          [
+            p.name,
+            p.street,
+            p.subLocality,
+            p.locality,
+            p.administrativeArea,
+            p.postalCode,
+            p.country,
+          ]
+              .where((e) => e != null && e.trim().isNotEmpty)
+              .map((e) => e!.trim())
+              .toSet() // drop exact duplicate segments
+              .toList();
           final addr = parts.join(", ");
           if (addr.trim().isNotEmpty) return addr;
         }
@@ -395,8 +393,9 @@ class TeacherAttendanceController extends GetxController {
       }
 
       return "${position.latitude}, ${position.longitude}";
-    } catch (e) {
-      _showError("Could not fetch location: $e");
+    } catch (_) {
+      // Raw exception user ko nahi dikhana.
+      _showError("Could not fetch your location. Please try again.");
       return "";
     }
   }
@@ -407,10 +406,7 @@ class TeacherAttendanceController extends GetxController {
   // Keys are scoped to today's real calendar date, so at midnight the date
   // string changes, the old keys simply stop matching, and both flags come
   // back as "not set" (0) automatically — no timer/reset job needed.
-  String _todayDateKeyPart() {
-    final d = DateTime.now();
-    return "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-  }
+  String _todayDateKeyPart() => _formatDateApi(DateTime.now());
 
   String get _checkInPrefKey =>
       "teacher_att_checkin_${userId}_${_todayDateKeyPart()}";
@@ -435,10 +431,10 @@ class TeacherAttendanceController extends GetxController {
       "teacher_att_outaddr_${teacherId}_${_todayDateKeyPart()}";
 
   Future<void> _persistInData(
-    int teacherId,
-    DateTime time,
-    String address,
-  ) async {
+      int teacherId,
+      DateTime time,
+      String address,
+      ) async {
     await PrefManager().writeValue(
       key: _inTimeKey(teacherId),
       value: _formatDateTimeApi(time),
@@ -450,10 +446,10 @@ class TeacherAttendanceController extends GetxController {
   }
 
   Future<void> _persistOutData(
-    int teacherId,
-    DateTime time,
-    String address,
-  ) async {
+      int teacherId,
+      DateTime time,
+      String address,
+      ) async {
     await PrefManager().writeValue(
       key: _outTimeKey(teacherId),
       value: _formatDateTimeApi(time),
@@ -552,15 +548,7 @@ class TeacherAttendanceController extends GetxController {
     if (_handlingCheckInOut) return; // ignore any overlapping tap immediately
     _handlingCheckInOut = true;
     try {
-      if (_sessionMissing()) {
-        final loaded = await _ensureSessionLoaded();
-        if (!loaded) {
-          _showError(
-            "Could not load session. Please check your internet and try again.",
-          );
-          return;
-        }
-      }
+      if (!await _ensureSessionOrShowError()) return;
 
       // FIX: agar app din badalne ke baad bhi zinda hai to date/flags/maps
       // naye din pe sync kar do (save body me hamesha aaj ki date jaani chahiye).
@@ -585,7 +573,7 @@ class TeacherAttendanceController extends GetxController {
               : (remaining.inSeconds / 60).ceil();
           _showError(
             "You can check out after $remainingMinutes more minute${remainingMinutes == 1 ? '' : 's'} "
-            "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
+                "(minimum $_minGapBeforeCheckOutMinutes minutes after check-in).",
           );
           return;
         }
@@ -600,7 +588,7 @@ class TeacherAttendanceController extends GetxController {
       // koi duplicate check-in save nahi hoga. ----
       if (!isCheckedIn.value) {
         isCheckInOutSaving(true);
-        await fetchTeacherAttendanceList(); // isके andar hi _reconcileCheckFlagsFromServer() chalta hai
+        await fetchTeacherAttendanceList(); // iske andar hi _reconcileCheckFlagsFromServer() chalta hai
         if (isCheckedIn.value || isCheckedOutToday.value) {
           isCheckInOutSaving(false);
           _showInfo(
@@ -694,7 +682,7 @@ class TeacherAttendanceController extends GetxController {
 
   bool _sessionMissing() =>
       selectedSession.value == null ||
-      (selectedSession.value!.session ?? "").trim().isEmpty;
+          (selectedSession.value!.session ?? "").trim().isEmpty;
 
   // =========================================================
   // SESSIONS
@@ -721,7 +709,7 @@ class TeacherAttendanceController extends GetxController {
         selectedSession.value = obj;
       }
     } catch (e) {
-      _showError("Failed to load sessions: $e");
+      _showFailure(e);
     } finally {
       isPageLoading(false);
     }
@@ -756,6 +744,15 @@ class TeacherAttendanceController extends GetxController {
     if (!_sessionMissing()) return true;
     await fetchSessions();
     return !_sessionMissing();
+  }
+
+  /// _ensureSessionLoaded() + session na mile to error snackbar.
+  Future<bool> _ensureSessionOrShowError() async {
+    if (await _ensureSessionLoaded()) return true;
+    _showError(
+      "Could not load session. Please check your internet and try again.",
+    );
+    return false;
   }
 
   // =========================================================
@@ -803,13 +800,7 @@ class TeacherAttendanceController extends GetxController {
   }
 
   Future<void> loadAttendanceFromAddTab() async {
-    final loaded = await _ensureSessionLoaded();
-    if (!loaded) {
-      _showError(
-        "Could not load session. Please check your internet and try again.",
-      );
-      return;
-    }
+    if (!await _ensureSessionOrShowError()) return;
     try {
       isSaving(true);
       await fetchTeacherAttendanceList();
@@ -819,13 +810,7 @@ class TeacherAttendanceController extends GetxController {
   }
 
   Future<void> refreshListTab() async {
-    final loaded = await _ensureSessionLoaded();
-    if (!loaded) {
-      _showError(
-        "Could not load session. Please check your internet and try again.",
-      );
-      return;
-    }
+    if (!await _ensureSessionOrShowError()) return;
     await fetchTeacherAttendanceList();
   }
 
@@ -893,24 +878,24 @@ class TeacherAttendanceController extends GetxController {
 
         final rawIn =
             t.inTime ??
-            t.teacherAttendance?.inTime ??
-            t.teacherAttendance?.extra?['inTime']?.toString();
+                t.teacherAttendance?.inTime ??
+                t.teacherAttendance?.extra?['inTime']?.toString();
 
         final rawOut =
             t.outTime ??
-            t.teacherAttendance?.outTime ??
-            t.teacherAttendance?.extra?['outTime']?.toString();
+                t.teacherAttendance?.outTime ??
+                t.teacherAttendance?.extra?['outTime']?.toString();
 
         final rawInAddress =
             t.inAddress ?? t.teacherAttendance?.extra?['inAddress']?.toString();
 
         final rawOutAddress =
             t.outAddress ??
-            t.teacherAttendance?.extra?['outAddress']?.toString();
+                t.teacherAttendance?.extra?['outAddress']?.toString();
 
         debugPrint(
           "[ATT-DEBUG] FETCH teacher=$id rawStatus=$rawStatus rawIn=$rawIn rawOut=$rawOut "
-          "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress",
+              "rawInAddr=$rawInAddress rawOutAddr=$rawOutAddress",
         );
 
         // Status
@@ -936,24 +921,24 @@ class TeacherAttendanceController extends GetxController {
 
         // Address — server value ho to wahi, warna purani local value, warna persisted value
         final String? persistedInAddr =
-            (rawInAddress == null || rawInAddress.trim().isEmpty) &&
-                (oldInAddressMap[id] == null ||
-                    oldInAddressMap[id]!.trim().isEmpty)
+        (rawInAddress == null || rawInAddress.trim().isEmpty) &&
+            (oldInAddressMap[id] == null ||
+                oldInAddressMap[id]!.trim().isEmpty)
             ? await _readPersistedAddr(_inAddrKey(id))
             : null;
         final String? persistedOutAddr =
-            (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
-                (oldOutAddressMap[id] == null ||
-                    oldOutAddressMap[id]!.trim().isEmpty)
+        (rawOutAddress == null || rawOutAddress.trim().isEmpty) &&
+            (oldOutAddressMap[id] == null ||
+                oldOutAddressMap[id]!.trim().isEmpty)
             ? await _readPersistedAddr(_outAddrKey(id))
             : null;
 
         final String? finalInAddress =
-            (rawInAddress != null && rawInAddress.trim().isNotEmpty)
+        (rawInAddress != null && rawInAddress.trim().isNotEmpty)
             ? rawInAddress
             : (oldInAddressMap[id] ?? persistedInAddr);
         final String? finalOutAddress =
-            (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
+        (rawOutAddress != null && rawOutAddress.trim().isNotEmpty)
             ? rawOutAddress
             : (oldOutAddressMap[id] ?? persistedOutAddr);
         if (finalInAddress != null && finalInAddress.trim().isNotEmpty) {
@@ -969,7 +954,7 @@ class TeacherAttendanceController extends GetxController {
 
         debugPrint(
           "[ATT-DEBUG] FETCH-RESULT teacher=$id finalIn=${_inTimeMap[id]} finalOut=${_outTimeMap[id]} "
-          "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}",
+              "finalInAddr=${_inAddressMap[id]} finalOutAddr=${_outAddressMap[id]}",
         );
       }
       _bump();
@@ -979,7 +964,7 @@ class TeacherAttendanceController extends GetxController {
       await _reconcileCheckFlagsFromServer();
       await syncTodayFromDetailsApi();
     } catch (e) {
-      _showError("Error loading: $e");
+      _showFailure(e);
     } finally {
       isViewLoading(false);
     }
@@ -1014,8 +999,8 @@ class TeacherAttendanceController extends GetxController {
       final List rows = decoded is List
           ? decoded
           : (decoded is Map && decoded['listData'] is List
-                ? decoded['listData']
-                : const []);
+          ? decoded['listData']
+          : const []);
       if (rows.isEmpty) return;
 
       final uid = int.tryParse(userId);
@@ -1028,10 +1013,12 @@ class TeacherAttendanceController extends GetxController {
         if (uid != null && rowUid != null && rowUid != uid) continue;
         final i = r['inTime$d']?.toString().trim();
         final o = r['outTime$d']?.toString().trim();
-        if ((inRaw == null || inRaw.isEmpty) && i != null && i.isNotEmpty)
+        if ((inRaw == null || inRaw.isEmpty) && i != null && i.isNotEmpty) {
           inRaw = i;
-        if ((outRaw == null || outRaw.isEmpty) && o != null && o.isNotEmpty)
+        }
+        if ((outRaw == null || outRaw.isEmpty) && o != null && o.isNotEmpty) {
           outRaw = o;
+        }
       }
       debugPrint("[ATT-DEBUG] DETAILS day$d inTime=$inRaw outTime=$outRaw");
 
@@ -1140,7 +1127,7 @@ class TeacherAttendanceController extends GetxController {
     // Yahi wo helper hai jo kabhi bhi khaali/null time nahi jaane dega —
     // agar RAM map me value nahi hai to seedha teacher ke apne record
     // (flat / nested / extra) se fallback le lega.
-    DateTime? _fallbackTime(String? raw) {
+    DateTime? fallbackTime(String? raw) {
       if (raw == null || raw.trim().isEmpty) return null;
       final d = DateTime.tryParse(raw);
       if (d != null) return d;
@@ -1168,22 +1155,22 @@ class TeacherAttendanceController extends GetxController {
         // ---- IN TIME: local map -> local-persisted (SharedPreferences) -> flat -> nested -> extra -> kabhi null nahi ----
         final DateTime? inT =
             _inTimeMap[uId] ??
-            await _readPersistedTime(_inTimeKey(uId)) ??
-            _fallbackTime(
-              t.inTime ??
-                  t.teacherAttendance?.inTime ??
-                  t.teacherAttendance?.extra?['inTime']?.toString(),
-            );
+                await _readPersistedTime(_inTimeKey(uId)) ??
+                fallbackTime(
+                  t.inTime ??
+                      t.teacherAttendance?.inTime ??
+                      t.teacherAttendance?.extra?['inTime']?.toString(),
+                );
 
         // ---- OUT TIME: same fallback chain ----
         final DateTime? outT =
             _outTimeMap[uId] ??
-            await _readPersistedTime(_outTimeKey(uId)) ??
-            _fallbackTime(
-              t.outTime ??
-                  t.teacherAttendance?.outTime ??
-                  t.teacherAttendance?.extra?['outTime']?.toString(),
-            );
+                await _readPersistedTime(_outTimeKey(uId)) ??
+                fallbackTime(
+                  t.outTime ??
+                      t.teacherAttendance?.outTime ??
+                      t.teacherAttendance?.extra?['outTime']?.toString(),
+                );
 
         // ---- ADDRESS: same fallback chain (empty string pe bhi next source try hota hai) ----
         final String inAddr = _pickNonEmpty([
@@ -1201,7 +1188,7 @@ class TeacherAttendanceController extends GetxController {
 
         debugPrint(
           "[ATT-DEBUG] SAVE teacher=$uId inT=$inT outT=$outT inAddr=$inAddr outAddr=$outAddr "
-          "(fromMap=${_inTimeMap[uId]}, fromServer=${t.inTime ?? t.teacherAttendance?.inTime})",
+              "(fromMap=${_inTimeMap[uId]}, fromServer=${t.inTime ?? t.teacherAttendance?.inTime})",
         );
 
         final body = {
@@ -1265,7 +1252,7 @@ class TeacherAttendanceController extends GetxController {
       await fetchTeacherAttendanceList();
       return true;
     } catch (e) {
-      _showError("Save error: $e");
+      _showFailure(e);
       return false;
     } finally {
       isViewSaving(false);
@@ -1295,15 +1282,14 @@ class TeacherAttendanceController extends GetxController {
       // Sunday (weekday == 7) ko chhod do — weekly off.
       if (day.weekday == DateTime.sunday) continue;
 
-      final dateKey =
-          "${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+      final dateKey = _formatDateApi(day);
       final checkInKey = "teacher_att_checkin_${userId}_$dateKey";
       final autoAbsentDoneKey =
           "teacher_att_autoabsent_done_${userId}_$dateKey";
 
       final alreadyHandled =
           (await PrefManager().readValue(key: autoAbsentDoneKey))?.toString() ==
-          "1";
+              "1";
       if (alreadyHandled) continue;
 
       final wasCheckedIn =
@@ -1341,15 +1327,16 @@ class TeacherAttendanceController extends GetxController {
       final parsed = TeacherListResponse.fromJson(jsonDecode(res.body));
       for (final t in parsed.listData) {
         final reg =
-            (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
-                .trim();
+        (t.registrationNo ?? t.additionalDetail?.registrationNo ?? "")
+            .trim();
         if (reg.isEmpty) continue;
 
         // Agar us din already koi status save hai (present/absent), to overwrite mat karo.
         final existingStatus =
             t.status ?? t.teacherAttendance?.attendanceStatus;
-        if (existingStatus != null && existingStatus.trim().isNotEmpty)
+        if (existingStatus != null && existingStatus.trim().isNotEmpty) {
           continue;
+        }
 
         final body = {
           "tadid": t.teacherAttendance?.attendanceId ?? 0,
@@ -1384,35 +1371,21 @@ class TeacherAttendanceController extends GetxController {
     }
   }
 
-  void _showSuccess(String msg) {
-    Get.snackbar(
-      "Success",
-      msg,
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-    );
-  }
+  // =========================================================
+  // SNACKBARS — sab AppSnackbar se (top se aata hai, white card +
+  // green/red accent). Raw API / exception text kabhi nahi dikhta.
+  // =========================================================
+  void _showSuccess(String msg) => AppSnackbar.success(msg);
 
-  void _showError(String msg) {
-    Get.snackbar(
-      "Error",
-      msg,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-    );
-  }
+  void _showError(String msg) => AppSnackbar.error(msg);
 
-  void _showInfo(String msg) {
-    Get.snackbar(
-      "Info",
-      msg,
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-    );
-  }
+  // Exception se friendly line banata hai (raw "$e" nahi dikhata).
+  void _showFailure(Object e) =>
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
+
+  // AppSnackbar me sirf success/error style hain, isliye info bhi
+  // usi card me "Info" title ke saath dikhta hai.
+  void _showInfo(String msg) => AppSnackbar.success(msg, title: 'Info');
 }
 
 extension _NullableStringCheck on String? {

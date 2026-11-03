@@ -13,6 +13,7 @@ import '../infrastructures/utils/utils.dart';
 import '../models/get all leave app.dart' as get_all_leave;
 import '../models/leave apply model.dart' as leave_apply;
 import '../models/leave balance dropdown model.dart' as leave_dropdown;
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 // TODO: adjust these import paths to wherever these model files actually
 // live. Also make sure these two model classes expose every field the API
@@ -284,13 +285,17 @@ class LeaveRequestController extends GetxController {
         );
         leaveTypeList.value = model.listData;
       } else {
-        Get.snackbar(
-          "Error",
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar (user ko "Something went wrong",
+        // asli error console me)
+        AppSnackbar.apiError(
           "Failed to load leave types (${response.statusCode})",
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error fetching leave types: $e");
+      // 🆕 ADDED: net band / API fail pe snackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isTypesLoading(false);
     }
@@ -337,9 +342,16 @@ class LeaveRequestController extends GetxController {
         myLeaveSummary.value = found;
       } else {
         debugPrint("Failed to load leave balance: ${response.statusCode}");
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          "Failed to load leave balance: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error fetching leave balance: $e");
+      // 🆕 ADDED: net band / API fail pe snackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isBalanceLoading(false);
     }
@@ -447,10 +459,16 @@ class LeaveRequestController extends GetxController {
         });
         leaveRequestList.value = list;
       } else {
-        Get.snackbar("Error", "Failed to load leave requests");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+        AppSnackbar.apiError(
+          "Failed to load leave requests: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error fetching leave requests: $e");
+      // 🆕 ADDED: net band / API fail pe snackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -459,24 +477,26 @@ class LeaveRequestController extends GetxController {
   // ── Apply Leave Request ──────────────────────────────────────────
   // POST {base}/MasterApp/PostLeaveApply (multipart, attachment optional)
   Future<void> applyLeaveRequest() async {
+    // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar (validations)
     if (selectedLeaveType.value == null) {
-      ShortMessage.toast(title: "Please select Leave Type.");
+      AppSnackbar.error("Please select Leave Type.", title: "Validation");
       return;
     }
     if (fromDate.value == null) {
-      ShortMessage.toast(title: "Please select From Date.");
+      AppSnackbar.error("Please select From Date.", title: "Validation");
       return;
     }
     if (toDate.value == null) {
-      ShortMessage.toast(title: "Please select To Date.");
+      AppSnackbar.error("Please select To Date.", title: "Validation");
       return;
     }
     if (toDate.value!.isBefore(fromDate.value!)) {
-      ShortMessage.toast(title: "To Date cannot be before From Date.");
+      AppSnackbar.error("To Date cannot be before From Date.",
+          title: "Validation");
       return;
     }
     if (reason.value.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter Reason.");
+      AppSnackbar.error("Please enter Reason.", title: "Validation");
       return;
     }
 
@@ -544,33 +564,41 @@ class LeaveRequestController extends GetxController {
 
         final success = decoded['isSuccess'] == true;
         if (success) {
-          ShortMessage.toast(
-            title:
-            decoded['messages']?.toString() ??
-                "Leave Request Submitted Successfully",
-          );
+          final successMsg =
+              decoded['messages']?.toString() ??
+                  "Leave Request Submitted Successfully";
           resetForm();
           // Close the screen immediately instead of waiting on 3 sequential
           // GET calls — that serial refresh was the main source of the
           // "submit takes forever" delay. Refresh the lists/balances in the
           // background instead; the previous screen will pick them up.
           Get.back();
+          // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.success.
+          // Get.back() ke BAAD dikhaya, taaki back karte waqt snackbar band na ho jaye.
+          AppSnackbar.success(successMsg);
           Future.wait([
             fetchLeaveRequests(),
             fetchLeaveBalance(),
             fetchLeaveTypes(),
           ]);
         } else {
-          ShortMessage.toast(
-            title: decoded['messages']?.toString() ?? "Submit failed",
+          // 🆕 CHANGED: error() technical / lamba text apne aap hide karta hai
+          AppSnackbar.error(
+            decoded['messages']?.toString() ?? "Submit failed",
           );
         }
       } else {
-        ShortMessage.toast(title: "Submit failed (${streamed.statusCode})");
         debugPrint("Server Response: $resBody");
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.apiError
+        AppSnackbar.apiError(
+          "Submit failed: $resBody",
+          statusCode: streamed.statusCode,
+        );
       }
-    } catch (e) {
-      ShortMessage.toast(title: "Something went wrong while submitting");
+    } catch (e, stack) {
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.apiError
+      // (net band / timeout / koi bhi exception -> "Something went wrong")
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isSubmitting(false);
     }
@@ -579,6 +607,7 @@ class LeaveRequestController extends GetxController {
   // ── Cancel a Pending Leave Request ───────────────────────────────
   // NOTE: no cancel endpoint was provided among the real APIs — left as-is.
   Future<void> cancelLeaveRequest(int leaveId) async {
-    ShortMessage.toast(title: "Cancel endpoint not provided yet.");
+    // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+    AppSnackbar.error("Cancel endpoint not provided yet.");
   }
 }

@@ -8,6 +8,8 @@ import '../infrastructures/utils/custom_text.dart';
 import '../wigets/app_drawer.dart';
 
 class Staffview extends GetView<Staffcontroller> {
+  const Staffview({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,16 +119,18 @@ class Staffview extends GetView<Staffcontroller> {
     );
   }
 
-
   // ------------------ Dashboard Grid ------------------
   Widget _buildDashboardGrid() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       child: Obx(() {
+        // ✅ list ek hi baar build hoti hai (pehle har item pe dobara banti thi)
+        final items = controller.vehicleDocumentList;
+
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: controller.vehicleDocumentList.length,
+          itemCount: items.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             childAspectRatio: .95,
@@ -134,7 +138,7 @@ class Staffview extends GetView<Staffcontroller> {
             mainAxisSpacing: 16,
           ),
           itemBuilder: (context, index) {
-            var item = controller.vehicleDocumentList[index];
+            final item = items[index];
 
             return InkWell(
               onTap: () => controller.onSelectedBottom(index),

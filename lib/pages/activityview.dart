@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/activitycontroller.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class Activityview extends GetView<Activitycontroller> {
   @override
@@ -588,51 +589,28 @@ Widget _submitButton(Activitycontroller controller) {
       onPressed: () async {
         // ✅ Pehle check karo ki kam se kam ek student select hua hai
         if (controller.selectedStudentIds.isEmpty) {
-          Get.snackbar(
-            "Validation",
-            "Please select a student first.",
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-            icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-          );
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+          AppSnackbar.error("Please select a student first.");
           return;
         }
 
         // ✅ studentId = 0 hone par bhi block karo
         if (controller.selectedStudentIds.any((id) => id == 0)) {
-          Get.snackbar(
-            "Error",
-            "Student ID is invalid. Please re-select the student.",
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            icon: const Icon(Icons.error, color: Colors.white),
-          );
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+          AppSnackbar.error("Student ID is invalid. Please re-select the student.");
           return;
         }
 
         final success =
         await controller.postActivityToApi(controller.selectedStudentIds);
 
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.
+        // Validation / API error snackbar controller already dikha deta hai,
+        // isliye yahan sirf success dikhana hai.
         if (success) {
-          // ── Solid green background, white text — matches the Meal
-          // screen's success snackbar. Controller has already
-          // refreshed the list and reset the form; we stay right here
-          // on the Activity screen. ──
-          Get.snackbar(
-            "Success",
-            "Activity posted successfully",
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-            icon: const Icon(Icons.check_circle, color: Colors.white),
-          );
-        } else {
-          Get.snackbar(
-            "Error",
-            "Failed to post activity",
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            icon: const Icon(Icons.error, color: Colors.white),
-          );
+          // ── Controller has already refreshed the list and reset the
+          // form; we stay right here on the Activity screen. ──
+          AppSnackbar.success("Activity posted successfully");
         }
       },
       icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
@@ -712,7 +690,7 @@ Widget _activityField(Activitycontroller controller) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFFC2185B), width: 1.5),
       ),
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

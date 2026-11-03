@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../controller/staff_detail_conroller.dart';
 import '../models/staff_detail_model.dart';
+import '../utils/app_snackbar.dart';
 
 // Axis Bank brand color (maroon) — replaces teal everywhere in this file
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -82,6 +83,8 @@ class _StaffDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasDoc = _hasAnyDoc(staff);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Center(
@@ -117,7 +120,7 @@ class _StaffDetailBody extends StatelessWidget {
                           if (staff.staffType != null)
                             Text(
                               staff.staffType!.trim(),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: kAxisMaroon,
                                 fontWeight: FontWeight.w600,
@@ -135,9 +138,9 @@ class _StaffDetailBody extends StatelessWidget {
               const SizedBox(height: 14),
 
               // ── Document thumbnails ──────────────────────────────────────
-              if (_hasAnyDoc(staff)) _DocumentsRow(staff: staff, ctrl: ctrl),
+              if (hasDoc) _DocumentsRow(staff: staff, ctrl: ctrl),
 
-              if (_hasAnyDoc(staff)) const SizedBox(height: 14),
+              if (hasDoc) const SizedBox(height: 14),
 
               // ── Personal Information ─────────────────────────────────────
               _SectionCard(
@@ -282,7 +285,7 @@ class _ProfilePic extends StatelessWidget {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _AvatarFallback(initials: initials),
           loadingBuilder: (_, child, progress) =>
-          progress == null ? child : _LoadingAvatar(),
+          progress == null ? child : const _LoadingAvatar(),
         )
             : _AvatarFallback(initials: initials),
       ),
@@ -305,13 +308,15 @@ class _AvatarFallback extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         initials,
-        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: kAxisMaroon),
+        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: kAxisMaroon),
       ),
     );
   }
 }
 
 class _LoadingAvatar extends StatelessWidget {
+  const _LoadingAvatar();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -394,7 +399,7 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 12, color: kAxisMaroon, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 12, color: kAxisMaroon, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -434,12 +439,15 @@ class _DocumentsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final docs = <Map<String, String?>>[];
-    if (staff.idproof?.trim().isNotEmpty ?? false)
+    if (staff.idproof?.trim().isNotEmpty ?? false) {
       docs.add({'label': 'ID Proof', 'url': ctrl.imageUrl(staff.idproof)});
-    if (staff.licenceImages?.trim().isNotEmpty ?? false)
+    }
+    if (staff.licenceImages?.trim().isNotEmpty ?? false) {
       docs.add({'label': 'Licence', 'url': ctrl.imageUrl(staff.licenceImages)});
-    if (staff.callLetter?.trim().isNotEmpty ?? false)
+    }
+    if (staff.callLetter?.trim().isNotEmpty ?? false) {
       docs.add({'label': 'Call Letter', 'url': ctrl.imageUrl(staff.callLetter)});
+    }
 
     if (docs.isEmpty) return const SizedBox.shrink();
 
@@ -447,10 +455,10 @@ class _DocumentsRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.attach_file, size: 18, color: kAxisMaroon),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Text(
                 'Documents',
                 style: TextStyle(fontWeight: FontWeight.w700, color: kAxisMaroon, fontSize: 14),
@@ -514,11 +522,8 @@ class _DocThumb extends StatelessWidget {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not open PDF: $url')),
-          );
-        }
+        // ✅ URL/API path user ko nahi dikhana
+        AppSnackbar.error('Could not open the PDF. Please try again.');
       }
       return;
     }
@@ -558,7 +563,7 @@ class _SectionCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   title,
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kAxisMaroon),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kAxisMaroon),
                 ),
               ],
             ),

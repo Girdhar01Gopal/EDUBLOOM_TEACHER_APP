@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controller/daycare_feepayment_view_controller.dart';
 import '../models/daycarefeespaymentmodel.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'dadycare_receipt_payment_screen.dart';
 
 class DaycareFeePaymentScreen extends StatelessWidget {
@@ -389,13 +390,10 @@ class _TransactionCard extends StatelessWidget {
                   onPressed: () {
                     final receiptNo = item.receiptno ?? '';
                     if (receiptNo.isEmpty) {
-                      Get.snackbar(
-                        "No Receipt",
+                      AppSnackbar.error(
                         "Receipt number not available.",
-                        snackPosition:   SnackPosition.BOTTOM,
-                        backgroundColor: Colors.red.shade100,
-                        colorText:       Colors.red.shade800,
-                      );
+                        title: "No Receipt",
+                      ); // 🔄
                       return;
                     }
                     // ✅ studentId from item (most reliable), session from controller

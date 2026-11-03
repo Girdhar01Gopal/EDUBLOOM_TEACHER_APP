@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../controller/routepointmaster_controller.dart';
 import '../models/routeno.dart';
 import '../models/route_point_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class RoutePointMasterScreen extends StatelessWidget {
   const RoutePointMasterScreen({super.key});
@@ -217,12 +218,12 @@ class _RoutePointListTab extends GetView<RoutePointController> {
                   ? null
                   : () {
                 if (selectedRoute == null) {
-                  Get.snackbar("Validation", "Please select route no");
+                  AppSnackbar.error("Please select route no", title: "Validation");
                   return;
                 }
                 final pick = stoppageCtrl.text.trim();
                 if (pick.isEmpty) {
-                  Get.snackbar("Validation", "Please enter stoppage");
+                  AppSnackbar.error("Please enter stoppage", title: "Validation");
                   return;
                 }
 

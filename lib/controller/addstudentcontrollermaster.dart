@@ -11,6 +11,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
+import '../utils/app_snackbar.dart';
 import '../view_model/login_view_model.dart';
 import 'home_page_controller.dart';
 
@@ -49,10 +50,14 @@ class Addstudentcontrollermaster extends GetxController {
   final myRepo = LoginRepository();
 
   int selectedIndex = 0;
-  Future<dynamic>? selectedWidget = null;
+  Future<dynamic>? selectedWidget;
   RxInt counter = 0.obs;
-  final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
+
+  // Lazy: Get.context is only touched if someone actually uses it.
+  late final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
+
+  static final DateFormat _dayFormat = DateFormat('yyyy-MM-dd');
 
   List<_TileSpec> get _visibleTiles {
     final accessible = accessibleChildNames('Student');
@@ -70,39 +75,43 @@ class Addstudentcontrollermaster extends GetxController {
   }
 
   Future<void> fetchtoken() async {
-    var expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+    try {
+      final expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+      if (expireDate == null) return;
 
-    if (expireDate != null) {
-      DateTime lastDate = DateTime.parse(expireDate);
-      isToday.value = DateFormat('yyyy-MM-dd').format(lastDate) ==
-          DateFormat('yyyy-MM-dd').format(DateTime.now());
-      if (isToday.isTrue) {
-        var username =
-        await PrefManager().readValue(key: PrefConst.username);
-        var password =
-        await PrefManager().readValue(key: PrefConst.password);
-        Map data = {
-          "userName": username.toString(),
-          "password": password.toString(),
-          "rememberMe": true
-        };
-        loginApi(data);
-      }
+      final lastDate = DateTime.parse(expireDate);
+      isToday.value =
+          _dayFormat.format(lastDate) == _dayFormat.format(DateTime.now());
+      if (!isToday.isTrue) return;
+
+      final username = await PrefManager().readValue(key: PrefConst.username);
+      final password = await PrefManager().readValue(key: PrefConst.password);
+      final Map data = {
+        "userName": username.toString(),
+        "password": password.toString(),
+        "rememberMe": true
+      };
+      await loginApi(data);
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
   Future<void> loginApi(dynamic data) async {
-    myRepo.loginApi(data: data).then((value) async {
-      var data = Login_Model.fromJson(value);
+    try {
+      final value = await myRepo.loginApi(data: data);
+      final model = Login_Model.fromJson(value);
 
-      if (data.data != null) {
+      if (model.data != null) {
         PrefManager().writeValue(
             key: PrefConst.token,
-            value: data.data!.accessToker!.token.toString());
-      } else if (data.statusCode == 400) {
-        debugPrint("API error");
+            value: model.data!.accessToker!.token.toString());
+      } else if (model.statusCode == 400) {
+        AppSnackbar.apiError('loginApi failed: statusCode 400', statusCode: 400);
       }
-    }).onError((error, stackTrace) {});
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
+    }
   }
 
   void onSelectedBottom(int index) {

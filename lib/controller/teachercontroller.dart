@@ -1,15 +1,13 @@
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../infrastructures/constant/image_constant.dart';
 import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
+import '../utils/app_snackbar.dart';
 import '../view_model/login_view_model.dart';
 import 'home_page_controller.dart';
 
@@ -45,7 +43,7 @@ class Teachercontroller extends GetxController {
   final myRepo = LoginRepository();
 
   int selectedIndex = 0;
-  Future<dynamic>? selectedWidget = null;
+  Future<dynamic>? selectedWidget;
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
@@ -66,39 +64,43 @@ class Teachercontroller extends GetxController {
   }
 
   Future<void> fetchtoken() async {
-    var expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+    final expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+    if (expireDate == null) return;
 
-    if (expireDate != null) {
-      DateTime lastDate = DateTime.parse(expireDate);
-      isToday.value = DateFormat('dd-mm-yyyy').format(lastDate) ==
-          DateFormat('dd-mm-yyyy').format(DateTime.now());
-      if (isToday.isTrue) {
-        var username =
-        await PrefManager().readValue(key: PrefConst.username);
-        var password =
-        await PrefManager().readValue(key: PrefConst.password);
-        Map data = {
-          "userName": username.toString(),
-          "password": password.toString(),
-          "rememberMe": true
-        };
-        loginApi(data);
-      }
-    }
+    final lastDate = DateTime.parse(expireDate);
+    final now = DateTime.now();
+    isToday.value = lastDate.year == now.year &&
+        lastDate.month == now.month &&
+        lastDate.day == now.day;
+
+    if (isToday.isFalse) return;
+
+    final username = await PrefManager().readValue(key: PrefConst.username);
+    final password = await PrefManager().readValue(key: PrefConst.password);
+    await loginApi({
+      "userName": username.toString(),
+      "password": password.toString(),
+      "rememberMe": true,
+    });
   }
 
   Future<void> loginApi(dynamic data) async {
-    myRepo.loginApi(data: data).then((value) async {
-      var data = Login_Model.fromJson(value);
+    try {
+      final value = await myRepo.loginApi(data: data);
+      final model = Login_Model.fromJson(value);
 
-      if (data.data != null) {
-        PrefManager().writeValue(
+      if (model.data != null) {
+        await PrefManager().writeValue(
             key: PrefConst.token,
-            value: data.data!.accessToker!.token.toString());
-      } else if (data.statusCode == 400) {
-        debugPrint("API error");
+            value: model.data!.accessToker!.token.toString());
+      } else if (model.statusCode == 400) {
+        // Raw API message is never shown — only a friendly line.
+        AppSnackbar.error(
+            AppSnackbar.friendlyMessage(null, statusCode: model.statusCode));
       }
-    }).onError((error, stackTrace) {});
+    } catch (e) {
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
+    }
   }
 
   void onSelectedBottom(int index) {
@@ -110,10 +112,10 @@ class Teachercontroller extends GetxController {
 }
 
 class DhashboardItemsModel {
-  String name;
-  IconData icons;
-  Color color;   // icon color
-  Color bgColor; // circle background color
+  final String name;
+  final IconData icons;
+  final Color color;   // icon color
+  final Color bgColor; // circle background color
 
-  DhashboardItemsModel(this.name, this.icons, this.color, this.bgColor);
+  const DhashboardItemsModel(this.name, this.icons, this.color, this.bgColor);
 }

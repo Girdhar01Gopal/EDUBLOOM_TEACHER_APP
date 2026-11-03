@@ -8,6 +8,7 @@ import 'package:http/http.dart' as https;
 import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
+import '../utils/app_snackbar.dart';
 
 class ChangePasswordController extends GetxController {
   final formKey = GlobalKey<FormState>();
@@ -29,9 +30,9 @@ class ChangePasswordController extends GetxController {
   // Strength meter
   final strengthScore = 0.0.obs;
   final strengthLabel = "Weak".obs;
- 
- var schoolId = "".obs;
- var roleName = "";
+
+  var schoolId = "".obs;
+  var roleName = "";
 
   late final Dio _dio;
 
@@ -41,7 +42,7 @@ class ChangePasswordController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-     _loadSessionFromPrefs();
+    _loadSessionFromPrefs();
 
     _dio = Dio(
       BaseOptions(
@@ -56,17 +57,17 @@ class ChangePasswordController extends GetxController {
     );
 
     // ✅ Load once from PrefManager (your existing system)
-   
+
 
     _computeStrength("");
   }
 
   void _loadSessionFromPrefs() async{
-     schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? ""
+    schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? ""
         .toString()
         .trim();
-    
-    
+
+
 
 
   }
@@ -106,108 +107,81 @@ class ChangePasswordController extends GetxController {
 
 
 
-Future<void> changePassword() async {
-  // Session check
-  if (schoolId.value.trim().isEmpty) {
-    Get.snackbar(
-      "Session Expired",
-      "School ID missing. Please login again.",
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
-    Get.offAllNamed(RouteName.login_screen);
-    return;
-  }
+  Future<void> changePassword() async {
+    // Session check
+    if (schoolId.value.trim().isEmpty) {
+      AppSnackbar.error(
+        "School ID missing. Please login again.",
+        title: "Session Expired",
+      );
+      Get.offAllNamed(RouteName.login_screen);
+      return;
+    }
 
-  // Input validation
-  final oldPwd = oldPasswordCtrl.text.trim();
-  final newPwd = newPasswordCtrl.text.trim();
-  final confirmPwd = confirmPasswordCtrl.text.trim();
+    // Input validation
+    final oldPwd = oldPasswordCtrl.text.trim();
+    final newPwd = newPasswordCtrl.text.trim();
+    final confirmPwd = confirmPasswordCtrl.text.trim();
 
-  if (oldPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
-    Get.snackbar(
-      "Error",
-      "All fields are required.",
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
-    return;
-  }
+    if (oldPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
+      AppSnackbar.error("All fields are required.");
+      return;
+    }
 
-  if (newPwd != confirmPwd) {
-    Get.snackbar(
-      "Error",
-      "New password and confirm password do not match.",
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
-    return;
-  }
+    if (newPwd != confirmPwd) {
+      AppSnackbar.error("New password and confirm password do not match.");
+      return;
+    }
 
-  if (oldPwd == newPwd) {
-    Get.snackbar(
-      "Error",
-      "New password must be different from old password.",
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
-    return;
-  }
+    if (oldPwd == newPwd) {
+      AppSnackbar.error("New password must be different from old password.");
+      return;
+    }
 
-  isLoading(true);
+    isLoading(true);
 
-  try {
-    final payload = {
-      "oldPassword": oldPwd,
-      "newPassword": newPwd,
-      "confirmPassword": confirmPwd,
-      "sclInfoId": schoolId.value.trim(),
-      "role": "Admin",
-    };
+    try {
+      final payload = {
+        "oldPassword": oldPwd,
+        "newPassword": newPwd,
+        "confirmPassword": confirmPwd,
+        "sclInfoId": schoolId.value.trim(),
+        "role": "Admin",
+      };
 
-    final response = await https.post(
-      Uri.parse(_url),
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: jsonEncode(payload),
-    );
-
-    final Map<String, dynamic> data =
-        jsonDecode(response.body.isNotEmpty ? response.body : "{}");
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final msg = data["message"]?.toString() ?? "Password changed successfully.";
-
-      Get.snackbar(
-        "Success",
-        msg,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
+      final response = await https.post(
+        Uri.parse(_url),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode(payload),
       );
 
-      await logoutAndRedirect();
-    } else {
-      throw Exception(data["message"] ?? "Failed to change password");
+      final Map<String, dynamic> data =
+      jsonDecode(response.body.isNotEmpty ? response.body : "{}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Fixed success text (server text is never shown directly)
+        AppSnackbar.success("Password changed successfully.");
+
+        await logoutAndRedirect();
+      } else {
+        // Server's own short message (e.g. "Old password is incorrect") is
+        // shown only if it is clean; technical / long text becomes
+        // "Something went wrong" automatically inside AppSnackbar.error().
+        AppSnackbar.error(
+          data["message"]?.toString() ?? "Failed to change password",
+        );
+      }
+    } catch (e, s) {
+      // Net off / timeout / bad response -> user sees "Something went wrong",
+      // real error (with url) prints only in the console.
+      AppSnackbar.apiError(e, stackTrace: s);
+    } finally {
+      isLoading(false);
     }
-  } catch (e) {
-    Get.snackbar(
-      "Error",
-      e.toString().replaceAll("Exception:", "").trim(),
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
-  } finally {
-    isLoading(false);
   }
-}
 
   String _dioMsg(DioException e) {
     if (e.response != null) {

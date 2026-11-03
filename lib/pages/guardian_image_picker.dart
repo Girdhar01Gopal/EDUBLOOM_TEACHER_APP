@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../controller/student_controller.dart';
+import '../utils/app_snackbar.dart';
 
 // ─── Palette ───────────────────────────────────────────────
 const _teal      = Color(0xFF97144D);
@@ -26,12 +27,16 @@ class GuardianImagePicker extends GetView<StudentController> {
       builder: (_) => _ImageSourceSheet(title: "Guardian's Photo"),
     );
     if (source == null) return;
-    final XFile? picked = await controller.picker.pickImage(source: source);
-    if (picked != null) {
-      controller.guardianImage.value = File(picked.path);
-    } else {
-      Get.snackbar('Notice', 'No image selected.',
-          backgroundColor: Colors.orange, colorText: Colors.white);
+    try {
+      final XFile? picked = await controller.picker.pickImage(source: source);
+      if (picked != null) {
+        controller.guardianImage.value = File(picked.path);
+      } else {
+        Get.snackbar('Notice', 'No image selected.',
+            backgroundColor: Colors.orange, colorText: Colors.white);
+      }
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -94,7 +99,7 @@ class GuardianImagePicker extends GetView<StudentController> {
             SizedBox(height: 14.h),
 
             // Submit button (red gradient)
-        Obx(() => SizedBox(
+            Obx(() => SizedBox(
               width: double.infinity,
               height: 54.h,
               child: DecoratedBox(
@@ -140,7 +145,7 @@ class GuardianImagePicker extends GetView<StudentController> {
                   },
                 ),
               ),
-        )),
+            )),
 
             SizedBox(height: 20.h),
           ],

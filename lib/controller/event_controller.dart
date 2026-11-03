@@ -17,6 +17,7 @@ import '../models/viewsectionmodel.dart';
 import '../models/vevent_model.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -150,8 +151,10 @@ class EventController extends GetxController {
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -181,9 +184,11 @@ class EventController extends GetxController {
             'sqno': e.sqno,
           });
         }).toList();
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         classList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       }
 
       // if (classList.isEmpty) {
@@ -223,10 +228,17 @@ class EventController extends GetxController {
         classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
       } else {
         classList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetClassTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
       classList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -252,9 +264,17 @@ class EventController extends GetxController {
         classList.value = classItem.listData
             ?.where((e) => e.action == "1")
             .toList() ?? [];
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewClass failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -313,10 +333,17 @@ class EventController extends GetxController {
           selectedSectionIds.clear();
         } else {
           sectionList.value = [];
+          // 🆕 ADDED: user ko "Something went wrong", console me asli error
+          AppSnackbar.apiError(
+            "SectionTeacher failed: ${response.statusCode}",
+            statusCode: response.statusCode,
+          );
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         isLoading(false);
       }
@@ -360,10 +387,17 @@ class EventController extends GetxController {
         selectedSectionIds.clear();
       } else {
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSectionTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
       sectionList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -388,9 +422,17 @@ class EventController extends GetxController {
         sectionList.value = (json.decode(response.body)['listData'] as List)
             .map((e) => stListData.fromJson(e))
             .toList();
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSectionApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -417,32 +459,38 @@ class EventController extends GetxController {
   // aur duplicate-name conflict na aaye.
   Future<void> registerEvent() async {
     if (selectedClassIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one class.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one class.");
       return;
     }
 
     if (selectedSectionIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one section.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one section.");
       return;
     }
 
     if (eventName.value.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter a valid Event Name.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter a valid Event Name.");
       return;
     }
 
     if (eventPlace.value.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter a valid Event Place.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter a valid Event Place.");
       return;
     }
 
     if (description.value.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter a valid Description.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter a valid Description.");
       return;
     }
 
     if (imageFile.value == null) {
-      ShortMessage.toast(title: "Please select an image.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select an image.");
       return;
     }
 
@@ -509,7 +557,6 @@ class EventController extends GetxController {
 
       if (response.statusCode == 200) {
         debugPrint('✅ Success');
-        ShortMessage.toast(title: "Events Added Successfully");
 
         // Reset form
         eventName.value = '';
@@ -522,25 +569,38 @@ class EventController extends GetxController {
 
         await fetchVEvents();
         Get.back();
+
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.
+        // Get.back() ke BAAD dikhaya, taaki back karte waqt snackbar band na ho jaye.
+        AppSnackbar.success("Events Added Successfully");
       } else {
         debugPrint('❌ Error (${response.statusCode})');
 
-        // 🆕 backend ka asli error title dikhate hain (jaise "Event name
-        // already exists, try a different name") generic message ki jagah.
-        String errorMsg = "Failed to add event.";
+        // 🆕 backend ka asli error title (jaise "Event name already exists,
+        // try a different name") sirf tab dikhate hain jab wo chhota aur
+        // readable ho. Technical / html / json / lamba text AppSnackbar.error
+        // khud "Something went wrong" bana deta hai (asli text console me).
+        String? backendTitle;
         try {
           final decoded = jsonDecode(responseBody);
           if (decoded is Map && decoded['title'] != null) {
-            errorMsg = decoded['title'].toString();
+            backendTitle = decoded['title'].toString();
           }
         } catch (_) {}
 
-        ShortMessage.toast(title: errorMsg);
+        if (backendTitle != null && backendTitle.trim().isNotEmpty) {
+          AppSnackbar.error(backendTitle);
+        } else {
+          AppSnackbar.apiError(
+            "Post event failed: $responseBody",
+            statusCode: response.statusCode,
+          );
+        }
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ POST EVENT EXCEPTION -> $e');
-      ShortMessage.toast(
-          title: "An error occurred while adding the event.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -594,9 +654,16 @@ class EventController extends GetxController {
         debugPrint("📊 FETCHED EVENT COUNT -> ${eventList.length}");
       } else {
         debugPrint("fetchVEvents failed: ${response.statusCode}");
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "fetchVEvents failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("fetchVEvents error: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }

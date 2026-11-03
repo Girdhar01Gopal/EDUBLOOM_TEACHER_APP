@@ -19,6 +19,7 @@ import '../models/reportcardinside2.dart';
 import '../models/reportcardinside3.dart';
 import '../models/reportcardinside4.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 
 class ReportCardDetailController extends GetxController {
   int studentId = 0;
@@ -78,9 +79,9 @@ class ReportCardDetailController extends GetxController {
         _fetchSkillsDetails(),
         _fetchDescriptorsDetails(),
       ]);
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("loadAll error: $e");
-      _showSnack("Error", "Failed to load report card: $e");
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄 raw error nahi dikhega
     } finally {
       isLoading(false);
     }
@@ -215,8 +216,8 @@ class ReportCardDetailController extends GetxController {
         name:
         'ReportCard_${studentInfo.value?.studentName ?? studentId}.pdf',
       );
-    } catch (e) {
-      _showSnack("Error", "Print failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
   }
 
@@ -253,22 +254,22 @@ class ReportCardDetailController extends GetxController {
         text   : 'Report Card - $name | ${schoolInfo.value?.schoolName ?? ""}',
         subject: 'Report Card',
       );
-    } catch (e) {
-      _showSnack("Error", "Share failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
   }
 
+  // 🔄 Ab sab snackbar AppSnackbar se hi dikhte hain (signature same hai)
+  //  - red (Error)            -> AppSnackbar.error   (technical text auto-hide)
+  //  - orange (Validation)    -> AppSnackbar.error
+  //  - green / blue (info)    -> AppSnackbar.success
   void _showSnack(String title, String message,
       {Color bg = Colors.red, Color textColor = Colors.white}) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: bg,
-      colorText: textColor,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-      borderRadius: 8,
-    );
+    final isError = bg == Colors.red || bg == Colors.orange.shade600;
+    if (isError) {
+      AppSnackbar.error(message, title: title);
+    } else {
+      AppSnackbar.success(message, title: title);
+    }
   }
 }

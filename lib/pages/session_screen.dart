@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../controller/session_controller.dart';
 import '../models/session_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -123,24 +124,14 @@ class PostSessionTab extends GetView<SessionController> {
                 final val = controller.sessionController.text.trim();
                 final ok = RegExp(r'^\d{4}-\d{2}$').hasMatch(val);
                 if (!ok) {
-                  Get.snackbar(
-                    'Invalid',
+                  AppSnackbar.error(
                     'Session format must be like 2025-26',
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: Colors.red,
-                    colorText: Colors.white,
+                    title: 'Invalid',
                   );
                   return;
                 }
 
                 await controller.postSession();
-                Get.snackbar(
-                  'Success',
-                  'Session added successfully',
-                  snackPosition: SnackPosition.TOP,
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
               },
               icon: const Icon(Icons.send, color: Colors.white),
               label: Text(

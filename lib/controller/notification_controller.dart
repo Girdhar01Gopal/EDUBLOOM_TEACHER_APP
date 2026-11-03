@@ -17,6 +17,7 @@ import '../models/notificationAll_model.dart';
 import '../models/notification_model.dart';
 import '../models/pre school student teach stu filter api model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'fees_controller.dart' hide ListData;
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
@@ -168,8 +169,9 @@ class NotificationController extends GetxController {
       } else {
         throw Exception('Failed to load notifications');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint(e.toString());
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -201,9 +203,11 @@ class NotificationController extends GetxController {
             'sqno': e.sqno,
           });
         }).toList();
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         classList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       }
 
       // if (classList.isEmpty) {
@@ -243,10 +247,17 @@ class NotificationController extends GetxController {
         classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
       } else {
         classList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetClassTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
       classList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -270,9 +281,17 @@ class NotificationController extends GetxController {
         classList.value = classItem.listData
             ?.where((e) => e.action == "1")
             .toList() ?? [];
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewClass failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -329,10 +348,17 @@ class NotificationController extends GetxController {
           }).toList();
         } else {
           sectionList.value = [];
+          // 🆕 ADDED: user ko "Something went wrong", console me asli error
+          AppSnackbar.apiError(
+            "SectionTeacher failed: ${response.statusCode}",
+            statusCode: response.statusCode,
+          );
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         isLoading(false);
       }
@@ -373,10 +399,17 @@ class NotificationController extends GetxController {
         sectionList.value = list.map((e) => ListDatta.fromJson(e)).toList();
       } else {
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSectionTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
       sectionList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -399,9 +432,17 @@ class NotificationController extends GetxController {
         sectionList.value = (json.decode(response.body)['listData'] as List)
             .map((e) => ListDatta.fromJson(e))
             .toList();
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSectionApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -444,14 +485,17 @@ class NotificationController extends GetxController {
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
   void fetchNotifications() async {
     if (schoolId.isEmpty || session.isEmpty) {
-      Get.snackbar("Error", "Please enter both School ID and Session");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please enter both School ID and Session");
       return;
     }
 
@@ -470,8 +514,10 @@ class NotificationController extends GetxController {
       } else {
         throw Exception('Failed to load notifications');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint(e.toString());
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -480,17 +526,20 @@ class NotificationController extends GetxController {
 
   Future<void> registerNote() async {
     if (selectedClassIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one class.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one class.");
       return;
     }
 
     if (selectedSectionIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one section.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one section.");
       return;
     }
 
     if (message.value.isEmpty || title.value.isEmpty) {
-      ShortMessage.toast(title: "Please provide valid Title and Message.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please provide valid Title and Message.");
       return;
     }
 
@@ -500,8 +549,6 @@ class NotificationController extends GetxController {
       final ok = await _postNotification();
 
       if (ok) {
-        ShortMessage.toast(title: "Notification Added Successfully");
-
         // ✅ Reset all fields after success
         title.value = '';
         message.value = '';
@@ -512,14 +559,17 @@ class NotificationController extends GetxController {
 
         await fetchAllNotifications();
         Get.back();
-      } else {
-        ShortMessage.toast(
-            title: "Failed to add notification. Please try again.");
+
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.
+        // Get.back() ke BAAD dikhaya, taaki back karte waqt snackbar band na ho jaye.
+        AppSnackbar.success("Notification Added Successfully");
       }
-    } catch (e) {
+      // 🆕 NOTE: fail hone par "Something went wrong" snackbar
+      // _postNotification() khud dikha deta hai.
+    } catch (e, stack) {
       debugPrint('❌ POST NOTIF EXCEPTION -> $e');
-      ShortMessage.toast(
-          title: "An error occurred while adding the notification.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -597,10 +647,17 @@ class NotificationController extends GetxController {
         return true;
       } else {
         debugPrint("❌ Failed with status ${response.statusCode}");
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Post notification failed: $responseBody",
+          statusCode: response.statusCode,
+        );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ Exception while posting notification: $e');
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
       return false;
     }
   }

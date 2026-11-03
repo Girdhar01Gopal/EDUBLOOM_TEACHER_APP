@@ -6,6 +6,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/teacher_detail_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class TeacherDetailController extends GetxController {
   final isLoading = true.obs;
@@ -35,13 +36,17 @@ class TeacherDetailController extends GetxController {
     }
 
     if (teacherId == 0) {
-      hasError(true);
-      errorMsg('Invalid Teacher ID');
+      _fail('Invalid Teacher ID');
       isLoading(false);
       return;
     }
 
     await fetchTeacherDetail();
+  }
+
+  void _fail(String message) {
+    hasError(true);
+    errorMsg(message);
   }
 
   Future<void> fetchTeacherDetail() async {
@@ -61,48 +66,34 @@ class TeacherDetailController extends GetxController {
         headers: {'Content-Type': 'application/json'},
       );
 
-      if (res.statusCode == 200) {
-        final decoded = jsonDecode(res.body);
-
-        if (decoded is Map<String, dynamic>) {
-          Map<String, dynamic> data;
-
-          // Case 1: { isSuccess: true, data: { ... } }
-          if (decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>) {
-            final isSuccess = decoded['isSuccess'] == true;
-            if (!isSuccess) {
-              hasError(true);
-              errorMsg(decoded['messages']?.toString() ?? 'Failed to load details');
-              return;
-            }
-            data = decoded['data'] as Map<String, dynamic>;
-          }
-          // Case 2: { isSuccess: true, ...fields directly }
-          else if (decoded.containsKey('isSuccess')) {
-            if (decoded['isSuccess'] != true) {
-              hasError(true);
-              errorMsg(decoded['messages']?.toString() ?? 'Failed to load details');
-              return;
-            }
-            data = decoded;
-          }
-          // Case 3: direct object (no wrapper)
-          else {
-            data = decoded;
-          }
-
-          teacherDetail.value = TeacherDetailView.fromJson(data);
-        } else {
-          hasError(true);
-          errorMsg('Unexpected response format');
-        }
-      } else {
-        hasError(true);
-        errorMsg('Server error: ${res.statusCode}');
+      if (res.statusCode != 200) {
+        // Raw "Server error: 500" nahi — friendly line.
+        _fail(AppSnackbar.friendlyMessage(null, statusCode: res.statusCode));
+        return;
       }
+
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map<String, dynamic>) {
+        _fail(AppSnackbar.friendlyMessage(const FormatException()));
+        return;
+      }
+
+      // Case 1: { isSuccess: true, data: { ... } }
+      // Case 2: { isSuccess: true, ...fields directly }
+      // Case 3: direct object (no wrapper)
+      final hasDataMap = decoded['data'] is Map<String, dynamic>;
+      if ((hasDataMap || decoded.containsKey('isSuccess')) &&
+          decoded['isSuccess'] != true) {
+        // API ka raw message nahi dikhana.
+        _fail('Failed to load details. Please try again.');
+        return;
+      }
+
+      final data = hasDataMap ? decoded['data'] as Map<String, dynamic> : decoded;
+      teacherDetail.value = TeacherDetailView.fromJson(data);
     } catch (e) {
-      hasError(true);
-      errorMsg('Error: $e');
+      // Raw "Error: $e" nahi — friendly line.
+      _fail(AppSnackbar.friendlyMessage(e));
     } finally {
       isLoading(false);
     }

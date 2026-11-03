@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/Daycareattendencemodel.dart';
 import '../models/session_model.dart' as session_model;
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class Daycareattendencecontroller extends GetxController {
   RxList<session_model.sListDdata> sessionList =
@@ -52,8 +53,9 @@ class Daycareattendencecontroller extends GetxController {
       token = await PrefManager().readValue(key: PrefConst.token) ?? "";
       await _loadSubmittedDates();
       await fetchSessions();
-    } catch (e) {
-      _showError("Initialization failed: $e");
+    } catch (e, s) {
+      debugPrint("❌ initData error => $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -89,27 +91,11 @@ class Daycareattendencecontroller extends GetxController {
   }
 
   void _showSuccess(String message) {
-    Get.snackbar(
-      "Success",
-      message,
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-    );
+    AppSnackbar.success(message);
   }
 
   void _showError(String message) {
-    Get.snackbar(
-      "Error",
-      message,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-    );
+    AppSnackbar.error(message);
   }
 
   Future<void> fetchSessions() async {
@@ -135,10 +121,16 @@ class Daycareattendencecontroller extends GetxController {
           session.value = cs.session ?? "";
         }
       } else {
-        _showError("Failed to load session");
+        debugPrint("❌ fetchSessions Status ${response.statusCode}");
+        debugPrint("❌ fetchSessions Body ${response.body}");
+        AppSnackbar.apiError(
+          'Failed to load session => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      _showError("Failed to load sessions: $e");
+    } catch (e, s) {
+      debugPrint("❌ fetchSessions error => $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -259,11 +251,14 @@ class Daycareattendencecontroller extends GetxController {
       } else {
         debugPrint("❌ Status ${response.statusCode}");
         debugPrint("❌ Body ${response.body}");
-        _showError("Failed to load students");
+        AppSnackbar.apiError(
+          'Failed to load students => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("❌ Exception => $e");
-      _showError("Something went wrong");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -368,15 +363,9 @@ class Daycareattendencecontroller extends GetxController {
     if (isSubmitting.value) return;
 
     if (_submittedKeys.contains(_currentKey)) {
-      Get.snackbar(
-        "Already Submitted",
-        "Attendance for this date is already marked.\nChange the date to submit again.",
-        backgroundColor: Colors.blue.shade600,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-        borderRadius: 14,
-        margin: const EdgeInsets.all(12),
-        duration: const Duration(seconds: 4),
+      AppSnackbar.error(
+        "Attendance for this date is already marked. Change the date to submit again.",
+        title: "Already Submitted",
       );
       return;
     }
@@ -401,19 +390,16 @@ class Daycareattendencecontroller extends GetxController {
         _showSuccess("Attendance saved successfully");
         await viewStudent();
       } else if (successCount > 0 && failCount > 0) {
-        Get.snackbar(
-          "Partial Success",
+        AppSnackbar.error(
           "$successCount saved, $failCount failed",
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          margin: const EdgeInsets.all(12),
+          title: "Partial Success",
         );
       } else {
         _showError("Attendance not saved");
       }
-    } catch (e) {
-      _showError("Submit failed: $e");
+    } catch (e, s) {
+      debugPrint("❌ manageAttendance error => $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubmitting.value = false;
     }

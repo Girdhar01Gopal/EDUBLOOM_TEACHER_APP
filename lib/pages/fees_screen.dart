@@ -11,6 +11,7 @@ import '../models/session_model.dart' as session_model;
 import '../controller/fees_controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 
 // ─── Axis Bank maroon accent ───────────────────────────────────────────────
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -302,7 +303,7 @@ class FeesScreen extends GetView<FeesController> {
           onPressed: () async {
             String registrationNo = student.registrationNo ?? '';
             if (registrationNo.isEmpty) {
-              Get.snackbar("Error", "Registration number missing");
+              AppSnackbar.error("Registration number missing"); // 🔄
               return;
             }
 
@@ -310,7 +311,7 @@ class FeesScreen extends GetView<FeesController> {
             final pickupPoint = student.pickupPoint ?? '';
 
             if (studentId == 0) {
-              Get.snackbar("Error", "Student ID missing");
+              AppSnackbar.error("Student ID missing"); // 🔄
               return;
             }
 

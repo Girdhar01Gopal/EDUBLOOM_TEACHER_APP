@@ -14,6 +14,7 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (Notes jaisa)
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
 
@@ -110,7 +111,7 @@ class DiscountListMasterController extends GetxController {
     if (selectedSession.value == null ||
         selectedClass.value == null ||
         selectedSection.value == null) {
-      Get.snackbar('Error', 'Please select session, class and section');
+      AppSnackbar.error('Please select session, class and section'); // 🔄
       return;
     }
 
@@ -141,18 +142,18 @@ class DiscountListMasterController extends GetxController {
         discountList.value = model.listData1 ?? [];
 
         if (discountList.isEmpty) {
-          Get.snackbar('Info', 'No data found');
+          AppSnackbar.success('No data found', title: 'Info'); // 🔄
         } else {
-          Get.snackbar('Success', 'Data fetched successfully');
+          AppSnackbar.success('Data fetched successfully'); // 🔄
         }
       } else {
-        Get.snackbar(
-          'Error',
-          'Failed to load data. Status Code: ${response.statusCode}',
-        );
+        AppSnackbar.apiError(
+          'Failed to load data',
+          statusCode: response.statusCode,
+        ); // 🔄
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Exception: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isLoading(false);
     }
@@ -284,11 +285,14 @@ class DiscountListMasterController extends GetxController {
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
       } else {
-        Get.snackbar('Error', 'Failed to load sections');
+        AppSnackbar.apiError(
+          'Failed to load sections',
+          statusCode: response.statusCode,
+        ); // 🔄
         sectionList.value = [];
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Exception loading sections: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
       sectionList.value = [];
     } finally {
       isLoading(false);
@@ -370,7 +374,7 @@ class DiscountListMasterController extends GetxController {
     // 3️⃣ NORMAL TEACHER — GetClassTeacher API
     if (session.value.isEmpty) {
       // session abhi tak select/available nahi hai
-      Get.snackbar('Error', 'Session not found');
+      AppSnackbar.error('Session not found'); // 🔄
       return;
     }
 
@@ -396,11 +400,14 @@ class DiscountListMasterController extends GetxController {
 
         selectedClass.value = null;
       } else {
-        Get.snackbar('Error', 'Failed to load classes');
+        AppSnackbar.apiError(
+          'Failed to load classes',
+          statusCode: res.statusCode,
+        ); // 🔄
         listDataa.value = [];
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Error fetching classes: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
       listDataa.value = [];
     } finally {
       isLoading(false);
@@ -468,8 +475,8 @@ class DiscountListMasterController extends GetxController {
           session.value = cs.session ?? '';
         }
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isLoading(false);
     }

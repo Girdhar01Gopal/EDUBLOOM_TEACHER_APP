@@ -14,6 +14,7 @@ import '../models/route_model_points.dart';
 import '../models/routeno.dart';
 import '../models/transport_fee_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 // ── View List Model ──────────────────────────────────────────
 class TFViewItem {
@@ -102,7 +103,7 @@ class TransportFeeController extends GetxController {
     super.onInit();
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? '';
     if (schoolId.trim().isEmpty) {
-      Get.snackbar('Error', 'School ID not found');
+      AppSnackbar.error('School ID not found');
       return;
     }
     await _loadAll();
@@ -168,10 +169,11 @@ class TransportFeeController extends GetxController {
         selectedSession.value ??=
         sessionList.isNotEmpty ? sessionList.first : null;
       } else {
-        Get.snackbar('Error', 'Session API failed: ${res.statusCode}');
+        AppSnackbar.apiError('Session API failed: ${res.statusCode}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Session fetch failed: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -190,10 +192,11 @@ class TransportFeeController extends GetxController {
         selectedFeeDuration.value =
         parsed.listData.isNotEmpty ? parsed.listData.first : null;
       } else {
-        Get.snackbar('Error', 'Fee Duration API failed: ${res.statusCode}');
+        AppSnackbar.apiError('Fee Duration API failed: ${res.statusCode}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Fee Duration fetch failed: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -209,10 +212,11 @@ class TransportFeeController extends GetxController {
         final parsed = RouteResponse.fromJson(jsonDecode(res.body));
         routeList.assignAll(parsed.data);
       } else {
-        Get.snackbar('Error', 'Route API failed: ${res.statusCode}');
+        AppSnackbar.apiError('Route API failed: ${res.statusCode}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Route fetch failed: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -242,10 +246,11 @@ class TransportFeeController extends GetxController {
             .toList();
         stoppageList.assignAll(points);
       } else {
-        Get.snackbar('Error', 'Stoppage API failed: ${res.statusCode}');
+        AppSnackbar.apiError('Stoppage API failed: ${res.statusCode}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Stoppage fetch failed: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isStoppageLoading(false);
     }
@@ -280,10 +285,11 @@ class TransportFeeController extends GetxController {
           viewList.clear();
         }
       } else {
-        Get.snackbar('Error', 'View list API failed: ${res.statusCode}');
+        AppSnackbar.apiError('View list API failed: ${res.statusCode}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'View list fetch failed: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -324,34 +330,34 @@ class TransportFeeController extends GetxController {
   // ── 6. Save ───────────────────────────────────────────────
   Future<void> save(BuildContext context) async {
     if (selectedSession.value == null) {
-      Get.snackbar('Validation', 'Please select Session');
+      AppSnackbar.error('Please select Session', title: 'Validation');
       return;
     }
     if (selectedFeeDuration.value == null) {
-      Get.snackbar('Validation', 'Please select Fee Duration');
+      AppSnackbar.error('Please select Fee Duration', title: 'Validation');
       return;
     }
     if (selectedRoute.value == null) {
-      Get.snackbar('Validation', 'Please select Route No.');
+      AppSnackbar.error('Please select Route No.', title: 'Validation');
       return;
     }
     if (selectedStoppage.value == null) {
-      Get.snackbar('Validation', 'Please select Stoppage');
+      AppSnackbar.error('Please select Stoppage', title: 'Validation');
       return;
     }
     final transportType = selectedTransportType.value.trim();
     if (transportType.isEmpty) {
-      Get.snackbar('Validation', 'Please select Transport Type');
+      AppSnackbar.error('Please select Transport Type', title: 'Validation');
       return;
     }
     final amtText = amountController.text.trim();
     if (amtText.isEmpty) {
-      Get.snackbar('Validation', 'Please enter Amount');
+      AppSnackbar.error('Please enter Amount', title: 'Validation');
       return;
     }
     final amount = int.tryParse(amtText) ?? 0;
     if (amount <= 0) {
-      Get.snackbar('Validation', 'Amount must be greater than 0');
+      AppSnackbar.error('Amount must be greater than 0', title: 'Validation');
       return;
     }
 
@@ -389,14 +395,8 @@ class TransportFeeController extends GetxController {
         final apiResponse = ApiResponseModel.fromJson(jsonDecode(res.body));
 
         if (apiResponse.isSuccess) {
-          final msg = apiResponse.popupMessage?.isNotEmpty == true
-              ? apiResponse.popupMessage!
-              : apiResponse.messages.isNotEmpty
-              ? apiResponse.messages
-              : 'Transport fee saved successfully';
-
-          Get.snackbar('Success', msg,
-              backgroundColor: Colors.green.shade100);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success('Transport fee saved successfully');
           _clearForm();
           if (selectedSession.value?.session != null) {
             await fetchViewListForSession(selectedSession.value!.session!);
@@ -408,14 +408,16 @@ class TransportFeeController extends GetxController {
               : apiResponse.messages.isNotEmpty
               ? apiResponse.messages
               : 'Could not save transport fee';
-          Get.snackbar('Failed', msg,
-              backgroundColor: Colors.red.shade100);
+          // Short clean server message is shown; technical text becomes
+          // "Something went wrong" automatically.
+          AppSnackbar.error(msg, title: 'Failed');
         }
       } else {
-        Get.snackbar('Error', 'Save failed (${res.statusCode})');
+        AppSnackbar.apiError('Save failed (${res.statusCode})',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Save error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSaving(false);
     }

@@ -15,6 +15,7 @@ import 'package:share_plus/share_plus.dart';
 import '../controller/home_page_controller.dart';
 import '../models/DownloadTcResponse.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 // ── Certificate Theme Model ──────────────────────────────────
 class _CertTheme {
@@ -168,14 +169,19 @@ class _TcCertificateDownloadScreenState
           });
         }
       } else {
+        // 🆕 CHANGED: status code screen pe nahi dikhega, sirf console me
+        debugPrint('Failed to load TC. Status: ${response.statusCode}');
         setState(() {
-          errorMsg = 'Failed to load TC. Status: ${response.statusCode}';
+          errorMsg = 'Something went wrong. Please try again.';
           isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error (URL wagairah) screen pe nahi dikhega,
+      // asli error console me
+      debugPrint('Error loading TC: $e\n$stack');
       setState(() {
-        errorMsg = 'Error: $e';
+        errorMsg = 'Something went wrong. Please try again.';
         isLoading = false;
       });
     }
@@ -420,13 +426,16 @@ class _TcCertificateDownloadScreenState
       final pdfBytes = await _buildPdf();
       Get.back();
       if (pdfBytes == null) {
-        Get.snackbar('Error', 'Could not generate PDF for printing.');
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+        AppSnackbar.error('Could not generate PDF for printing.');
         return;
       }
       await Printing.layoutPdf(onLayout: (_) async => pdfBytes);
-    } catch (e) {
+    } catch (e, stack) {
       if (Get.isDialogOpen ?? false) Get.back();
-      Get.snackbar('Error', 'Print failed: $e');
+      // 🆕 CHANGED: raw error nahi dikhega, sirf "Something went wrong",
+      // asli error console me
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -440,7 +449,8 @@ class _TcCertificateDownloadScreenState
       final pdfBytes = await _buildPdf();
       if (pdfBytes == null) {
         Get.back();
-        Get.snackbar('Error', 'Could not generate PDF.');
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+        AppSnackbar.error('Could not generate PDF.');
         return;
       }
       final dir = await getTemporaryDirectory();
@@ -453,9 +463,10 @@ class _TcCertificateDownloadScreenState
         text:
         'Transfer Certificate - ${tcData?.studentName ?? ''} | ${tcData?.schoolName ?? ''}',
       );
-    } catch (e) {
+    } catch (e, stack) {
       if (Get.isDialogOpen ?? false) Get.back();
-      Get.snackbar('Error', 'Share failed: $e');
+      // 🆕 CHANGED: raw error nahi dikhega, sirf "Something went wrong"
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 

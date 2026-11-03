@@ -9,7 +9,8 @@ import '../res/app_url.dart';
 
 import '../models/routeno.dart';
 import '../models/route_point_model.dart';
-import '../models/session_model.dart';      // ✅ ADD
+import '../models/session_model.dart';
+import '../utils/app_snackbar.dart';
 
 class RoutePointController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -44,7 +45,7 @@ class RoutePointController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -83,9 +84,17 @@ class RoutePointController extends GetxController {
         } else if (sessionList.isNotEmpty) {
           session.value = sessionList.first;
         }
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("Session fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSessionLoading(false);
     }
@@ -123,10 +132,13 @@ class RoutePointController extends GetxController {
           selectedRoute.value = null;
         }
       } else {
-        Get.snackbar("Error", "Failed to fetch routes: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Failed to fetch routes: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Route fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -137,11 +149,11 @@ class RoutePointController extends GetxController {
     final pickupPoint = stoppageController.text.trim();
 
     if (route == null) {
-      Get.snackbar("Validation", "Please select Route No");
+      AppSnackbar.error("Please select Route No", title: "Validation");
       return;
     }
     if (pickupPoint.isEmpty) {
-      Get.snackbar("Validation", "Please enter stoppage name");
+      AppSnackbar.error("Please enter stoppage name", title: "Validation");
       return;
     }
 
@@ -173,17 +185,21 @@ class RoutePointController extends GetxController {
             data.toUpperCase() == "SUCCESS" || msg.toLowerCase().contains("success");
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Route point added" : msg);
+          AppSnackbar.success(msg.isEmpty ? "Route point added" : msg);
           stoppageController.clear();
           await fetchRoutePoints();
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Route point add failed" : msg);
+          // Server ka message technical hua to automatically "Something went wrong" ban jayega
+          AppSnackbar.error(msg.isEmpty ? "Route point add failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "PostRoutePoint failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "PostRoutePoint failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add route point failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -211,10 +227,13 @@ class RoutePointController extends GetxController {
 
         routePoints.value = list;
       } else {
-        Get.snackbar("Error", "Failed to fetch route points: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Failed to fetch route points: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Route point list error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -226,7 +245,7 @@ class RoutePointController extends GetxController {
     required String pickupPoint,
   }) async {
     if (pickupPoint.trim().isEmpty) {
-      Get.snackbar("Validation", "Pickup point cannot be empty");
+      AppSnackbar.error("Pickup point cannot be empty", title: "Validation");
       return;
     }
 
@@ -259,16 +278,19 @@ class RoutePointController extends GetxController {
 
         if (ok) {
           Get.back();
-          Get.snackbar("Success", msg.isEmpty ? "Route point updated" : msg);
+          AppSnackbar.success(msg.isEmpty ? "Route point updated" : msg);
           await fetchRoutePoints();
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Update failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Update failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "Update failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Update failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Edit failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

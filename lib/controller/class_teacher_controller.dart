@@ -12,6 +12,7 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ common top snackbar
 
 // ✅ your response model (keep your file name/class name as-is)
 import '../models/classteachermodel.dart';
@@ -38,7 +39,6 @@ class ClassTeacherController extends GetxController {
   final selectedSection = Rx<ListDatta?>(null);
 
   // ✅ REAL View list from API
-  final classTeacherList2 = <Data>[].obs; // placeholder not used (kept name safe)
   final classTeacherList = <Data>[].obs;
 
   // loaders
@@ -62,10 +62,11 @@ class ClassTeacherController extends GetxController {
     return '${AppUrl.base_url}api/TeacherApp/GetAllTeachersAsyncApp'
         '?schoolId=$schoolId&currentSession=${Uri.encodeComponent(session)}';
   }
+
   // ✅ Save API
   String get _saveUrl => '${AppUrl.base_url}api/TeacherApp/PostAddClassTeacherApp';
 
-  // ✅ Get list API (you gave it)
+  // ✅ Get list API
   // Query form:
   String get _getListUrlQuery {
     final sess = _currentSession();
@@ -73,7 +74,7 @@ class ClassTeacherController extends GetxController {
         '?schoolId=$schoolId&Session=${Uri.encodeComponent(sess)}';
   }
 
-  // Body form (you also gave this): {schoolId, session}
+  // Body form: {schoolId, session}
   String get _getListUrlBody => '${AppUrl.base_url}api/TeacherApp/GetAllClassTeacherAsyncApp';
 
   Map<String, String> get _headers {
@@ -85,11 +86,27 @@ class ClassTeacherController extends GetxController {
     return h;
   }
 
+  static const Map<String, String> _plainHeaders = {
+    'accept': '*/*',
+    'Content-Type': 'application/json',
+  };
+
   String _currentSession() {
     final s = selectedSession.value?.session?.trim();
     if (s != null && s.isNotEmpty) return s;
     if (prefSession.trim().isNotEmpty) return prefSession.trim();
     return "";
+  }
+
+  /// Common URL builder for teacher-scoped APIs (schoolId + Session + userId)
+  Future<Uri> _teacherScopedUri(String path) async {
+    final userId = await PrefManager().readValue(key: PrefConst.Userid);
+    return Uri.parse(
+      '${AppUrl.base_url}$path'
+          '?schoolId=${Uri.encodeComponent(schoolId)}'
+          '&Session=${Uri.encodeComponent(_currentSession())}'
+          '&userId=${Uri.encodeComponent(userId ?? '')}',
+    );
   }
 
   @override
@@ -101,8 +118,7 @@ class ClassTeacherController extends GetxController {
     prefSession = await PrefManager().readValue(key: PrefConst.session) ?? "";
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
-    final role =
-    ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+    final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
         .toString()
         .trim()
         .toLowerCase();
@@ -110,7 +126,7 @@ class ClassTeacherController extends GetxController {
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("School not found. Please login again.");
       return;
     }
 
@@ -123,24 +139,16 @@ class ClassTeacherController extends GetxController {
 
       await fetchSessions();
 
-      if (isStaffLogin.value) {
-        // 🟢 STAFF — direct staff APIs
-        await Future.wait([
-          fetchTeachers(),
-          fetchClasses(),
-          fetchSections(),
-          fetchClassTeacherList(), // ✅ real list
-        ]);
-      } else {
-        // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class/section
-        await fetchClassTeacherFilter();
-        await Future.wait([
-          fetchTeachers(),
-          fetchClasses(),
-          fetchSections(),
-          fetchClassTeacherList(), // ✅ real list
-        ]);
-      }
+      // 🟡 TEACHER — pehle ClassTeacher filter check, phir uske hisaab se class/section
+      if (!isStaffLogin.value) await fetchClassTeacherFilter();
+
+      // 🟢 Staff & Teacher dono ke liye same parallel calls
+      await Future.wait([
+        fetchTeachers(),
+        fetchClasses(),
+        fetchSections(),
+        fetchClassTeacherList(), // ✅ real list
+      ]);
     } finally {
       isPageLoading(false);
     }
@@ -155,12 +163,13 @@ class ClassTeacherController extends GetxController {
       final jsonData = jsonDecode(res.body);
 
       sessionList.clear();
-      if (jsonData['currentSession'] != null) {
+      final current = jsonData['currentSession'];
+      if (current != null) {
         final cs = session_model.sListDdata(
-          sessionId: jsonData['currentSession']['currentSessionId'],
-          session: jsonData['currentSession']['currentSession'],
-          action: jsonData['currentSession']['action'],
-          schoolId: jsonData['currentSession']['schoolId'],
+          sessionId: current['currentSessionId'],
+          session: current['currentSession'],
+          action: current['action'],
+          schoolId: current['schoolId'],
         );
         sessionList.add(cs);
         selectedSession.value = cs;
@@ -193,11 +202,15 @@ class ClassTeacherController extends GetxController {
         teacherList.assignAll(parsed.data);
       } else {
         teacherList.clear();
-        Get.snackbar("Failed", (parsed.messages ?? "Teacher fetch failed").toString());
+        // ✅ raw API message nahi dikhana
+        AppSnackbar.error("Unable to load teachers. Please try again.",
+            title: "Failed");
       }
 
       selectedTeacher.value = null;
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Teacher error: $e");
+    }
   }
 
   // 🆕 Logged-in teacher ke assigned classes fetch karo
@@ -210,27 +223,16 @@ class ClassTeacherController extends GetxController {
         return;
       }
 
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
-            '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(_currentSession())}'
-            '&userId=${Uri.encodeComponent(userId)}',
-      );
-
       final response = await http.get(
-        url,
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
+        await _teacherScopedUri('api/TeacherApp/ClassTeacher'),
+        headers: _plainHeaders,
       );
 
       debugPrint('ClassTeacher status: ${response.statusCode}');
       debugPrint('ClassTeacher body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        final model = ClassTeacherFilterModel.fromJson(jsonResponse);
+        final model = ClassTeacherFilterModel.fromJson(jsonDecode(response.body));
 
         classTeacherFilterList.value = model.data ?? [];
         isClassTeacherLogin.value = classTeacherFilterList.isNotEmpty;
@@ -271,31 +273,14 @@ class ClassTeacherController extends GetxController {
       }
 
       selectedClass.value = null;
-
-      // if (classList.isEmpty) {
-      //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
-      //   await _fetchClassesStaffApi();
-      // }
       return;
     }
 
     // 3️⃣ NORMAL TEACHER — GetClassTeacher API
     try {
-      final userId = await PrefManager().readValue(key: PrefConst.Userid);
-
-      final url = Uri.parse(
-        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher'
-            '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(_currentSession())}'
-            '&userId=${Uri.encodeComponent(userId ?? '')}',
-      );
-
       final response = await http.get(
-        url,
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
+        await _teacherScopedUri('api/TeacherApp/GetClassTeacher'),
+        headers: _plainHeaders,
       );
 
       debugPrint('GetClassTeacher status: ${response.statusCode}');
@@ -303,13 +288,8 @@ class ClassTeacherController extends GetxController {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-
-        if (jsonResponse['data'] != null) {
-          final List<dynamic> data = jsonResponse['data'] ?? [];
-          classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
-        } else {
-          classList.value = [];
-        }
+        final List<dynamic> data = jsonResponse['data'] ?? [];
+        classList.value = data.map((e) => ListDataa.fromJson(e)).toList();
       } else {
         classList.value = [];
       }
@@ -319,14 +299,9 @@ class ClassTeacherController extends GetxController {
     }
 
     selectedClass.value = null;
-
-    // if (classList.isEmpty) {
-    //   debugPrint("↩️ GetClassTeacher classes empty — falling back to staff API");
-    //   await _fetchClassesStaffApi();
-    // }
   }
 
-  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  // 🔁 Staff ke liye main path.
   Future<void> _fetchClassesStaffApi() async {
     try {
       final res = await http.get(Uri.parse(_classUrl), headers: _headers);
@@ -351,29 +326,16 @@ class ClassTeacherController extends GetxController {
     // 2️⃣ CLASS TEACHER — SectionTeacher API
     if (isClassTeacherLogin.value) {
       try {
-        final userId = await PrefManager().readValue(key: PrefConst.Userid);
-
-        final url = Uri.parse(
-          '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
-              '?schoolId=${Uri.encodeComponent(schoolId)}'
-              '&Session=${Uri.encodeComponent(_currentSession())}'
-              '&userId=${Uri.encodeComponent(userId ?? '')}',
-        );
-
         final response = await http.get(
-          url,
-          headers: {
-            'accept': '*/*',
-            'Content-Type': 'application/json',
-          },
+          await _teacherScopedUri('api/TeacherApp/SectionTeacher'),
+          headers: _plainHeaders,
         );
 
         debugPrint('SectionTeacher status: ${response.statusCode}');
         debugPrint('SectionTeacher body: ${response.body}');
 
         if (response.statusCode == 200) {
-          final decoded = jsonDecode(response.body);
-          final model = SectionForAttendanceModel.fromJson(decoded);
+          final model = SectionForAttendanceModel.fromJson(jsonDecode(response.body));
 
           sectionList.value = (model.data ?? []).map((e) {
             return ListDatta.fromJson({
@@ -396,31 +358,14 @@ class ClassTeacherController extends GetxController {
       }
 
       selectedSection.value = null;
-
-      // if (sectionList.isEmpty) {
-      //   debugPrint("↩️ SectionTeacher sections empty — falling back to staff API");
-      //   await _fetchSectionsStaffApi();
-      // }
       return;
     }
 
     // 3️⃣ NORMAL TEACHER — getSectionTeacher API
     try {
-      final userId = await PrefManager().readValue(key: PrefConst.Userid);
-
-      final url = Uri.parse(
-        '${AppUrl.base_url}${AppUrl.getSectionTeacher}'
-            '?schoolId=${Uri.encodeComponent(schoolId)}'
-            '&Session=${Uri.encodeComponent(_currentSession())}'
-            '&userId=${Uri.encodeComponent(userId ?? '')}',
-      );
-
       final response = await http.get(
-        url,
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
+        await _teacherScopedUri(AppUrl.getSectionTeacher),
+        headers: _plainHeaders,
       );
 
       debugPrint('GetSectionTeacher status: ${response.statusCode}');
@@ -440,14 +385,9 @@ class ClassTeacherController extends GetxController {
     }
 
     selectedSection.value = null;
-
-    // if (sectionList.isEmpty) {
-    //   debugPrint("↩️ GetSectionTeacher sections empty — falling back to staff API");
-    //   await _fetchSectionsStaffApi();
-    // }
   }
 
-  // 🔁 Staff ke liye main path, Teacher ke liye fallback.
+  // 🔁 Staff ke liye main path.
   Future<void> _fetchSectionsStaffApi() async {
     try {
       final res = await http.get(Uri.parse(_sectionUrl), headers: _headers);
@@ -473,7 +413,7 @@ class ClassTeacherController extends GetxController {
     try {
       isListLoading(true);
 
-      // First try BODY form (you provided body)
+      // First try BODY form
       final body = {"schoolId": schoolId, "session": sess};
 
       http.Response res = await http.post(
@@ -488,21 +428,25 @@ class ClassTeacherController extends GetxController {
       }
 
       if (res.statusCode != 200) {
-        Get.snackbar("Error", "List API failed: ${res.statusCode}\n${res.body}");
+        debugPrint("List API failed: ${res.statusCode}\n${res.body}");
+        // ✅ status code se friendly message, raw body nahi
+        AppSnackbar.error(AppSnackbar.friendlyMessage(null, statusCode: res.statusCode));
         return;
       }
 
-      final decoded = jsonDecode(res.body);
-      final model = classteachermodel.fromJson(decoded);
+      final model = classteachermodel.fromJson(jsonDecode(res.body));
 
       if (model.isSuccess == true) {
         classTeacherList.assignAll(model.data ?? []);
       } else {
         classTeacherList.clear();
-        Get.snackbar("Failed", (model.messages ?? "List fetch failed").toString());
+        // ✅ raw API message nahi dikhana
+        AppSnackbar.error("Unable to load the list. Please try again.",
+            title: "Failed");
       }
     } catch (e) {
-      Get.snackbar("Error", "List error: $e");
+      debugPrint("List error: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isListLoading(false);
     }
@@ -510,21 +454,21 @@ class ClassTeacherController extends GetxController {
 
   Future<void> saveClassTeacher() async {
     if (selectedTeacher.value == null) {
-      Get.snackbar("Validation", "Select Teacher");
+      AppSnackbar.error("Select Teacher", title: "Validation");
       return;
     }
     if (selectedClass.value == null) {
-      Get.snackbar("Validation", "Select Class");
+      AppSnackbar.error("Select Class", title: "Validation");
       return;
     }
     if (selectedSection.value == null) {
-      Get.snackbar("Validation", "Select Section");
+      AppSnackbar.error("Select Section", title: "Validation");
       return;
     }
 
     final sess = _currentSession();
     if (sess.isEmpty) {
-      Get.snackbar("Validation", "Session missing");
+      AppSnackbar.error("Session missing", title: "Validation");
       return;
     }
 
@@ -567,30 +511,30 @@ class ClassTeacherController extends GetxController {
         decoded = null;
       }
 
-      final apiMessage = decoded?["messages"]?.toString();
+      final apiMessage = decoded?["messages"]?.toString().trim() ?? "";
       final isSuccess = decoded?["isSuccess"] == true;
 
-      // ✅ If backend says success, do success flow
+      // ✅ Success flow
       if (isSuccess) {
-        Get.snackbar("Success", isSuccess == true
-            ? apiMessage!
-            : "Class Teacher Saved");
-
-        Get.back();                 // close add screen
+        Get.back(); // close add screen (snackbar se pehle, taaki snackbar band na ho)
+        AppSnackbar.success(apiMessage.isNotEmpty ? apiMessage : "Class Teacher Saved");
         await fetchClassTeacherList(); // refresh view
         return;
       }
 
-      // ❌ Failure flow: show EXACT server response message
-      // (e.g. "The Teacher is already assigned...")
-      if (apiMessage != null && apiMessage.isNotEmpty) {
-        Get.snackbar("Failed", apiMessage);
+      // ❌ Failure flow: readable server message (e.g. "The Teacher is already assigned...")
+      // Technical / lamba text AppSnackbar khud generic bana deta hai.
+      if (apiMessage.isNotEmpty) {
+        AppSnackbar.error(apiMessage, title: "Failed");
       } else {
-        // fallback if response isn't JSON or has no message
-        Get.snackbar("Failed", "Save failed (${res.statusCode})");
+        AppSnackbar.error(
+          AppSnackbar.friendlyMessage(null, statusCode: res.statusCode),
+          title: "Failed",
+        );
       }
     } catch (e) {
-      Get.snackbar("Error", e.toString());
+      debugPrint("Save error: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isSaving(false);
     }

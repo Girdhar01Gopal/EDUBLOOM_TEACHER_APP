@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/class_controller.dart';
 import '../infrastructures/utils/utils.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class ClassScreen extends GetView<ClassController> {
   const ClassScreen({super.key});
@@ -64,7 +65,7 @@ class AddClassTab extends GetView<ClassController> {
                   ? null
                   : () {
                 if (controller.clas.text.trim().isEmpty) {
-                  ShortMessage.toast(title: "Please enter class name");
+                  AppSnackbar.error("Please enter class name", title: "Validation");
                   return;
                 }
                 controller.postClass(className: controller.clas.text.trim());

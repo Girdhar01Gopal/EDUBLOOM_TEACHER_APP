@@ -18,6 +18,7 @@ import '../models/new model teacher section attendance.dart';
 import '../models/sectionmodel.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart' hide ClassItem; // 🆕 ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
 // ✅ PDF + Share deps
@@ -192,9 +193,12 @@ class ParentIdController extends GetxController {
           selectedSession.value = cs;
           session.value = cs.session ?? '';
         }
+      } else {
+        AppSnackbar.apiError('ViewSessionApp failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -237,9 +241,12 @@ class ParentIdController extends GetxController {
 
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      } else {
+        AppSnackbar.apiError('ClassTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      debugPrint("Error loading ClassTeacher filter: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -271,8 +278,8 @@ class ParentIdController extends GetxController {
           });
         }).toList();
         selectedClass.value = null;
-      } catch (e) {
-        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
         listDataa.value = [];
       }
       return;
@@ -298,8 +305,13 @@ class ParentIdController extends GetxController {
         final parsed = ClassListModel.fromJson(jsonDecode(res.body));
         listDataa.value = parsed.listData;
         selectedClass.value = null;
+      } else {
+        AppSnackbar.apiError('GetClassTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
+    }
   }
 
   // 🔁 Staff-only path (no fallback)
@@ -328,9 +340,12 @@ class ParentIdController extends GetxController {
         }))
             .toList();
         selectedClass.value = null;
+      } else {
+        AppSnackbar.apiError('ViewClass (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching classes (staff): $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -386,9 +401,12 @@ class ParentIdController extends GetxController {
           }).toList();
 
           selectedSection.value = null;
+        } else {
+          AppSnackbar.apiError('SectionTeacher failed: ${res.body}',
+              statusCode: res.statusCode);
         }
-      } catch (e) {
-        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
       }
       return;
     }
@@ -415,8 +433,13 @@ class ParentIdController extends GetxController {
             decoded['data'] ?? decoded['listData'] ?? [];
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
+      } else {
+        AppSnackbar.apiError('GetSectionTeacher failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
+    }
   }
 
   // 🔁 Staff-only path (no fallback)
@@ -449,9 +472,12 @@ class ParentIdController extends GetxController {
         }).toList();
 
         selectedSection.value = null;
+      } else {
+        AppSnackbar.apiError('ViewSectionApp (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching sections (staff): $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -461,15 +487,15 @@ class ParentIdController extends GetxController {
   bool _validate() {
     if (selectedSession.value == null ||
         (selectedSession.value?.session ?? "").isEmpty) {
-      Get.snackbar("Required", "Please Select Session");
+      AppSnackbar.error('Please Select Session', title: 'Required');
       return false;
     }
     if (selectedClass.value == null) {
-      Get.snackbar("Required", "Please Select Class");
+      AppSnackbar.error('Please Select Class', title: 'Required');
       return false;
     }
     if (selectedSection.value == null) {
-      Get.snackbar("Required", "Please Select Section");
+      AppSnackbar.error('Please Select Section', title: 'Required');
       return false;
     }
     return true;
@@ -505,16 +531,17 @@ class ParentIdController extends GetxController {
         rows.value = list.map((e) => ParentIdRow.fromJson(e)).toList();
 
         if (rows.isEmpty) {
-          Get.snackbar("Result", "No Data Found");
+          AppSnackbar.error("No Data Found", title: 'Result');
         } else {
-          Get.snackbar("Success", "Loaded ${rows.length} records");
+          AppSnackbar.success("Loaded ${rows.length} records");
           tabIndex.value = 1; // ✅ Auto switch to View tab
         }
       } else {
-        Get.snackbar("Error", "API failed (${response.statusCode})");
+        AppSnackbar.apiError('GetViewStudentParentIdApp failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Something went wrong: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -597,7 +624,7 @@ class ParentIdController extends GetxController {
   Future<void> downloadParentIdPdf() async {
     try {
       if (rows.isEmpty) {
-        Get.snackbar("Required", "No Data Found");
+        AppSnackbar.error("No Data Found", title: 'Required');
         return;
       }
 
@@ -611,9 +638,9 @@ class ParentIdController extends GetxController {
       final file = File("${dir.path}/$fileName");
 
       await file.writeAsBytes(bytes, flush: true);
-      Get.snackbar("Downloaded", "PDF saved: ${file.path}");
-    } catch (e) {
-      Get.snackbar("Error", "PDF download failed: $e");
+      AppSnackbar.success("PDF saved: ${file.path}", title: 'Downloaded');
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -622,7 +649,7 @@ class ParentIdController extends GetxController {
   Future<void> shareParentIdPdf() async {
     try {
       if (rows.isEmpty) {
-        Get.snackbar("Required", "No Data Found");
+        AppSnackbar.error("No Data Found", title: 'Required');
         return;
       }
 
@@ -641,8 +668,8 @@ class ParentIdController extends GetxController {
         [XFile(file.path)],
         text: "Parent Id List PDF",
       );
-    } catch (e) {
-      Get.snackbar("Error", "PDF share failed: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }

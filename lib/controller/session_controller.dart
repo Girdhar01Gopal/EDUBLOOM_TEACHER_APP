@@ -12,6 +12,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/session_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class SessionController extends GetxController {
   final TextEditingController sessionController = TextEditingController();
@@ -77,7 +78,8 @@ class SessionController extends GetxController {
 
               // ✅ final strict validation
               if (!RegExp(r'^\d{4}-\d{2}$').hasMatch(newVal)) {
-                ShortMessage.toast(title: "Session must be like 2025-26");
+                AppSnackbar.error("Session must be like 2025-26",
+                    title: "Invalid");
                 return;
               }
 
@@ -109,24 +111,35 @@ class SessionController extends GetxController {
       "schoolId": session.schoolId
     };
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(payload),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
 
-    if (response.statusCode == 200) {
-      ShortMessage.toast(title: "Session updated successfully");
+      if (response.statusCode == 200) {
+        selectedSessionId.value = session.sessionId ?? 0;
 
-      selectedSessionId.value = session.sessionId ?? 0;
+        await fetchSessionData();
 
-      await fetchSessionData();
+        await PrefManager().writeValue(key: PrefConst.isLoggedIn, value: "No");
+        Get.offAllNamed(RouteName.login_screen);
 
-      await PrefManager().writeValue(key: PrefConst.isLoggedIn, value: "No");
-      Get.offAllNamed(RouteName.login_screen);
-      ShortMessage.toast(title: "To apply session change, please login again");
-    } else {
-      ShortMessage.toast(title: "Failed to update session");
+        // ✅ Do alag messages ek saath nahi dikh sakte, isliye ek hi snackbar
+        AppSnackbar.success(
+          "Session updated successfully. To apply session change, please login again",
+        );
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed to update session: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -141,19 +154,33 @@ class SessionController extends GetxController {
       "schoolId": schoolId
     };
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(payload),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
 
-    if (response.statusCode == 200) {
-      if (sessionId == 0) sessionController.clear();
-      ShortMessage.toast(title: "Request was successful");
-      Get.back();
-    } else {
-      ShortMessage.toast(title: "Request was Not successful");
-      debugPrint("POST session failed: ${response.statusCode} | ${response.body}");
+      if (response.statusCode == 200) {
+        if (sessionId == 0) sessionController.clear();
+        Get.back();
+        // ✅ Success snackbar (add ya edit, dono me)
+        AppSnackbar.success(
+          sessionId == 0
+              ? "Session added successfully"
+              : "Session updated successfully",
+        );
+      } else {
+        debugPrint("POST session failed: ${response.statusCode} | ${response.body}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "POST session failed: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -177,7 +204,13 @@ class SessionController extends GetxController {
         }
       } else {
         debugPrint("Fetch session failed: ${response.statusCode} | ${response.body}");
+        AppSnackbar.apiError(
+          "Fetch session failed: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -192,11 +225,9 @@ class SessionController extends GetxController {
     await updateSessionStatusOnServer(session);
 
     // Provide feedback to the user
-    Get.snackbar(
-      'Session Status Updated',
+    AppSnackbar.success(
       session.action == '1' ? 'Session is now Active' : 'Session is now Inactive',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
+      title: 'Session Status Updated',
     );
   }
 

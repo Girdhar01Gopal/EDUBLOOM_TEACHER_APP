@@ -8,6 +8,7 @@ import '../models/classmodel.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/tc_certificate_modeldownload.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class TcCertificateController extends GetxController {
   // ✅ TcStudentData — koi conflict nahi
@@ -87,9 +88,16 @@ class TcCertificateController extends GetxController {
           sessionList.add(cs);
           selectedSession.value = cs;
         }
+      } else {
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'ViewSessionApp failed: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error (URL wagairah) user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -104,9 +112,16 @@ class TcCertificateController extends GetxController {
         classList.value =
             parsed.listData?.where((e) => e.action == "1").toList() ??
                 [];
+      } else {
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'ViewClass failed: ${res.statusCode}',
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load classes: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -131,14 +146,19 @@ class TcCertificateController extends GetxController {
           studentDetail.value = model.data!.first;
           _populateFields(model.data!.first);
         } else {
-          Get.snackbar('Error', 'No student data found.');
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+          AppSnackbar.error('No student data found.');
         }
       } else {
-        Get.snackbar(
-            'Error', 'Failed to load. Status: ${response.statusCode}');
+        // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
+        AppSnackbar.apiError(
+          'Failed to load. Status: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Something went wrong: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -194,8 +214,8 @@ class TcCertificateController extends GetxController {
 
     // ── Basic validation ────────────────────────────────────
     if (studentNameController.text.trim().isEmpty) {
-      Get.snackbar('Validation', 'Student name is required.',
-          backgroundColor: Colors.orange, colorText: Colors.white);
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+      AppSnackbar.error('Student name is required.', title: 'Validation');
       return;
     }
 
@@ -242,32 +262,21 @@ class TcCertificateController extends GetxController {
 
       if (response.statusCode == 200 && isSuccess) {
         // ── Success ───────────────────────────────────────
-        Get.snackbar(
-          'Success',
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.success
+        AppSnackbar.success(
           message.isNotEmpty
               ? message
               : 'Certificate saved successfully for ${studentNameController.text}',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
         );
       } else {
         // ── API returned failure (e.g. TC already exists) ─
-        Get.snackbar(
-          'Failed',
-          message,
-          backgroundColor: Colors.red.shade600,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
-        );
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+        // (technical / lamba text apne aap hide ho jata hai)
+        AppSnackbar.error(message, title: 'Failed');
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Network error: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega, sirf "Something went wrong"
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isSaving(false);
     }

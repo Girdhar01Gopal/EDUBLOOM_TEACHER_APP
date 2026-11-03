@@ -14,6 +14,7 @@ import '../infrastructures/utils/utils.dart';
 import '../models/daycareaddstudentmodel.dart';
 import '../models/sectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class StudentControllerdaycare extends GetxController {
   var sessionList = <session_model.sListDdata>[].obs;
@@ -142,11 +143,14 @@ class StudentControllerdaycare extends GetxController {
 
         debugPrint("✅ Daycare students fetched: ${listData.length}");
       } else {
-        Get.snackbar("Error", "Failed to fetch daycare students");
+        AppSnackbar.apiError(
+          'Failed to fetch daycare students => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("⚠️ fetchVStudents error => $e");
-      Get.snackbar("Error", "An error occurred while fetching daycare students");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -257,11 +261,9 @@ class StudentControllerdaycare extends GetxController {
   Future<void> registerStudent() async {
     if (isSubmitting.value) {
 
-      Get.snackbar(
-        "Please Wait",
+      AppSnackbar.error(
         "Student is already being registered.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
+        title: "Please Wait",
       );
       return;
     }
@@ -329,28 +331,26 @@ class StudentControllerdaycare extends GetxController {
         final data = jsonDecode(responseBody.body);
 
         if (data['isSuccess'] == true) {
-          ShortMessage.toast(title: "Student Added Successfully");
           await fetchVStudents();
           Get.offAllNamed(RouteName.dashboard_screen);
+          AppSnackbar.success("Student Added Successfully");
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Get.delete<StudentControllerdaycare>(force: true);
           });
         } else {
           final popup = data['popupMessage'] ?? data['messages'] ?? "Unknown error";
-          Get.snackbar(
-            "Error",
-            popup.toString(),
-            backgroundColor: Colors.red.shade600,
-            colorText: Colors.white,
-          );
+          AppSnackbar.error(popup.toString());
         }
       } else {
-        ShortMessage.toast(title: "Failed to Add Student");
+        AppSnackbar.apiError(
+          'Failed to Add Student => ${responseBody.body}',
+          statusCode: responseBody.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("registerStudent error => $e");
-      ShortMessage.toast(title: "An error occurred while adding student.");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubmitting.value = false;
     }
@@ -420,34 +420,22 @@ class StudentControllerdaycare extends GetxController {
         final data = jsonDecode(resp.body);
 
         if (data['isSuccess'] == true) {
-          ShortMessage.toast(title: "Student Updated Successfully");
           await fetchVStudents();
           Get.back();
+          AppSnackbar.success("Student Updated Successfully");
         } else {
           final msg = data['popupMessage'] ?? data['messages'] ?? "Update failed";
-          Get.snackbar(
-            "Error",
-            msg.toString(),
-            backgroundColor: Colors.red.shade600,
-            colorText: Colors.white,
-          );
+          AppSnackbar.error(msg.toString());
         }
       } else {
-        Get.snackbar(
-          "Error",
-          "Update failed: ${resp.statusCode}",
-          backgroundColor: Colors.red.shade600,
-          colorText: Colors.white,
+        AppSnackbar.apiError(
+          'Update failed => ${resp.body}',
+          statusCode: resp.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("updateStudentByPostApi error => $e");
-      Get.snackbar(
-        "Error",
-        "Update error: $e",
-        backgroundColor: Colors.red.shade600,
-        colorText: Colors.white,
-      );
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -511,23 +499,41 @@ class StudentControllerdaycare extends GetxController {
         }
 
         // ✅ currentSession ko list mein se match karke select karo
-        if (jsonData['currentSession'] != null) {
-          final currentId = jsonData['currentSession']['currentSessionId'];
-          session_model.sListDdata? matched;
+        session_model.sListDdata? matched;
+
+        final currentId = jsonData['currentSession']?['currentSessionId'];
+        debugPrint("CURRENT SESSION ID => $currentId");
+
+        // 1) id se match (int/string ka fark ignore karke)
+        if (currentId != null) {
           for (final s in sessionList) {
-            if (s.sessionId == currentId) {
+            if ('${s.sessionId}' == currentId.toString()) {
               matched = s;
               break;
             }
           }
-          selectedSession.value = matched;
-          if (matched != null) {
-            session.value = matched.session ?? session.value;
+        }
+
+        // 2) id match nahi hui to local storage wale session name se match
+        if (matched == null && session.value.isNotEmpty) {
+          for (final s in sessionList) {
+            if ((s.session ?? '').trim() == session.value.trim()) {
+              matched = s;
+              break;
+            }
           }
         }
+
+        selectedSession.value = matched;
+        if (matched != null) {
+          session.value = matched.session ?? session.value;
+        } else {
+          debugPrint("⚠️ current session list me nahi mila");
+        }
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, s) {
+      debugPrint("⚠️ fetchSessions error => $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }

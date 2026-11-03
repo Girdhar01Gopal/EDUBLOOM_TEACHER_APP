@@ -21,16 +21,17 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
         backgroundColor: _primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _holidayColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text("Add Holiday"),
-        onPressed: () {
-          controller.resetForm();
-          _openHolidaySheet(context);
-        },
-      ),
+      // Add Holiday button hidden (commented out)
+      // floatingActionButton: FloatingActionButton.extended(
+      //   backgroundColor: _holidayColor,
+      //   foregroundColor: Colors.white,
+      //   icon: const Icon(Icons.add),
+      //   label: const Text("Add Holiday"),
+      //   onPressed: () {
+      //     controller.resetForm();
+      //     _openHolidaySheet(context);
+      //   },
+      // ),
       body: Obx(() {
         return Stack(
           children: [
@@ -314,28 +315,30 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: h.isActive ? Colors.green.shade50 : Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              h.isActive ? "Active" : "Inactive",
-              style: TextStyle(
-                color: h.isActive ? Colors.green.shade700 : Colors.grey.shade600,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
-            onPressed: () {
-              controller.loadForEdit(h);
-              _openHolidaySheet(context);
-            },
-          ),
+          // Active / Inactive badge hidden (commented out)
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          //   decoration: BoxDecoration(
+          //     color: h.isActive ? Colors.green.shade50 : Colors.grey.shade200,
+          //     borderRadius: BorderRadius.circular(20),
+          //   ),
+          //   child: Text(
+          //     h.isActive ? "Active" : "Inactive",
+          //     style: TextStyle(
+          //       color: h.isActive ? Colors.green.shade700 : Colors.grey.shade600,
+          //       fontWeight: FontWeight.w700,
+          //       fontSize: 11,
+          //     ),
+          //   ),
+          // ),
+          // Edit button hidden (commented out)
+          // IconButton(
+          //   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+          //   onPressed: () {
+          //     controller.loadForEdit(h);
+          //     _openHolidaySheet(context);
+          //   },
+          // ),
         ],
       ),
     );

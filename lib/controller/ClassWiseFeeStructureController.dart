@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/ClassWiseFeeStructureModel.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class ClassWiseFeeStructureController extends GetxController {
   RxBool isLoading = false.obs;
@@ -148,13 +149,7 @@ class ClassWiseFeeStructureController extends GetxController {
   // NEW: AppBar share -> complete data (saari classes), search filter ignore
   Future<void> shareAllFeeStructure() async {
     if (raw.isEmpty) {
-      Get.snackbar(
-        "Error",
-        "No data to share",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+      AppSnackbar.error("No data to share");
       return;
     }
 
@@ -169,13 +164,7 @@ class ClassWiseFeeStructureController extends GetxController {
     final list = raw.where((e) => e.classId == classId).toList();
 
     if (list.isEmpty) {
-      Get.snackbar(
-        "Error",
-        "No data to share",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+      AppSnackbar.error("No data to share");
       return;
     }
 
@@ -187,13 +176,7 @@ class ClassWiseFeeStructureController extends GetxController {
 
   Future<void> fetchFeeStructure() async {
     if (session.value.trim().isEmpty) {
-      Get.snackbar(
-        "Error",
-        "Session not available",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+      AppSnackbar.error("Session not available");
       return;
     }
 
@@ -209,51 +192,40 @@ class ClassWiseFeeStructureController extends GetxController {
       );
 
       if (res.statusCode != 200) {
-        Get.snackbar(
-          "Error",
-          "Failed (${res.statusCode})",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed (${res.statusCode}) : ${res.body}",
+          statusCode: res.statusCode,
         );
         return;
       }
 
       final decoded = jsonDecode(res.body);
       if (decoded is! Map<String, dynamic>) {
-        Get.snackbar(
-          "Error",
-          "Invalid response format",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackbar.apiError("Invalid response format");
         return;
       }
 
       final obj = FeeResponse.fromJson(decoded);
 
       if (!obj.isSuccess) {
-        Get.snackbar(
-          "Error",
-          obj.messages ?? "API returned isSuccess=false",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
+        // Server ka message technical hua to automatically "Something went wrong" ban jayega
+        AppSnackbar.error(
+          obj.messages ?? "Something went wrong. Please try again.",
         );
         return;
       }
 
       raw.assignAll(obj.data);
       _buildTable();
-    } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Something went wrong: $e",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+
+      // ✅ Success snackbar
+      if (raw.isNotEmpty) {
+        AppSnackbar.success("Data loaded successfully");
+      }
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -287,10 +259,13 @@ class ClassWiseFeeStructureController extends GetxController {
         session.value =
             jsonData['currentSession']?['currentSession']?.toString() ?? "";
       } else {
-        Get.snackbar("Error", "Session fetch failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Session fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 }

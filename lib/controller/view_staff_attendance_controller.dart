@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/view staff attendance details.dart';
+import '../utils/app_snackbar.dart';
 
 class ViewStaffAttendanceController extends GetxController {
   // ── School / user context ────────────────────────────────────────────────
@@ -44,26 +45,31 @@ class ViewStaffAttendanceController extends GetxController {
   void onInit() async {
     super.onInit();
 
-    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
-    token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-    session = await PrefManager().readValue(key: PrefConst.session) ?? "";
-    roleName =
-        await PrefManager().readValue(key: PrefConst.RName) ?? "";
+    selectedMonth.value = months[DateTime.now().month - 1];
 
-    final userIdRaw = await PrefManager().readValue(key: PrefConst.Userid);
+    final pref = PrefManager();
+    schoolId = await pref.readValue(key: PrefConst.schollId) ?? "";
+    token = await pref.readValue(key: PrefConst.token) ?? "";
+    session = await pref.readValue(key: PrefConst.session) ?? "";
+    roleName = await pref.readValue(key: PrefConst.RName) ?? "";
+
+    final userIdRaw = await pref.readValue(key: PrefConst.Userid);
     userId = int.tryParse(userIdRaw?.toString() ?? "") ?? 0;
 
+    _validateContext();
+  }
+
+  // ── School / session check (snackbar me sirf friendly message) ─────────────
+  bool _validateContext() {
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
-      return;
+      AppSnackbar.error("School details not found. Please login again.");
+      return false;
     }
-
     if (session.trim().isEmpty) {
-      Get.snackbar("Error", "Session not found");
-      return;
+      AppSnackbar.error("Session not found. Please login again.");
+      return false;
     }
-
-    selectedMonth.value = months[DateTime.now().month - 1];
+    return true;
   }
 
   void setMonth(String? m) {
@@ -75,75 +81,67 @@ class ViewStaffAttendanceController extends GetxController {
   // ── Fetch + merge ───────────────────────────────────────────────────────────
   Future<void> fetchReport() async {
     if (isLoading.value) return;
+    if (!_validateContext()) return;
 
     try {
       isLoading(true);
       errorMessage.value = "";
 
-      final body = {
-        "month": monthIndex,
-        "schoolId": schoolId,
-        "session": session,
-        "roleName": roleName,
-        "userId": userId,
-      };
-
       final headers = <String, String>{
         "Content-Type": "application/json",
         "Accept": "application/json",
+        if (token.trim().isNotEmpty) "Authorization": "Bearer $token",
       };
 
-      if (token.trim().isNotEmpty) {
-        headers["Authorization"] = "Bearer $token";
-      }
-
-      final res = await http.post(
+      final res = await http
+          .post(
         Uri.parse(detailsApi),
         headers: headers,
-        body: jsonEncode(body),
-      );
-
-      print("Request Body: ${jsonEncode(body)}");
-      print("API Response: ${res.statusCode} - ${res.body}");
+        body: jsonEncode({
+          "month": monthIndex,
+          "schoolId": schoolId,
+          "session": session,
+          "roleName": roleName,
+          "userId": userId,
+        }),
+      )
+          .timeout(const Duration(seconds: 30));
 
       if (res.statusCode != 200) {
-        final msg = res.body.length > 250
-            ? "${res.body.substring(0, 250)}..."
-            : res.body;
-        errorMessage.value = "API failed: ${res.statusCode}\n$msg";
+        // ❌ Raw API text kabhi user ko nahi dikhega
+        final msg = AppSnackbar.friendlyMessage(null,
+            statusCode: res.statusCode);
+        errorMessage.value = msg;
+        AppSnackbar.error(msg);
         return;
       }
 
       final decoded = jsonDecode(res.body);
-      List<StaffAttendanceView> rawList = [];
+      Iterable? rows;
 
       if (decoded is Map<String, dynamic>) {
-        if (decoded.containsKey('listData')) {
-          rawList = (decoded['listData'] as List)
-              .map((e) => StaffAttendanceView.fromJson(
-              Map<String, dynamic>.from(e as Map)))
-              .toList();
-        }
+        final list = decoded['listData'];
+        if (list is List) rows = list;
       } else if (decoded is List) {
-        rawList = decoded
-            .map((e) => StaffAttendanceView.fromJson(
-            Map<String, dynamic>.from(e as Map)))
-            .toList();
+        rows = decoded;
       }
 
-      print("Raw staff rows: ${rawList.length}");
+      final rawList = (rows ?? const [])
+          .map((e) => StaffAttendanceView.fromJson(
+          Map<String, dynamic>.from(e as Map)))
+          .toList();
 
       // ── Merge duplicate staffReg + name records ─────────────────────────
-      final merged = _mergeByReg(rawList);
-      reportList.assignAll(merged);
-
-      print("Merged staff cards: ${reportList.length}");
+      reportList.assignAll(_mergeByReg(rawList));
 
       if (reportList.isEmpty) {
         errorMessage.value = "No data found";
       }
     } catch (e) {
-      errorMessage.value = "Fetch error: $e";
+      // ❌ Exception text user ko nahi dikhega, sirf friendly line
+      final msg = AppSnackbar.friendlyMessage(e);
+      errorMessage.value = msg;
+      AppSnackbar.error(msg);
     } finally {
       isLoading(false);
     }
@@ -157,64 +155,65 @@ class ViewStaffAttendanceController extends GetxController {
       final key =
           '${item.staffReg.trim()}_${item.name.trim().toLowerCase()}';
 
-      if (!map.containsKey(key)) {
+      final existing = map[key];
+      if (existing == null) {
         // ✅ First record already has correct dayInTimes/dayOutTimes from fromJson
         map[key] = item;
-      } else {
-        // Subsequent record: merge days + per-day times
-        final existing = map[key]!;
-        final newDays = Map<String, String?>.from(existing.attendanceDays);
-        final newInT = Map<int, String?>.from(existing.dayInTimes);
-        final newOutT = Map<int, String?>.from(existing.dayOutTimes);
-        final newInA = Map<int, String?>.from(existing.dayInAddresses);    // ✅ NEW
-        final newOutA = Map<int, String?>.from(existing.dayOutAddresses);  // ✅ NEW
-
-        for (int d = 1; d <= 31; d++) {
-          final status = item.attendanceDays['day$d'];
-          if (status != null && status.isNotEmpty) {
-            newDays['day$d'] = status;
-            newInT[d] = item.dayIn(d);
-            newOutT[d] = item.dayOut(d);
-            newInA[d] = item.dayInAddress(d);     // ✅ NEW
-            newOutA[d] = item.dayOutAddress(d);   // ✅ NEW
-          }
-        }
-
-        map[key] = existing.copyWith(
-          attendanceDays: newDays,
-          dayInTimes: newInT,
-          dayOutTimes: newOutT,
-          dayInAddresses: newInA,     // ✅ NEW
-          dayOutAddresses: newOutA,   // ✅ NEW
-        );
+        continue;
       }
+
+      // Subsequent record: merge days + per-day times
+      final newDays = Map<String, String?>.from(existing.attendanceDays);
+      final newInT = Map<int, String?>.from(existing.dayInTimes);
+      final newOutT = Map<int, String?>.from(existing.dayOutTimes);
+      final newInA = Map<int, String?>.from(existing.dayInAddresses);
+      final newOutA = Map<int, String?>.from(existing.dayOutAddresses);
+
+      for (int d = 1; d <= 31; d++) {
+        final status = item.attendanceDays['day$d'];
+        if (status != null && status.isNotEmpty) {
+          newDays['day$d'] = status;
+          newInT[d] = item.dayIn(d);
+          newOutT[d] = item.dayOut(d);
+          newInA[d] = item.dayInAddress(d);
+          newOutA[d] = item.dayOutAddress(d);
+        }
+      }
+
+      map[key] = existing.copyWith(
+        attendanceDays: newDays,
+        dayInTimes: newInT,
+        dayOutTimes: newOutT,
+        dayInAddresses: newInA,
+        dayOutAddresses: newOutA,
+      );
     }
 
-    // ✅ NEW: Beete hue working day (aaj ko chhodkar) jo mark nahi hua = Absent
+    // ✅ Beete hue working day (aaj ko chhodkar) jo mark nahi hua = Absent
     final daysInMonth = daysInSelectedMonth;
+    final year = selectedYear.value;
+    final month = monthIndex;
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
 
-    final List<StaffAttendanceView> result = [];
-    for (final item in map.values) {
-      final newDays = Map<String, String?>.from(item.attendanceDays);
-      bool changed = false;
+    return map.values.map((item) {
+      Map<String, String?>? newDays;
 
       for (int d = 1; d <= daysInMonth; d++) {
-        final date = DateTime(selectedYear.value, monthIndex, d);
-        if (date.weekday != DateTime.sunday && date.isBefore(todayDateOnly)) {
-          final s = newDays['day$d'];
-          if (s == null || s.trim().isEmpty) {
-            newDays['day$d'] = "Absent";
-            changed = true;
-          }
+        final date = DateTime(year, month, d);
+        if (date.weekday == DateTime.sunday ||
+            !date.isBefore(todayDateOnly)) {
+          continue;
+        }
+        final s = item.attendanceDays['day$d'];
+        if (s == null || s.trim().isEmpty) {
+          newDays ??= Map<String, String?>.from(item.attendanceDays);
+          newDays['day$d'] = "Absent";
         }
       }
 
-      result.add(changed ? item.copyWith(attendanceDays: newDays) : item);
-    }
-
-    return result;
+      return newDays == null ? item : item.copyWith(attendanceDays: newDays);
+    }).toList();
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

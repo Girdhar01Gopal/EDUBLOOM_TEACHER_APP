@@ -25,6 +25,19 @@ class ViewStaffAttendanceScreen
 
   ViewStaffAttendanceScreen({super.key});
 
+  // chhote/bade/space/_/- sab hata deta hai (regex ek hi baar bana)
+  static final RegExp _normRegex = RegExp(r'[\s_\-]');
+
+  static const List<String> _monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  static const List<String> _weekdayNames = [
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday"
+  ];
+
   // ── Input decoration ──────────────────────────────────────────────────────
   InputDecoration _dec(String label) => InputDecoration(
     labelText: label,
@@ -40,25 +53,22 @@ class ViewStaffAttendanceScreen
   // "11:21" → "11:21 AM"  |  "16:34" → "4:34 PM"
   String _formatTime(String? raw) {
     if (raw == null || raw.trim().isEmpty) return "";
-    try {
-      final parts = raw.trim().split(":");
-      if (parts.length >= 2) {
-        final h = int.tryParse(parts[0]) ?? 0;
-        final m = int.tryParse(parts[1]) ?? 0;
-        final period = h < 12 ? "AM" : "PM";
-        final h12 = h % 12 == 0 ? 12 : h % 12;
-        return "$h12:${m.toString().padLeft(2, '0')} $period";
-      }
-    } catch (_) {}
+    final parts = raw.trim().split(":");
+    if (parts.length >= 2) {
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = int.tryParse(parts[1]) ?? 0;
+      final period = h < 12 ? "AM" : "PM";
+      final h12 = h % 12 == 0 ? 12 : h % 12;
+      return "$h12:${m.toString().padLeft(2, '0')} $period";
+    }
     return raw.trim();
   }
 
-  // ── Normalizer: chhote/bade/space/_/- sab hata deta hai ─────────────────
-  String _norm(String? s) =>
-      (s ?? "").toLowerCase().replaceAll(RegExp(r'[\s_\-]'), '');
+  // ── Normalizer ────────────────────────────────────────────────────────────
+  String _norm(String? s) => (s ?? "").toLowerCase().replaceAll(_normRegex, '');
 
-  // ── Present / Absent helpers ─────────────────────────────────────────────
-  // ✅ UPDATED: Full word (Present) aur short code (P) dono match karte hain
+  // ── Status helpers ────────────────────────────────────────────────────────
+  // ✅ Full word aur short code dono match karte hain
   bool _isPresent(String? s) {
     final v = _norm(s);
     return v == "present" || v == "p";
@@ -69,67 +79,47 @@ class ViewStaffAttendanceScreen
     return v == "absent" || v == "a";
   }
 
-  // ── Half Day helpers ──────────────────────────────────────────────────────
-  // ✅ "HalfDay" / "Half Day" / "half_day" / "half-day" / "HD" sab handle honge
+  // ✅ "HalfDay" / "Half Day" / "half_day" / "half-day" / "HD"
   bool _isHalfDay(String? s) {
     final v = _norm(s);
     return v == "halfday" || v == "hd";
   }
 
-  // ✅ month me kitne Half Day hain (status se count hota hai)
-  int _halfDayCount(StaffAttendanceView staff, int daysInMonth) {
-    int count = 0;
-    for (int d = 1; d <= daysInMonth; d++) {
-      if (_isHalfDay(staff.attendanceStatus(d))) count++;
-    }
-    return count;
-  }
-
-  // ── Late helpers ─────────────────────────────────────────────────────────
-  // ✅ "Late" / "late" / " Late " / "L" sab handle honge
+  // ✅ "Late" / "late" / " Late " / "L"
   bool _isLate(String? s) {
     final v = _norm(s);
     return v == "late" || v == "l";
   }
 
-  // ✅ month me kitne Late hain (status se count hota hai)
-  int _lateCount(StaffAttendanceView staff, int daysInMonth) {
-    int count = 0;
-    for (int d = 1; d <= daysInMonth; d++) {
-      if (_isLate(staff.attendanceStatus(d))) count++;
-    }
-    return count;
-  }
-
-  // ── Leave helpers ────────────────────────────────────────────────────────
-  // ✅ "Leave" / "LEAVE" / "leave" / " Leave " / "on_leave" / "LV" sab handle honge
+  // ✅ "Leave" / "LEAVE" / "on_leave" / "LV" / "OL"
   bool _isLeave(String? s) {
     final v = _norm(s);
     return v == "leave" || v == "onleave" || v == "lv" || v == "ol";
   }
 
-  // ✅ month me kitne Leave hain (status se count hota hai)
-  int _leaveCount(StaffAttendanceView staff, int daysInMonth) {
-    int count = 0;
-    for (int d = 1; d <= daysInMonth; d++) {
-      if (_isLeave(staff.attendanceStatus(d))) count++;
-    }
-    return count;
-  }
-
-  int _absentCountCalc(StaffAttendanceView staff, int daysInMonth) {
-    int count = 0;
-    for (int d = 1; d <= daysInMonth; d++) {
-      if (_isAbsent(staff.attendanceStatus(d))) count++;
-    }
-    return count;
-  }
-
-  // ── Holiday helpers ──────────────────────────────────────────────────────
-  // ✅ "Holiday" / "HOLIDAY" / "hold" / "H" sab handle honge
+  // ✅ "Holiday" / "HOLIDAY" / "hold" / "H"
   bool _isHoliday(String? s) {
     final v = _norm(s);
     return v == "holiday" || v == "hold" || v == "h";
+  }
+
+  // ── Month counts: ek hi loop me Absent / Half Day / Late / Leave ─────────
+  // return order: [absent, halfDay, late, leave]
+  List<int> _counts(StaffAttendanceView staff, int daysInMonth) {
+    int absent = 0, half = 0, late = 0, leave = 0;
+    for (int d = 1; d <= daysInMonth; d++) {
+      final v = _norm(staff.attendanceStatus(d));
+      if (v == "absent" || v == "a") {
+        absent++;
+      } else if (v == "halfday" || v == "hd") {
+        half++;
+      } else if (v == "late" || v == "l") {
+        late++;
+      } else if (v == "leave" || v == "onleave" || v == "lv" || v == "ol") {
+        leave++;
+      }
+    }
+    return [absent, half, late, leave];
   }
 
   // ✅ Sunday check
@@ -144,7 +134,6 @@ class ViewStaffAttendanceScreen
     return raw;
   }
 
-  // ── Status helpers ────────────────────────────────────────────────────────
   String _shortStatus(String? s) {
     if (_isPresent(s)) return "P";
     if (_isAbsent(s)) return "A";
@@ -165,24 +154,23 @@ class ViewStaffAttendanceScreen
     return Colors.grey.shade300;
   }
 
-  // ── Month number → full name ──────────────────────────────────────────────
-  String _monthName(int m) {
-    const names = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    return (m >= 1 && m <= 12) ? names[m - 1] : "";
+  String _statusText(String? s) {
+    if (s == null || s.trim().isEmpty) return "N/A";
+    if (_isPresent(s)) return "Present";
+    if (_isAbsent(s)) return "Absent";
+    if (_isHalfDay(s)) return "Half Day";
+    if (_isLate(s)) return "Late";
+    if (_isLeave(s)) return "Leave";
+    if (_isHoliday(s)) return "Holiday";
+    return s.trim();
   }
 
+  // ── Month number → full name ──────────────────────────────────────────────
+  String _monthName(int m) => (m >= 1 && m <= 12) ? _monthNames[m - 1] : "";
+
   // ── Weekday name for a given date ─────────────────────────────────────────
-  String _weekdayName(int year, int month, int day) {
-    const names = [
-      "Monday", "Tuesday", "Wednesday", "Thursday",
-      "Friday", "Saturday", "Sunday"
-    ];
-    final weekday = DateTime(year, month, day).weekday; // 1 = Monday
-    return names[weekday - 1];
-  }
+  String _weekdayName(int year, int month, int day) =>
+      _weekdayNames[DateTime(year, month, day).weekday - 1];
 
   // ─────────────────────────────────────────────────────────────────────────
   @override
@@ -275,21 +263,8 @@ class ViewStaffAttendanceScreen
                     }
 
                     if (controller.reportList.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off,
-                                size: 60, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Text(
-                              "No Attendance Found",
-                              style: TextStyle(
-                                  fontSize: 16, color: Colors.grey.shade500),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _emptyState(Icons.search_off,
+                          "No Attendance Found", 16);
                     }
 
                     // Search filter
@@ -302,21 +277,8 @@ class ViewStaffAttendanceScreen
                         .toList();
 
                     if (filtered.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.person_search,
-                                size: 60, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No staff found for "$query"',
-                              style: TextStyle(
-                                  fontSize: 15, color: Colors.grey.shade500),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _emptyState(Icons.person_search,
+                          'No staff found for "$query"', 15);
                     }
 
                     final int days = controller.daysInSelectedMonth;
@@ -330,6 +292,7 @@ class ViewStaffAttendanceScreen
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {
                         final StaffAttendanceView staff = filtered[index];
+                        final counts = _counts(staff, days);
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 14),
@@ -429,26 +392,19 @@ class ViewStaffAttendanceScreen
                                           staff.presentCount, Colors.green),
                                     ),
                                     Expanded(
-                                      child: _statChip("Absent",
-                                          _absentCountCalc(staff, days), Colors.red),
+                                      child: _statChip("Absent", counts[0],
+                                          Colors.red),
                                     ),
                                     Expanded(
-                                      child: _statChip(
-                                          "Half Day",
-                                          _halfDayCount(staff, days),
+                                      child: _statChip("Half Day", counts[1],
                                           Colors.blue),
                                     ),
                                     Expanded(
-                                      child: _statChip(
-                                          "Late",
-                                          _lateCount(staff, days),
+                                      child: _statChip("Late", counts[2],
                                           Colors.orange),
                                     ),
-                                    // ✅ Leave
                                     Expanded(
-                                      child: _statChip(
-                                          "Leave",
-                                          _leaveCount(staff, days),
+                                      child: _statChip("Leave", counts[3],
                                           Colors.teal),
                                     ),
                                   ],
@@ -477,6 +433,23 @@ class ViewStaffAttendanceScreen
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+  Widget _emptyState(IconData icon, String text, double fontSize) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 60, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: TextStyle(fontSize: fontSize, color: Colors.grey.shade500),
+          ),
+        ],
       ),
     );
   }
@@ -535,9 +508,9 @@ class ViewStaffAttendanceScreen
           ),
           actions: [
             Obx(() {
-              if (_isSearching.value) return const SizedBox.shrink();
-              if (controller.reportList.isEmpty)
+              if (_isSearching.value || controller.reportList.isEmpty) {
                 return const SizedBox.shrink();
+              }
               return IconButton(
                 icon: const Icon(Icons.search, color: Colors.white),
                 tooltip: "Search by name",
@@ -610,18 +583,16 @@ class ViewStaffAttendanceScreen
 
               // Time Present, Late aur HalfDay teeno status pe dikhega,
               // Absent / Leave / Holiday me time hide rahega
-              final isPresent = _isPresent(rawStatus); // ✅ UPDATED (P bhi chalega)
-              final isLateStatus = _isLate(rawStatus);
-              final isHalfDayStatus = _isHalfDay(rawStatus);
-              final showTime = isPresent || isLateStatus || isHalfDayStatus;
+              final showTime = _isPresent(rawStatus) ||
+                  _isLate(rawStatus) ||
+                  _isHalfDay(rawStatus);
 
               final inT = showTime ? _formatTime(staff.dayIn(day)) : null;
               final outT = showTime ? _formatTime(staff.dayOut(day)) : null;
               final inAddr = showTime ? staff.dayInAddress(day) : null;
               final outAddr = showTime ? staff.dayOutAddress(day) : null;
-              final hasTime = showTime &&
-                  ((inT != null && inT.isNotEmpty) ||
-                      (outT != null && outT.isNotEmpty));
+              final hasInT = inT != null && inT.isNotEmpty;
+              final hasOutT = outT != null && outT.isNotEmpty;
 
               return GestureDetector(
                 onTap: () => _showDayDetailDialog(
@@ -677,7 +648,7 @@ class ViewStaffAttendanceScreen
                                 color: Colors.white),
                           ),
                         // In time
-                        if (hasTime && inT != null && inT.isNotEmpty) ...[
+                        if (hasInT) ...[
                           const SizedBox(height: 1),
                           Text(
                             inT,
@@ -689,7 +660,7 @@ class ViewStaffAttendanceScreen
                           ),
                         ],
                         // Out time
-                        if (hasTime && outT != null && outT.isNotEmpty)
+                        if (hasOutT)
                           Text(
                             outT,
                             textAlign: TextAlign.center,
@@ -723,25 +694,13 @@ class ViewStaffAttendanceScreen
     required String? inAddress,
     required String? outAddress,
   }) {
-    // ✅ UPDATED: short code (P, A, HD...) ko bhi proper naam se dikhayega
-    final statusText = (status == null || status.trim().isEmpty)
-        ? "N/A"
-        : _isPresent(status)
-        ? "Present"
-        : _isAbsent(status)
-        ? "Absent"
-        : _isHalfDay(status)
-        ? "Half Day"
-        : _isLate(status)
-        ? "Late"
-        : _isLeave(status)
-        ? "Leave"
-        : _isHoliday(status)
-        ? "Holiday"
-        : status.trim();
+    // ✅ short code (P, A, HD...) ko bhi proper naam se dikhayega
+    final statusText = _statusText(status);
     final color = _statusColor(status);
     final weekday = _weekdayName(year, month, day);
     final monthName = _monthName(month);
+
+    String orDash(String? v) => (v == null || v.isEmpty) ? "--" : v;
 
     showDialog(
       context: context,
@@ -799,20 +758,13 @@ class ViewStaffAttendanceScreen
 
               _dialogRow("Status", statusText, valueColor: color, bold: true),
               const SizedBox(height: 12),
-              _dialogRow("In Time",
-                  (inTime == null || inTime.isEmpty) ? "--" : inTime),
+              _dialogRow("In Time", orDash(inTime)),
               const SizedBox(height: 12),
-              _dialogRow("Out Time",
-                  (outTime == null || outTime.isEmpty) ? "--" : outTime),
+              _dialogRow("Out Time", orDash(outTime)),
               const SizedBox(height: 12),
-              _dialogRow("In Address",
-                  (inAddress == null || inAddress.isEmpty) ? "--" : inAddress),
+              _dialogRow("In Address", orDash(inAddress)),
               const SizedBox(height: 12),
-              _dialogRow(
-                  "Out Address",
-                  (outAddress == null || outAddress.isEmpty)
-                      ? "--"
-                      : outAddress),
+              _dialogRow("Out Address", orDash(outAddress)),
             ],
           ),
         ),

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../models/view_expenses_model.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class ViewExpensesController extends GetxController {
   final Rx<DateTime> startDate = DateTime.now().obs;
@@ -32,12 +33,8 @@ class ViewExpensesController extends GetxController {
   Future<void> _loadSchoolId() async {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     if (schoolId == null || schoolId!.trim().isEmpty) {
-      Get.snackbar(
-        "Error", "SchoolId not found in storage",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+      AppSnackbar.error("SchoolId not found in storage");
     }
   }
 
@@ -92,12 +89,8 @@ class ViewExpensesController extends GetxController {
         schoolId = await PrefManager().readValue(key: PrefConst.schollId);
       }
       if (schoolId == null || schoolId!.trim().isEmpty) {
-        Get.snackbar(
-          "Error", "School ID is missing",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+        AppSnackbar.error("School ID is missing");
         return;
       }
 
@@ -127,11 +120,11 @@ class ViewExpensesController extends GetxController {
       debugPrint("◄ Response: ${res.body}");
 
       if (res.statusCode != 200) {
-        Get.snackbar(
-          "Error", "Server returned ${res.statusCode}",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        // (status code user ko nahi dikhega, sirf console me)
+        AppSnackbar.apiError(
+          "Server returned ${res.statusCode}",
+          statusCode: res.statusCode,
         );
         return;
       }
@@ -140,12 +133,8 @@ class ViewExpensesController extends GetxController {
       final decoded = jsonDecode(res.body);
 
       if (decoded is! Map<String, dynamic>) {
-        Get.snackbar(
-          "Error", "Unexpected response format",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        AppSnackbar.apiError("Unexpected response format: ${res.body}");
         return;
       }
 
@@ -153,21 +142,18 @@ class ViewExpensesController extends GetxController {
       items.assignAll(model.listData);
 
       if (items.isEmpty) {
-        Get.snackbar(
-          "Info", "No expenses found for selected date range",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
+        // 🆕 CHANGED: Get.snackbar('Info') -> AppSnackbar.error
+        // (AppSnackbar mein Info type nahi hai)
+        AppSnackbar.error(
+          "No expenses found for selected date range",
+          title: "Info",
         );
       }
     } catch (e, st) {
       debugPrint("fetchExpenses error: $e\n$st");
-      Get.snackbar(
-        "Error", "Something went wrong: $e",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      // 🆕 CHANGED: raw error (URL wagairah) user ko nahi dikhega,
+      // sirf "Something went wrong", asli error console me
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading.value = false;
     }

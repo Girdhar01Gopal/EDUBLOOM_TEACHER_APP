@@ -16,6 +16,7 @@ import '../models/sectionmodel.dart';
 import '../models/student_fee_model.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (Notes jaisa)
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
 
@@ -513,8 +514,8 @@ class FeesController extends GetxController {
               ''; // Ye line ensure karegi ki session default select ho
         }
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isLoading(false);
     }
@@ -575,10 +576,11 @@ class FeesController extends GetxController {
           students.clear();
         }
       } else {
-        Get.snackbar('Error', 'Failed to fetch students');
+        AppSnackbar.apiError('Failed to fetch students',
+            statusCode: response.statusCode); // 🔄
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Something went wrong');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isloading(false);
     }
@@ -687,7 +689,7 @@ class FeesController extends GetxController {
 
     if (resolvedClassId == null) {
       print("Class is not selected.");
-      Get.snackbar("Error", "Class information missing for this student.");
+      AppSnackbar.error("Class information missing for this student."); // 🔄
       return;
     }
 
@@ -739,7 +741,7 @@ class FeesController extends GetxController {
     final dataList = studentFeeModel.listData;
 
     if (dataList == null || dataList.isEmpty) {
-      Get.snackbar("Error", "No fee data available for filtering.");
+      AppSnackbar.error("No fee data available for filtering."); // 🔄
       return;
     }
 
@@ -755,8 +757,8 @@ class FeesController extends GetxController {
     print("Filtered List Length: ${filteredList.length}");
 
     if (filteredList.isEmpty) {
-      Get.snackbar(
-          "Error", "No matching data found for this registration number.");
+      AppSnackbar.error(
+          "No matching data found for this registration number."); // 🔄
       return;
     }
 

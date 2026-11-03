@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/add_product_model.dart';
 import '../res/app_url.dart';
 import '../data/network/network_api_response.dart'; // Import for NetworkApiServices
+import '../utils/app_snackbar.dart';
 
 class AddProductsController extends GetxController {
   final NetworkApiServices _api = NetworkApiServices();
@@ -38,7 +39,7 @@ class AddProductsController extends GetxController {
         await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -70,12 +71,14 @@ class AddProductsController extends GetxController {
       } else {
         productsList.clear();
         filteredList.clear();
-        Get.snackbar("Error", "GET failed: ${result.message}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError("GET failed: ${result.message}");
       }
-    } catch (e) {
+    } catch (e, s) {
       productsList.clear();
       filteredList.clear();
-      Get.snackbar("Error", "Fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -98,7 +101,7 @@ class AddProductsController extends GetxController {
     final text = productController.text.trim();
 
     if (text.isEmpty) {
-      Get.snackbar("Validation", "Product cannot be empty");
+      AppSnackbar.error("Product cannot be empty", title: "Validation");
       return;
     }
 
@@ -106,14 +109,14 @@ class AddProductsController extends GetxController {
           (item) => item.product.trim().toLowerCase() == text.toLowerCase(),
     );
     if (alreadyExists) {
-      Get.snackbar("Duplicate", "This product already exists");
+      AppSnackbar.error("This product already exists", title: "Duplicate");
       return;
     }
 
     final amountText = amountController.text.trim();
     final amount = num.tryParse(amountText);
     if (amountText.isEmpty || amount == null) {
-      Get.snackbar("Validation", "Enter a valid amount");
+      AppSnackbar.error("Enter a valid amount", title: "Validation");
       return;
     }
 
@@ -143,14 +146,15 @@ class AddProductsController extends GetxController {
         productController.clear();
         amountController.clear();
         await fetchProducts();
-        Get.snackbar("Success", result.message);
+        AppSnackbar.success(result.message);
       } else if (result.isDuplicate) {
-        Get.snackbar("Duplicate", result.message);
+        AppSnackbar.error(result.message, title: "Duplicate");
       } else {
-        Get.snackbar("Error", result.message);
+        // Server ka message technical hua to automatically "Something went wrong" ban jayega
+        AppSnackbar.error(result.message);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -196,14 +200,17 @@ class AddProductsController extends GetxController {
                   num.tryParse(editAmountController.text.trim());
 
                   if (updatedText.isEmpty) {
-                    Get.snackbar(
-                      "Validation",
+                    AppSnackbar.error(
                       "Product cannot be empty",
+                      title: "Validation",
                     );
                     return;
                   }
                   if (updatedAmount == null) {
-                    Get.snackbar("Validation", "Enter a valid amount");
+                    AppSnackbar.error(
+                      "Enter a valid amount",
+                      title: "Validation",
+                    );
                     return;
                   }
 
@@ -253,14 +260,14 @@ class AddProductsController extends GetxController {
       if (result.isSuccess) {
         Get.back();
         await fetchProducts();
-        Get.snackbar("Success", result.message);
+        AppSnackbar.success(result.message);
       } else if (result.isDuplicate) {
-        Get.snackbar("Duplicate", result.message);
+        AppSnackbar.error(result.message, title: "Duplicate");
       } else {
-        Get.snackbar("Error", result.message);
+        AppSnackbar.error(result.message);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -293,11 +300,15 @@ class AddProductsController extends GetxController {
         row.action = nextAction;
         productsList.refresh();
         filteredList.refresh();
+
+        // ✅ Success snackbar
+        AppSnackbar.success("Status updated successfully");
       } else {
-        Get.snackbar("Error", "Status update failed: ${result.message}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError("Status update failed: ${result.message}");
       }
-    } catch (e) {
-      Get.snackbar("Error", "Status update error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       statusLoadingId.value = null;
     }

@@ -13,6 +13,7 @@ import '../models/terms_result_model.dart';
 import '../models/viewsectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -149,18 +150,18 @@ class ReportCardController extends GetxController {
     return jsonDecode(body);
   }
 
+  // 🔄 Ab sab snackbar AppSnackbar se hi dikhte hain (signature same hai)
+  //  - red (Error)            -> AppSnackbar.error   (technical text auto-hide)
+  //  - orange (Validation)    -> AppSnackbar.error
+  //  - green / blue (info)    -> AppSnackbar.success
   void _showSnack(String title, String message,
       {Color bg = Colors.red, Color textColor = Colors.white}) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: bg,
-      colorText: textColor,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-      borderRadius: 8,
-    );
+    final isError = bg == Colors.red || bg == Colors.orange.shade600;
+    if (isError) {
+      AppSnackbar.error(message, title: title);
+    } else {
+      AppSnackbar.success(message, title: title);
+    }
   }
 
   // =========================
@@ -213,8 +214,8 @@ class ReportCardController extends GetxController {
         fetchSections(),
         fetchTerms(),
       ]);
-    } catch (e) {
-      _showSnack("Error", "Failed to load data: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isLoading(false);
     }
@@ -294,8 +295,8 @@ class ReportCardController extends GetxController {
       // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
       classList.assignAll(parsed.listData);
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
       classList.value = [];
     }
 
@@ -320,8 +321,8 @@ class ReportCardController extends GetxController {
           .where((e) => e.action == "1")
           .toList();
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isClassLoading(false);
     }
@@ -364,8 +365,8 @@ class ReportCardController extends GetxController {
           if (!exists) sessionList.add(item);
         }
       }
-    } catch (e) {
-      _showSnack("Error", "Session fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
   }
 
@@ -409,10 +410,10 @@ class ReportCardController extends GetxController {
           }).toList(),
         );
         selectedSection.value = null;
-      } catch (e) {
+      } catch (e, s) {
         sectionList.clear();
         selectedSection.value = null;
-        _showSnack("Error", "Section fetch failed: $e");
+        AppSnackbar.apiError(e, stackTrace: s); // 🔄
       }
 
       // if (sectionList.isEmpty) {
@@ -438,10 +439,10 @@ class ReportCardController extends GetxController {
         );
         selectedSection.value = null;
       }
-    } catch (e) {
+    } catch (e, s) {
       sectionList.clear();
       selectedSection.value = null;
-      _showSnack("Error", "Section fetch failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
 
     // if (sectionList.isEmpty) {
@@ -465,8 +466,8 @@ class ReportCardController extends GetxController {
         rawList.map((e) => stListData.fromJson(e)).toList(),
       );
       selectedSection.value = null;
-    } catch (e) {
-      _showSnack("Error", "Section fetch failed (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isSectionLoading(false);
     }
@@ -489,10 +490,10 @@ class ReportCardController extends GetxController {
             .toList(),
       );
       selectedTerm.value = null;
-    } catch (e) {
+    } catch (e, s) {
       termList.clear();
       selectedTerm.value = null;
-      _showSnack("Error", "Term fetch failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
   }
 
@@ -570,10 +571,10 @@ class ReportCardController extends GetxController {
         "${unique.length} student(s) found.",
         bg: Colors.green,
       );
-    } catch (e) {
+    } catch (e, s) {
       reportCardList.clear();
       uniqueStudentList.clear();
-      _showSnack("Error", "Search failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isSearching(false);
     }

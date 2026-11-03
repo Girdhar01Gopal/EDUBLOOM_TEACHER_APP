@@ -11,6 +11,7 @@ import '../infrastructures/routes/page_constants.dart';
 import '../models/sectionmodel.dart';
 import '../models/routeno.dart';
 import '../models/student_model.dart';
+import '../utils/app_snackbar.dart';
 import 'id_card_print_screen.dart';
 import 'next_screen.dart';
 
@@ -298,13 +299,11 @@ class AddStudentTab extends GetView<StudentController> {
           onPressed: () {
             if (controller.formKey.currentState!.validate()) {
               if (controller.selectedClass.value == null) {
-                Get.snackbar('Error', 'Please select a class.',
-                    backgroundColor: Colors.red, colorText: Colors.white);
+                AppSnackbar.error('Please select a class.');
                 return;
               }
               if (controller.selectedSection.value == null) {
-                Get.snackbar('Error', 'Please select a section.',
-                    backgroundColor: Colors.red, colorText: Colors.white);
+                AppSnackbar.error('Please select a section.');
                 return;
               }
               Navigator.push(context,
@@ -635,6 +634,12 @@ class _ViewStudentTabState extends State<ViewStudentTab>
   final controller = Get.find<StudentController>();
   late TabController _innerTabController;
 
+  // ✅ NEW: action '0' / 'inactive' ho to hi inactive, baaki sab active (koi student chhootega nahi)
+  bool _isInactive(StudentData s) {
+    final a = (s.action ?? '').trim().toLowerCase();
+    return a == '0' || a == 'inactive';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -713,7 +718,7 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    'Active: ${controller.filteredData.where((s) => (s.action ?? '').trim().toLowerCase() == '1' || (s.action ?? '').trim().toLowerCase() == 'active').length}',
+                    'Active: ${controller.filteredData.where((s) => !_isInactive(s)).length}',
                     style: TextStyle(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
@@ -729,7 +734,7 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    'Inactive: ${controller.filteredData.where((s) => (s.action ?? '').trim().toLowerCase() == '0' || (s.action ?? '').trim().toLowerCase() == 'inactive').length}',
+                    'Inactive: ${controller.filteredData.where((s) => _isInactive(s)).length}',
                     style: TextStyle(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
@@ -774,16 +779,13 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                     child: CircularProgressIndicator(color: _teal));
               }
 
+              // ✅ CHANGED: ab koi student chhootega nahi
               final activeList = controller.filteredData
-                  .where((s) =>
-              (s.action ?? '').trim().toLowerCase() == '1' ||
-                  (s.action ?? '').trim().toLowerCase() == 'active')
+                  .where((s) => !_isInactive(s))
                   .toList();
 
               final inactiveList = controller.filteredData
-                  .where((s) =>
-              (s.action ?? '').trim().toLowerCase() == '0' ||
-                  (s.action ?? '').trim().toLowerCase() == 'inactive')
+                  .where((s) => _isInactive(s))
                   .toList();
 
               return TabBarView(
@@ -919,12 +921,18 @@ class _ViewStudentTabState extends State<ViewStudentTab>
                   // ✅ Phone — tappable
                   GestureDetector(
                     onTap: () async {
-                      final phone = s.phone ?? '';
-                      if (phone.isNotEmpty && phone != '-') {
-                        final uri = Uri(scheme: 'tel', path: phone);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
+                      try {
+                        final phone = s.phone ?? '';
+                        if (phone.isNotEmpty && phone != '-') {
+                          final uri = Uri(scheme: 'tel', path: phone);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          } else {
+                            AppSnackbar.apiError('Cannot launch dialer for $phone');
+                          }
                         }
+                      } catch (e, st) {
+                        AppSnackbar.apiError(e, stackTrace: st);
                       }
                     },
                     child: Padding(

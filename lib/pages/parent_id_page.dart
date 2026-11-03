@@ -9,6 +9,7 @@ import '../models/sectionmodel.dart';
 import '../models/session_model.dart' as session_model;
 
 import '../controller/parent_id_controller.dart';
+import '../utils/app_snackbar.dart';
 
 const Color axisMaroon = Color(0xFF97144D);
 
@@ -383,7 +384,7 @@ class _ParentIdPageState extends State<ParentIdPage>
                                     icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
                                     onPressed: () {
                                       Clipboard.setData(ClipboardData(text: r.parentId));
-                                      Get.snackbar("Copied", "Parent ID Copied", snackPosition: SnackPosition.BOTTOM);
+                                      AppSnackbar.success("Parent ID Copied", title: 'Copied');
                                     },
                                   ),
                                 ],
@@ -400,7 +401,7 @@ class _ParentIdPageState extends State<ParentIdPage>
                                     icon: const Icon(Icons.copy, size: 18, color: Colors.blue),
                                     onPressed: () {
                                       Clipboard.setData(ClipboardData(text: r.password));
-                                      Get.snackbar("Copied", "Password Copied", snackPosition: SnackPosition.BOTTOM);
+                                      AppSnackbar.success("Password Copied", title: 'Copied');
                                     },
                                   ),
                                 ],

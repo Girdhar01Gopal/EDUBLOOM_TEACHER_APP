@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/feedurationmodel.dart';
 import '../models/session_model.dart';      // ✅ ADD THIS IMPORT
 import '../res/app_url.dart';               // ✅ ADD THIS IMPORT
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class FeeDurationController extends GetxController {
   final TextEditingController feesDurationController = TextEditingController();
@@ -35,7 +36,7 @@ class FeeDurationController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
 
     if (schoolId == null || schoolId!.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -73,9 +74,17 @@ class FeeDurationController extends GetxController {
         } else if (sessionList.isNotEmpty) {
           session.value = sessionList.first;
         }
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("Session fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSessionLoading(false);
     }
@@ -109,10 +118,13 @@ class FeeDurationController extends GetxController {
           session.value = apiSession;
         }
       } else {
-        Get.snackbar("Error", "View API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "View API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -122,7 +134,7 @@ class FeeDurationController extends GetxController {
     final duration = feesDurationController.text.trim();
 
     if (duration.isEmpty) {
-      Get.snackbar("Validation", "Fee Duration cannot be empty");
+      AppSnackbar.error("Fee Duration cannot be empty", title: "Validation");
       return;
     }
 
@@ -151,20 +163,20 @@ class FeeDurationController extends GetxController {
       final apiRes = ApiResponseModel.fromJson(jsonMap);
 
       if (apiRes.isSuccess == true) {
-        Get.snackbar(
-          "Success",
+        AppSnackbar.success(
           apiRes.messages.isEmpty ? "Saved" : apiRes.messages,
         );
         feesDurationController.clear();
         await fetchFeeDurations();
       } else {
-        Get.snackbar(
-          "Failed",
+        // Server ka message technical hua to automatically "Something went wrong" ban jayega
+        AppSnackbar.error(
           apiRes.messages.isEmpty ? "Not saved" : apiRes.messages,
+          title: "Failed",
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -196,8 +208,8 @@ class FeeDurationController extends GetxController {
                   final newDuration = editCtrl.text.trim();
 
                   if (newDuration.isEmpty) {
-                    Get.snackbar(
-                        "Validation", "Fee Duration cannot be empty");
+                    AppSnackbar.error("Fee Duration cannot be empty",
+                        title: "Validation");
                     return;
                   }
 
@@ -251,19 +263,18 @@ class FeeDurationController extends GetxController {
 
       if (apiRes.isSuccess == true) {
         Get.back();
-        Get.snackbar(
-          "Success",
+        AppSnackbar.success(
           apiRes.messages.isEmpty ? "Updated" : apiRes.messages,
         );
         await fetchFeeDurations();
       } else {
-        Get.snackbar(
-          "Failed",
+        AppSnackbar.error(
           apiRes.messages.isEmpty ? "Not updated" : apiRes.messages,
+          title: "Failed",
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

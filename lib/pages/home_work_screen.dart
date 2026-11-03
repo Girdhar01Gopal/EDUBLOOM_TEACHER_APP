@@ -15,6 +15,7 @@ import '../models/sectionmodel.dart';
 import '../models/subject_model.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 const Color axisMaroon = Color(0xFF97144D);
 const Color axisMaroonShade50 = Color(0xFFF3E0E9);
@@ -677,8 +678,9 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
           });
         }
 
-        _showSnack(
-            "Downloaded ✓", "File downloaded successfully", Colors.green);
+        // 🆕 CHANGED: _showSnack -> AppSnackbar
+        AppSnackbar.success("File downloaded successfully",
+            title: "Downloaded ✓");
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -696,19 +698,10 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
         if (mounted) {
           setState(() => _isDownloading[index] = false);
         }
-        _showSnack("Error", "Failed to download: $errorMessage", Colors.red);
+        // 🆕 CHANGED: raw error nahi, sirf "Something went wrong" dikhega,
+        // asli error console me print hoga
+        AppSnackbar.apiError(errorMessage);
       },
-    );
-  }
-
-  void _showSnack(String title, String message, Color color) {
-    Get.snackbar(
-      title,
-      message,
-      backgroundColor: color,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 3),
     );
   }
 

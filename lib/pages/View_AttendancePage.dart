@@ -5,6 +5,7 @@ import '../models/session_model.dart' as session_model;
 import '../controller/View_AttendanceController.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
+import '../utils/app_snackbar.dart';
 
 class ViewAttendancePage extends GetView<ViewAttendanceController> {
   final RxBool _isSearching = false.obs;
@@ -606,26 +607,14 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                             day: day,
                           );
                           if (ok) {
-                            Get.snackbar(
-                              "Updated",
+                            AppSnackbar.success(
                               "${student.studentName} marked $label for $day/${_monthName(monthId)}",
-                              backgroundColor: Colors.green.shade600,
-                              colorText: Colors.white,
-                              snackPosition: SnackPosition.TOP,
-                              borderRadius: 14,
-                              margin: const EdgeInsets.all(12),
+                              title: "Updated",
                             );
                             controller.searchAttendance();
                           } else {
-                            Get.snackbar(
-                              "Failed",
-                              "Could not update attendance",
-                              backgroundColor: Colors.red.shade600,
-                              colorText: Colors.white,
-                              snackPosition: SnackPosition.TOP,
-                              borderRadius: 14,
-                              margin: const EdgeInsets.all(12),
-                            );
+                            AppSnackbar.apiError(
+                                'editAttendance failed for studentId=${student.studentID} status=$key day=$day');
                           }
                         },
                         style: ElevatedButton.styleFrom(

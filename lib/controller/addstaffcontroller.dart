@@ -15,6 +15,7 @@ import '../models/session_model.dart' as session_model;
 import '../models/staff_details_model15.dart';
 import '../models/stafftypemodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ common top snackbar
 
 class Addstaffcontroller extends GetxController {
   final formKey = GlobalKey<FormState>();
@@ -75,6 +76,9 @@ class Addstaffcontroller extends GetxController {
 
   String schoolId = "";
 
+  static const _jsonHeaders = {'Content-Type': 'application/json', 'Accept': 'application/json'};
+  static const _months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
   @override
   void onInit() async {
     super.onInit();
@@ -85,7 +89,7 @@ class Addstaffcontroller extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("School not found. Please login again.");
       return;
     }
 
@@ -144,6 +148,14 @@ class Addstaffcontroller extends GetxController {
     return null;
   }
 
+  /// Server response se readable message nikalta hai (null agar na ho)
+  String? _apiMessage(Map<String, dynamic>? decoded) {
+    final m = decoded?['messages']?.toString() ??
+        decoded?['message']?.toString() ??
+        decoded?['Message']?.toString();
+    return (m != null && m.trim().isNotEmpty) ? m.trim() : null;
+  }
+
   Future<void> fetchSessions() async {
     try {
       final res = await http.get(
@@ -154,12 +166,13 @@ class Addstaffcontroller extends GetxController {
       if (res.statusCode == 200) {
         final jsonData = jsonDecode(res.body);
         sessionList.clear();
-        if (jsonData['currentSession'] != null) {
+        final current = jsonData['currentSession'];
+        if (current != null) {
           final cs = session_model.sListDdata(
-            sessionId: jsonData['currentSession']['currentSessionId'],
-            session: jsonData['currentSession']['currentSession'],
-            action: jsonData['currentSession']['action'],
-            schoolId: jsonData['currentSession']['schoolId'],
+            sessionId: current['currentSessionId'],
+            session: current['currentSession'],
+            action: current['action'],
+            schoolId: current['schoolId'],
           );
           sessionList.add(cs);
           selectedSession.value = cs;
@@ -167,10 +180,12 @@ class Addstaffcontroller extends GetxController {
           selectedSession.value = null;
         }
       } else {
-        Get.snackbar("Error", "Session API failed: ${res.statusCode}");
+        debugPrint("Session API failed: ${res.statusCode}");
+        AppSnackbar.error(AppSnackbar.friendlyMessage(null, statusCode: res.statusCode));
       }
     } catch (e) {
-      Get.snackbar("Error", "Session error: $e");
+      debugPrint("Session error: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     }
   }
 
@@ -178,7 +193,7 @@ class Addstaffcontroller extends GetxController {
     try {
       isDesignationLoading(true);
       final url = Uri.parse('${AppUrl.base_url}api/StaffApp/ViewStaffTypeApp/$schoolId');
-      final res = await http.get(url, headers: {'Content-Type': 'application/json', 'Accept': 'application/json'});
+      final res = await http.get(url, headers: _jsonHeaders);
 
       if (res.statusCode == 200) {
         final parsed = StaffTypeResponse.fromJson(jsonDecode(res.body));
@@ -187,10 +202,12 @@ class Addstaffcontroller extends GetxController {
           designation.value = _pickValidValue(designation.value, designationNames);
         }
       } else {
-        Get.snackbar("Error", "GET failed: ${res.statusCode}\n${res.body}");
+        debugPrint("Staff type GET failed: ${res.statusCode}\n${res.body}");
+        AppSnackbar.error(AppSnackbar.friendlyMessage(null, statusCode: res.statusCode));
       }
     } catch (e) {
-      Get.snackbar("Error", "Fetch error: $e");
+      debugPrint("Staff type fetch error: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isDesignationLoading(false);
     }
@@ -199,16 +216,14 @@ class Addstaffcontroller extends GetxController {
   Future<void> fetchTeachers() async {
     final session = selectedSession.value?.session;
     if (session == null || session.trim().isEmpty) {
-      Get.snackbar("Error", "Session not selected");
+      AppSnackbar.error("Session not selected");
       return;
     }
     try {
       isTeacherLoading(true);
       final uri = Uri.parse('https://playschool.edubloom.in/api/StaffApp/GetAllStaffAsyncApp');
       final body = {"currentSession": session, "schoolId": schoolId};
-      final res = await http.post(uri,
-          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-          body: jsonEncode(body));
+      final res = await http.post(uri, headers: _jsonHeaders, body: jsonEncode(body));
 
       if (res.statusCode == 200) {
         final parsed = StaffDetail15Model.fromJson(jsonDecode(res.body));
@@ -218,17 +233,20 @@ class Addstaffcontroller extends GetxController {
         } else {
           staffList.clear();
           filteredTeachers.clear();
-          Get.snackbar("Failed", parsed.messages ?? "No data found");
+          // ✅ raw API message nahi dikhana
+          AppSnackbar.error("No staff data found.", title: "Failed");
         }
       } else {
         staffList.clear();
         filteredTeachers.clear();
-        Get.snackbar("Error", "Staff API failed: ${res.statusCode}\n${res.body}");
+        debugPrint("Staff API failed: ${res.statusCode}\n${res.body}");
+        AppSnackbar.error(AppSnackbar.friendlyMessage(null, statusCode: res.statusCode));
       }
     } catch (e) {
       staffList.clear();
       filteredTeachers.clear();
-      Get.snackbar("Error", "Staff fetch error: $e");
+      debugPrint("Staff fetch error: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isTeacherLoading(false);
     }
@@ -236,20 +254,25 @@ class Addstaffcontroller extends GetxController {
 
   void applyTeacherFilter() {
     final q = teacherSearchC.text.trim().toLowerCase();
+
+    List<StaffDetail15Data> result;
     if (q.isEmpty) {
-      filteredTeachers.assignAll(staffList);
-      return;
-    }
-    filteredTeachers.assignAll(
-      staffList.where((t) {
+      result = List<StaffDetail15Data>.from(staffList);
+    } else {
+      result = staffList.where((t) {
         final id = (t.staffReg ?? "").toLowerCase();
         final name = (t.name ?? "").toLowerCase();
         final mobile = (t.mobileNo ?? "").toLowerCase();
         final father = (t.fhname ?? "").toLowerCase();
         final aadhar = (t.aadharNo ?? "").toLowerCase();
         return id.contains(q) || name.contains(q) || mobile.contains(q) || father.contains(q) || aadhar.contains(q);
-      }).toList(),
-    );
+      }).toList();
+    }
+
+    // Latest added staff sabse upar (id descending)
+    result.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+
+    filteredTeachers.assignAll(result);
   }
 
   void onTeacherEdit(StaffDetail15Data row) {
@@ -285,7 +308,7 @@ class Addstaffcontroller extends GetxController {
   void onTeacherView(StaffDetail15Data row) {
     final id = row.id;
     if (id == null || id == 0) {
-      Get.snackbar("Error", "Invalid Staff ID");
+      AppSnackbar.error("Invalid Staff ID");
       return;
     }
     Get.toNamed(
@@ -299,7 +322,7 @@ class Addstaffcontroller extends GetxController {
   }
 
   void onTeacherApprove(StaffDetail15Data row) {
-    Get.snackbar("Status", "Approved/Active: ${row.staffReg ?? ""}");
+    AppSnackbar.success("Approved/Active: ${row.staffReg ?? ""}", title: "Status");
   }
 
   String formatDate(String? iso) {
@@ -317,11 +340,7 @@ class Addstaffcontroller extends GetxController {
     return "${date.day.toString().padLeft(2, '0')}-${_m(date.month)}-${date.year}";
   }
 
-  String _m(int m) {
-    const mm = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    if (m < 1 || m > 12) return "NA";
-    return mm[m - 1];
-  }
+  String _m(int m) => (m < 1 || m > 12) ? "NA" : _months[m - 1];
 
   Future<void> pickDate({
     required TextEditingController controller,
@@ -419,7 +438,7 @@ class Addstaffcontroller extends GetxController {
         target.value = result.files.first;
       }
     } catch (_) {
-      Get.snackbar('Error', 'Gallery file pick failed');
+      AppSnackbar.error('Gallery file pick failed');
     }
   }
 
@@ -438,7 +457,7 @@ class Addstaffcontroller extends GetxController {
         );
       }
     } catch (_) {
-      Get.snackbar('Error', 'Camera photo failed');
+      AppSnackbar.error('Camera photo failed');
     }
   }
 
@@ -454,7 +473,7 @@ class Addstaffcontroller extends GetxController {
         target.value = result.files.first;
       }
     } catch (_) {
-      Get.snackbar('Error', 'File pick failed');
+      AppSnackbar.error('File pick failed');
     }
   }
 
@@ -487,197 +506,172 @@ class Addstaffcontroller extends GetxController {
     return null;
   }
 
+  /// Dropdown required checks (submit + dialog update dono me same)
+  bool _dropdownsValid() {
+    if (bloodGroup.value == null) { AppSnackbar.error('Blood Group is required', title: 'Validation'); return false; }
+    if (gender.value == null) { AppSnackbar.error('Gender is required', title: 'Validation'); return false; }
+    if (caste.value == null) { AppSnackbar.error('Caste is required', title: 'Validation'); return false; }
+    if (designation.value == null) { AppSnackbar.error('Staff Type is required', title: 'Validation'); return false; }
+    return true;
+  }
+
+  /// Add + Update dono ka same multipart request yahin banta hai
+  Future<http.MultipartRequest> _buildStaffRequest({required int id, required String schoolIdLocal}) async {
+    final token = await PrefManager().readValue(key: PrefConst.token) ?? "";
+    final nameParts = _splitName(teacherNameC.text.trim());
+    final tdId = _getTdIdFromSelectedDesignation(designation.value);
+    final uri = Uri.parse('https://playschool.edubloom.in/api/StaffApp/PostAddStaffApp');
+
+    final req = http.MultipartRequest('POST', uri);
+    req.followRedirects = false;
+    req.maxRedirects = 0;
+    req.headers['Accept'] = 'application/json';
+    req.headers['Cache-Control'] = 'no-cache';
+    if (token.trim().isNotEmpty) req.headers['Authorization'] = 'Bearer ${token.trim()}';
+
+    req.fields['Id'] = id.toString();
+    req.fields['UserId'] = "0";
+    req.fields['SchoolId'] = schoolIdLocal;
+    req.fields['RoleId'] = "0";
+    req.fields['FirstName'] = nameParts.$1;
+    req.fields['LastName'] = nameParts.$2;
+    req.fields['UserEmail'] = emailC.text.trim();
+    req.fields['MobileNumber'] = mobileC.text.trim();
+    req.fields['IsActive'] = 'true';
+    req.fields['RegistrationNo'] = teacherIdC.text.trim();
+    req.fields['AadharCardNo'] = totalExpC.text.trim();
+    req.fields['AadharNo'] = totalExpC.text.trim();
+    req.fields['AadhaarNo'] = totalExpC.text.trim();
+    req.fields['Licences'] = salaryC.text.trim();
+    req.fields['StaffTypeId'] = tdId.toString();
+    req.fields['SpouseName'] = fatherHusbandNameC.text.trim();
+
+    final dobIso = _toIsoDateTimeOrEmpty(dobC.text.trim());
+    if (dobIso.isNotEmpty) req.fields['Dob'] = dobIso;
+
+    req.fields['Caste'] = caste.value!;
+    req.fields['CreatedBy'] = "Admin";
+    req.fields['BloodGroup'] = bloodGroup.value!;
+    req.fields['Gender'] = gender.value!;
+
+    final dojIso = _toIsoDateTimeOrEmpty(joiningDateC.text.trim());
+    if (dojIso.isNotEmpty) req.fields['DateofJoining'] = dojIso;
+
+    req.fields['Address'] = addressC.text.trim();
+    req.fields['City'] = cityC.text.trim();
+    req.fields['State'] = stateC.text.trim();
+
+    await _attachFileIfPicked(req, 'UserPic', userPic.value);
+    await _attachFileIfPicked(req, 'IdProof', idProofPhoto.value);
+    await _attachFileIfPicked(req, 'Licence', resumePhoto.value);
+
+    debugPrint('ADD STAFF FIELDS: ${req.fields}');
+    debugPrint('ADD STAFF FILES: ${req.files.map((f) => "${f.field} -> ${f.filename} (${f.length} bytes)").toList()}');
+    return req;
+  }
+
+  Map<String, dynamic>? _decodeBody(String body) {
+    try {
+      final temp = jsonDecode(body);
+      if (temp is Map<String, dynamic>) return temp;
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> submit({int? idForUpdate}) async {
-    if (bloodGroup.value == null) { Get.snackbar('Error', 'Blood Group is required'); return; }
-    if (gender.value == null) { Get.snackbar('Error', 'Gender is required'); return; }
-    if (caste.value == null) { Get.snackbar('Error', 'Caste is required'); return; }
-    if (designation.value == null) { Get.snackbar('Error', 'Staff Type is required'); return; }
+    if (!_dropdownsValid()) return;
     if (!(formKey.currentState?.validate() ?? false)) return;
 
     isSubmitting.value = true;
     try {
       final schoolIdLocal = schoolId.trim();
-      if (schoolIdLocal.isEmpty) { Get.snackbar("Error", "SchoolId not found"); return; }
+      if (schoolIdLocal.isEmpty) {
+        AppSnackbar.error("School not found. Please login again.");
+        return;
+      }
 
-      final token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-      final fullName = teacherNameC.text.trim();
-      final nameParts = _splitName(fullName);
-      final tdId = _getTdIdFromSelectedDesignation(designation.value);
-      final uri = Uri.parse('https://playschool.edubloom.in/api/StaffApp/PostAddStaffApp');
       final idToSend = idForUpdate ?? editingId.value ?? 0;
-
-      final req = http.MultipartRequest('POST', uri);
-      req.followRedirects = false;
-      req.maxRedirects = 0;
-      req.headers['Accept'] = 'application/json';
-      req.headers['Cache-Control'] = 'no-cache';
-      if (token.trim().isNotEmpty) req.headers['Authorization'] = 'Bearer ${token.trim()}';
-
-      req.fields['Id'] = idToSend.toString();
-      req.fields['UserId'] = "0";
-      req.fields['SchoolId'] = schoolIdLocal;
-      req.fields['RoleId'] = "0";
-      req.fields['FirstName'] = nameParts.$1;
-      req.fields['LastName'] = nameParts.$2;
-      req.fields['UserEmail'] = emailC.text.trim();
-      req.fields['MobileNumber'] = mobileC.text.trim();
-      req.fields['IsActive'] = 'true';
-      req.fields['RegistrationNo'] = teacherIdC.text.trim();
-      req.fields['AadharCardNo'] = totalExpC.text.trim();
-      req.fields['AadharNo'] = totalExpC.text.trim();
-      req.fields['AadhaarNo'] = totalExpC.text.trim();
-      req.fields['Licences'] = salaryC.text.trim();
-      req.fields['StaffTypeId'] = tdId.toString();
-      req.fields['SpouseName'] = fatherHusbandNameC.text.trim();
-
-      final dobIso = _toIsoDateTimeOrEmpty(dobC.text.trim());
-      if (dobIso.isNotEmpty) req.fields['Dob'] = dobIso;
-
-      req.fields['Caste'] = caste.value!;
-      req.fields['CreatedBy'] = "Admin";
-      req.fields['BloodGroup'] = bloodGroup.value!;
-      req.fields['Gender'] = gender.value!;
-
-      final dojIso = _toIsoDateTimeOrEmpty(joiningDateC.text.trim());
-      if (dojIso.isNotEmpty) req.fields['DateofJoining'] = dojIso;
-
-      req.fields['Address'] = addressC.text.trim();
-      req.fields['City'] = cityC.text.trim();
-      req.fields['State'] = stateC.text.trim();
-
-      await _attachFileIfPicked(req, 'UserPic', userPic.value);
-      await _attachFileIfPicked(req, 'IdProof', idProofPhoto.value);
-      await _attachFileIfPicked(req, 'Licence', resumePhoto.value);
+      final req = await _buildStaffRequest(id: idToSend, schoolIdLocal: schoolIdLocal);
 
       final resp = await req.send();
 
       if (resp.statusCode == 301 || resp.statusCode == 302 ||
           resp.statusCode == 307 || resp.statusCode == 308) {
-        Get.snackbar("Redirect (${resp.statusCode})",
-            resp.headers['location'] ?? "No Location header", duration: const Duration(seconds: 7));
+        debugPrint("Redirect (${resp.statusCode}): ${resp.headers['location']}");
+        AppSnackbar.error("Server is unavailable right now. Please try again later.");
         return;
       }
 
       final body = await resp.stream.bytesToString();
-      Map<String, dynamic>? decoded;
-      try {
-        final temp = jsonDecode(body);
-        if (temp is Map<String, dynamic>) decoded = temp;
-      } catch (_) {}
+      debugPrint('ADD STAFF STATUS: ${resp.statusCode}');
+      debugPrint('ADD STAFF BODY: $body');
+      final decoded = _decodeBody(body);
 
       final apiSuccess = decoded?['isSuccess'] == true || decoded?['success'] == true;
 
       if ((resp.statusCode == 200 || resp.statusCode == 201) && (apiSuccess || decoded == null)) {
-        // ✅ FIXED: Server ka message ignore karke apna message show karo
-        Get.snackbar('Success', idToSend == 0 ? 'Staff added successfully' : 'Staff updated successfully');
+        // ✅ Server ka message ignore karke apna message show karo
+        AppSnackbar.success(idToSend == 0 ? 'Staff added successfully' : 'Staff updated successfully');
         editingId.value = null;
         await fetchTeachers();
         resetForm(keepStaffTypeList: true, regenerateId: true);
         return;
       }
 
-      if (resp.statusCode == 200 && !apiSuccess) {
-        final apiMessage = decoded?['messages']?.toString() ?? decoded?['message']?.toString() ?? decoded?['Message']?.toString();
-        Get.snackbar('Failed', apiMessage?.isNotEmpty == true ? apiMessage! : 'Save failed', duration: const Duration(seconds: 7));
-        return;
-      }
-
-      final apiMessage = decoded?['messages']?.toString() ?? decoded?['message']?.toString() ?? decoded?['Message']?.toString();
-      Get.snackbar('Error', apiMessage?.isNotEmpty == true ? apiMessage! : 'Save failed: ${resp.statusCode}\n$body', duration: const Duration(seconds: 7));
+      // ❌ Failure: readable server message (technical text AppSnackbar khud generic bana deta hai)
+      AppSnackbar.error(
+        _apiMessage(decoded) ?? AppSnackbar.friendlyMessage(null, statusCode: resp.statusCode, fallback: 'Save failed. Please try again.'),
+        title: resp.statusCode == 200 ? 'Failed' : 'Error',
+      );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to save staff: $e', duration: const Duration(seconds: 7));
+      debugPrint("Failed to save staff: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isSubmitting.value = false;
     }
   }
 
   Future<void> updateTeacherFromDialog() async {
-    if (editingId.value == null || editingId.value == 0) { Get.snackbar("Error", "Staff Id missing"); return; }
-    if (bloodGroup.value == null) { Get.snackbar('Error', 'Blood Group is required'); return; }
-    if (gender.value == null) { Get.snackbar('Error', 'Gender is required'); return; }
-    if (caste.value == null) { Get.snackbar('Error', 'Caste is required'); return; }
-    if (designation.value == null) { Get.snackbar('Error', 'Staff Type is required'); return; }
+    if (editingId.value == null || editingId.value == 0) {
+      AppSnackbar.error("Staff Id missing");
+      return;
+    }
+    if (!_dropdownsValid()) return;
     if (!(dialogFormKey.currentState?.validate() ?? false)) return;
 
     isSubmitting.value = true;
     try {
       final schoolIdLocal = schoolId.trim();
-      if (schoolIdLocal.isEmpty) { Get.snackbar("Error", "SchoolId not found"); return; }
+      if (schoolIdLocal.isEmpty) {
+        AppSnackbar.error("School not found. Please login again.");
+        return;
+      }
 
-      final token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-      final fullName = teacherNameC.text.trim();
-      final nameParts = _splitName(fullName);
-      final tdId = _getTdIdFromSelectedDesignation(designation.value);
-      final uri = Uri.parse('https://playschool.edubloom.in/api/StaffApp/PostAddStaffApp');
-
-      final req = http.MultipartRequest('POST', uri);
-      req.followRedirects = false;
-      req.maxRedirects = 0;
-      req.headers['Accept'] = 'application/json';
-      req.headers['Cache-Control'] = 'no-cache';
-      if (token.trim().isNotEmpty) req.headers['Authorization'] = 'Bearer ${token.trim()}';
-
-      req.fields['Id'] = editingId.value.toString();
-      req.fields['UserId'] = "0";
-      req.fields['SchoolId'] = schoolIdLocal;
-      req.fields['RoleId'] = "0";
-      req.fields['FirstName'] = nameParts.$1;
-      req.fields['LastName'] = nameParts.$2;
-      req.fields['UserEmail'] = emailC.text.trim();
-      req.fields['MobileNumber'] = mobileC.text.trim();
-      req.fields['IsActive'] = 'true';
-      req.fields['RegistrationNo'] = teacherIdC.text.trim();
-      req.fields['AadharCardNo'] = totalExpC.text.trim();
-      req.fields['AadharNo'] = totalExpC.text.trim();
-      req.fields['AadhaarNo'] = totalExpC.text.trim();
-      req.fields['Licences'] = salaryC.text.trim();
-      req.fields['StaffTypeId'] = tdId.toString();
-      req.fields['SpouseName'] = fatherHusbandNameC.text.trim();
-
-      final dobIso = _toIsoDateTimeOrEmpty(dobC.text.trim());
-      if (dobIso.isNotEmpty) req.fields['Dob'] = dobIso;
-
-      req.fields['Caste'] = caste.value!;
-      req.fields['CreatedBy'] = "Admin";
-      req.fields['BloodGroup'] = bloodGroup.value!;
-      req.fields['Gender'] = gender.value!;
-
-      final dojIso = _toIsoDateTimeOrEmpty(joiningDateC.text.trim());
-      if (dojIso.isNotEmpty) req.fields['DateofJoining'] = dojIso;
-
-      req.fields['Address'] = addressC.text.trim();
-      req.fields['City'] = cityC.text.trim();
-      req.fields['State'] = stateC.text.trim();
-
-      await _attachFileIfPicked(req, 'UserPic', userPic.value);
-      await _attachFileIfPicked(req, 'IdProof', idProofPhoto.value);
-      await _attachFileIfPicked(req, 'Licence', resumePhoto.value);
+      final req = await _buildStaffRequest(id: editingId.value!, schoolIdLocal: schoolIdLocal);
 
       final resp = await req.send();
       final body = await resp.stream.bytesToString();
-      Map<String, dynamic>? decoded;
-      try {
-        final temp = jsonDecode(body);
-        if (temp is Map<String, dynamic>) decoded = temp;
-      } catch (_) {}
+      debugPrint('ADD STAFF STATUS: ${resp.statusCode}');
+      debugPrint('ADD STAFF BODY: $body');
+      final decoded = _decodeBody(body);
 
-      final apiMessage = decoded?['messages']?.toString() ?? decoded?['message']?.toString() ?? decoded?['Message']?.toString();
       final apiSuccess = decoded?['isSuccess'] == true || decoded?['success'] == true;
 
       if ((resp.statusCode == 200 || resp.statusCode == 201) && (apiSuccess || decoded == null)) {
         if (Get.isDialogOpen ?? false) Get.back();
-        // ✅ FIXED: Server ka message ignore karke apna message show karo
-        Get.snackbar('Success', 'Staff updated successfully');
+        // ✅ Server ka message ignore karke apna message show karo
+        AppSnackbar.success('Staff updated successfully');
         await fetchTeachers();
         resetForm();
         return;
       }
 
-      Get.snackbar('Error',
-          apiMessage?.isNotEmpty == true ? apiMessage! : 'Update failed: ${resp.statusCode}\n$body',
-          duration: const Duration(seconds: 7));
+      AppSnackbar.error(
+        _apiMessage(decoded) ?? AppSnackbar.friendlyMessage(null, statusCode: resp.statusCode, fallback: 'Update failed. Please try again.'),
+      );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update staff: $e', duration: const Duration(seconds: 7));
+      debugPrint("Failed to update staff: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isSubmitting.value = false;
     }

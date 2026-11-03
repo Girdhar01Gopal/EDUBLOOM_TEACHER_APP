@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/payment_master.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class PaymentMasterController extends GetxController {
   final TextEditingController paymentModeController = TextEditingController();
@@ -50,15 +51,15 @@ class PaymentMasterController extends GetxController {
     final mode = paymentModeController.text.trim();
 
     if (mode.isEmpty) {
-      Get.snackbar("Validation", "Please enter Payment Mode");
+      AppSnackbar.error("Please enter Payment Mode", title: "Validation");
       return;
     }
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
     if (session.trim().isEmpty) {
-      Get.snackbar("Error", "Session not found in storage");
+      AppSnackbar.error("Session not found in storage");
       return;
     }
 
@@ -90,17 +91,24 @@ class PaymentMasterController extends GetxController {
             msg.toLowerCase().contains("success");
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Payment Mode added" : msg);
           paymentModeController.clear();
           await fetchPaymentModes(showLoader: false);
+          // ✅ Success snackbar list refresh ke baad, taaki list wala snackbar ise replace na kare
+          AppSnackbar.success(msg.isEmpty ? "Payment Mode added" : msg);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Not saved" : msg);
+          // Server ka message technical hua to automatically "Something went wrong" ban jayega
+          AppSnackbar.error(msg.isEmpty ? "Not saved" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "API failed: ${res.statusCode}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Save failed: $e");
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -116,15 +124,15 @@ class PaymentMasterController extends GetxController {
     final mode = paymentMode.trim();
 
     if (mode.isEmpty) {
-      Get.snackbar("Validation", "Payment Mode cannot be empty");
+      AppSnackbar.error("Payment Mode cannot be empty", title: "Validation");
       return;
     }
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
     if (session.trim().isEmpty) {
-      Get.snackbar("Error", "Session not found in storage");
+      AppSnackbar.error("Session not found in storage");
       return;
     }
 
@@ -157,16 +165,19 @@ class PaymentMasterController extends GetxController {
 
         if (ok) {
           Get.back(); // close dialog
-          Get.snackbar("Success", msg.isEmpty ? "Updated" : msg);
           await fetchPaymentModes(showLoader: false);
+          AppSnackbar.success(msg.isEmpty ? "Updated" : msg);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Update failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Update failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "Update API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Update API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -177,7 +188,7 @@ class PaymentMasterController extends GetxController {
   // ------------------------
   Future<void> fetchPaymentModes({bool showLoader = true}) async {
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -196,10 +207,13 @@ class PaymentMasterController extends GetxController {
         final pm = PaymentMaster.fromJson(jsonRes);
         paymentModes.assignAll(pm.listData);
       } else {
-        Get.snackbar("Error", "Fetch failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       if (showLoader) isLoading(false);
     }

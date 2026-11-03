@@ -1,12 +1,17 @@
 // controller/daycare_feepayment_view_controller.dart
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import '../models/daycarefeespaymentmodel.dart';
 import '../res/app_url.dart';
 
 class DaycareFeePaymentviewController extends GetxController {
+  // 🆕 Screen pe sirf ye safe message dikhega (asli error console me print hoga)
+  static const String _genericError =
+      'Something went wrong. Please try again.';
+
   final isLoading = false.obs;
   final error     = "".obs;
   final payments  = <TransactionItem>[].obs;
@@ -62,14 +67,16 @@ class DaycareFeePaymentviewController extends GetxController {
 
       if (res.statusCode != 200) {
         payments.clear();
-        error.value = "HTTP ${res.statusCode}: ${res.body}";
+        debugPrint("DaycareFeePaymentView HTTP ${res.statusCode}: ${res.body}");
+        error.value = _genericError; // 🔄 raw status/body nahi dikhega
         return;
       }
 
       final decoded = jsonDecode(res.body);
       if (decoded is! Map<String, dynamic>) {
         payments.clear();
-        error.value = "Invalid response format";
+        debugPrint("DaycareFeePaymentView: invalid response format");
+        error.value = _genericError; // 🔄
         return;
       }
 
@@ -83,9 +90,10 @@ class DaycareFeePaymentviewController extends GetxController {
           studentId.value = idFromItem;
         }
       }
-    } catch (e) {
+    } catch (e, s) {
       payments.clear();
-      error.value = "Fetch failed: $e";
+      debugPrint("DaycareFeePaymentView fetch failed: $e\n$s");
+      error.value = _genericError; // 🔄 URL / exception nahi dikhega
     } finally {
       isLoading.value = false;
     }

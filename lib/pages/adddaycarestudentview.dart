@@ -11,6 +11,7 @@ import '../controller/home_page_controller.dart';
 import '../controller/student_controller daycare.dart' as daycare_controller;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
+import '../utils/app_snackbar.dart';
 import 'nextdaycare.dart';
 
 // ─── Palette ───────────────────────────────────────────────
@@ -66,10 +67,14 @@ class DaycareDurationDropdownController extends GetxController {
               .toList(),
         );
       } else {
-        Get.snackbar("Error", "Failed to fetch daycare durations");
+        AppSnackbar.apiError(
+          'Failed to fetch daycare durations => ${res.body}',
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("⚠️ fetchDurations error => $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -349,7 +354,8 @@ class AddDaycareStudentTab
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => Nextdaycare()));
             } else {
-              Get.snackbar("⚠️ Validation Error", "Please fill required fields");
+              AppSnackbar.error("Please fill required fields",
+                  title: "Validation Error");
             }
           },
         ),

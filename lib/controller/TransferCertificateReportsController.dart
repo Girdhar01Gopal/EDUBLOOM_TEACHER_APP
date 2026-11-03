@@ -16,6 +16,7 @@ import '../models/pre school student teach stu filter api model.dart';
 import '../models/sectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (Notes jaisa)
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
 
@@ -97,16 +98,17 @@ class TransferCertificateReportsController extends GetxController {
   }
 
   Future<void> fetchStudentData() async {
+    // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error (validations)
     if (selectedSession.value == null) {
-      Get.snackbar('Error', 'Please select a session.');
+      AppSnackbar.error('Please select a session.', title: 'Validation');
       return;
     }
     if (selectedClass.value == null) {
-      Get.snackbar('Error', 'Please select a class.');
+      AppSnackbar.error('Please select a class.', title: 'Validation');
       return;
     }
     if (selectedSection.value == null) {
-      Get.snackbar('Error', 'Please select a section.');
+      AppSnackbar.error('Please select a section.', title: 'Validation');
       return;
     }
 
@@ -137,11 +139,15 @@ class TransferCertificateReportsController extends GetxController {
         final parsed = tc_model.TCTransferCertificateModel.fromJson(data);
         studentList.value = parsed.listData ?? [];
       } else {
-        Get.snackbar(
-            'Error', 'Failed to load data. Status: ${response.statusCode}');
+        // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
+        AppSnackbar.apiError(
+          'Failed to load data. Status: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Something went wrong: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error (URL wagairah) user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -169,9 +175,16 @@ class TransferCertificateReportsController extends GetxController {
           sessionList.add(cs);
           selectedSession.value = cs;
         }
+      } else {
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'ViewSessionApp failed: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -202,8 +215,10 @@ class TransferCertificateReportsController extends GetxController {
         classTeacherList.value = model.data ?? [];
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: net band / API fail pe snackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -239,9 +254,11 @@ class TransferCertificateReportsController extends GetxController {
         }).toList();
 
         selectedClass.value = null;
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       }
 
       // if (listDataa.isEmpty) {
@@ -265,9 +282,15 @@ class TransferCertificateReportsController extends GetxController {
         selectedClass.value = null;
       } else {
         listDataa.value = [];
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'GetClassTeacher failed: ${res.statusCode}',
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load classes: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
       listDataa.value = [];
     } finally {
       isLoading(false);
@@ -294,9 +317,17 @@ class TransferCertificateReportsController extends GetxController {
         listDataa.value =
             (list as List).map((e) => ClassData.fromJson(e)).toList();
         selectedClass.value = null;
+      } else {
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'ViewClass failed: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes (staff): $e");
+      // 🆕 ADDED: net band / API fail pe snackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -349,10 +380,17 @@ class TransferCertificateReportsController extends GetxController {
           selectedSection.value = null;
         } else {
           sectionList.value = [];
+          // 🆕 ADDED: API fail pe snackbar
+          AppSnackbar.apiError(
+            'SectionTeacher failed: ${response.statusCode}',
+            statusCode: response.statusCode,
+          );
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
+        // 🆕 ADDED: net band / API fail pe snackbar
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         isLoading(false);
       }
@@ -379,9 +417,15 @@ class TransferCertificateReportsController extends GetxController {
         selectedSection.value = null;
       } else {
         sectionList.value = [];
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'GetSectionTeacher failed: ${res.statusCode}',
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sections: $e');
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
       sectionList.value = [];
     } finally {
       isLoading(false);
@@ -408,9 +452,17 @@ class TransferCertificateReportsController extends GetxController {
         sectionList.value =
             (list as List).map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
+      } else {
+        // 🆕 ADDED: API fail pe snackbar
+        AppSnackbar.apiError(
+          'ViewSectionApp failed: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
+      // 🆕 ADDED: net band / API fail pe snackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }

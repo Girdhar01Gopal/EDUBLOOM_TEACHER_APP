@@ -14,8 +14,11 @@ import '../models/designation model.dart';
 import '../models/teacher list model.dart';
 import '../res/app_url.dart';
 import '../models/session_model.dart' as session_model;
+import '../utils/app_snackbar.dart';
 
 class TeacherAddController extends GetxController {
+  static const _jsonHeaders = {'Content-Type': 'application/json'};
+
   final formKey = GlobalKey<FormState>();
   final dialogFormKey = GlobalKey<FormState>();
 
@@ -81,6 +84,10 @@ class TeacherAddController extends GetxController {
 
   String schoolId = "";
 
+  // Raw exception / API text kabhi nahi dikhta — sirf friendly line.
+  void _showError(Object? error, {int? statusCode}) => AppSnackbar.error(
+      AppSnackbar.friendlyMessage(error, statusCode: statusCode));
+
   @override
   void onInit() async {
     super.onInit();
@@ -91,7 +98,7 @@ class TeacherAddController extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error('School information not found. Please login again.');
       return;
     }
 
@@ -118,29 +125,31 @@ class TeacherAddController extends GetxController {
     try {
       final res = await http.get(
         Uri.parse('${AppUrl.base_url}api/MasterApp/ViewSessionApp/$schoolId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
       );
 
-      if (res.statusCode == 200) {
-        final jsonData = jsonDecode(res.body);
-        sessionList.clear();
-        if (jsonData['currentSession'] != null) {
-          final cs = session_model.sListDdata(
-            sessionId: jsonData['currentSession']['currentSessionId'],
-            session: jsonData['currentSession']['currentSession'],
-            action: jsonData['currentSession']['action'],
-            schoolId: jsonData['currentSession']['schoolId'],
-          );
-          sessionList.add(cs);
-          selectedSession.value = cs;
-        } else {
-          selectedSession.value = null;
-        }
+      if (res.statusCode != 200) {
+        _showError(null, statusCode: res.statusCode);
+        return;
+      }
+
+      final jsonData = jsonDecode(res.body);
+      sessionList.clear();
+      final current = jsonData['currentSession'];
+      if (current != null) {
+        final cs = session_model.sListDdata(
+          sessionId: current['currentSessionId'],
+          session: current['currentSession'],
+          action: current['action'],
+          schoolId: current['schoolId'],
+        );
+        sessionList.add(cs);
+        selectedSession.value = cs;
       } else {
-        Get.snackbar("Error", "Session API failed: ${res.statusCode}");
+        selectedSession.value = null;
       }
     } catch (e) {
-      Get.snackbar("Error", "Session error: $e");
+      _showError(e);
     }
   }
 
@@ -150,7 +159,7 @@ class TeacherAddController extends GetxController {
       final url = Uri.parse(
         '${AppUrl.base_url}api/TeacherApp/ViewDesignationApp/$schoolId',
       );
-      final res = await http.get(url, headers: {'Content-Type': 'application/json'});
+      final res = await http.get(url, headers: _jsonHeaders);
       if (res.statusCode == 200) {
         final parsed = DesignationResponse.fromJson(jsonDecode(res.body));
         designationList.assignAll(parsed.listData);
@@ -158,10 +167,10 @@ class TeacherAddController extends GetxController {
           designation.value = null;
         }
       } else {
-        Get.snackbar("Error", "Designation GET failed: ${res.statusCode}\n${res.body}");
+        _showError(null, statusCode: res.statusCode);
       }
     } catch (e) {
-      Get.snackbar("Error", "Designation fetch error: $e");
+      _showError(e);
     } finally {
       isDesignationLoading(false);
     }
@@ -177,7 +186,7 @@ class TeacherAddController extends GetxController {
         '${AppUrl.base_url}api/TeacherApp/GetAllTeachersAsyncApp'
             '?schoolId=$schoolId&currentSession=$session',
       );
-      final res = await http.get(uri, headers: {'Content-Type': 'application/json'});
+      final res = await http.get(uri, headers: _jsonHeaders);
 
       if (res.statusCode == 200) {
         final parsed = TeacherListResponse.fromJson(jsonDecode(res.body));
@@ -187,13 +196,13 @@ class TeacherAddController extends GetxController {
         } else {
           teachers.clear();
           filteredTeachers.clear();
-          Get.snackbar("Failed", (parsed.messages ?? "Fetch failed").toString());
+          AppSnackbar.error((parsed.messages ?? "Fetch failed").toString(), title: 'Failed');
         }
       } else {
-        Get.snackbar("Error", "Teacher API failed: ${res.statusCode}\n${res.body}");
+        _showError(null, statusCode: res.statusCode);
       }
     } catch (e) {
-      Get.snackbar("Error", "Teacher fetch error: $e");
+      _showError(e);
     } finally {
       isTeacherLoading(false);
     }
@@ -201,19 +210,29 @@ class TeacherAddController extends GetxController {
 
   void applyTeacherFilter() {
     final q = teacherSearchC.text.trim().toLowerCase();
+
+    List<TeacherModel> result;
     if (q.isEmpty) {
-      filteredTeachers.assignAll(teachers);
-      return;
-    }
-    filteredTeachers.assignAll(
-      teachers.where((t) {
+      result = List<TeacherModel>.from(teachers);
+    } else {
+      result = teachers.where((t) {
         final id = (t.teacherReg ?? "").toLowerCase();
         final name = (t.name ?? "").toLowerCase();
         final mobile = (t.mobileNo ?? "").toLowerCase();
         final father = (t.fhname ?? "").toLowerCase();
         return id.contains(q) || name.contains(q) || mobile.contains(q) || father.contains(q);
-      }).toList(),
-    );
+      }).toList();
+    }
+
+    // Latest created teacher sabse upar (createDate descending)
+    result.sort((a, b) {
+      final da = DateTime.tryParse(a.createDate ?? '') ?? DateTime(1970);
+      final db = DateTime.tryParse(b.createDate ?? '') ?? DateTime(1970);
+      final c = db.compareTo(da);
+      return c != 0 ? c : (b.id ?? 0).compareTo(a.id ?? 0);
+    });
+
+    filteredTeachers.assignAll(result);
   }
 
   void onTeacherEdit(TeacherModel row) {
@@ -266,7 +285,7 @@ class TeacherAddController extends GetxController {
   void onTeacherView(TeacherModel row) {
     final id = row.id;
     if (id == null || id == 0) {
-      Get.snackbar("Error", "Invalid Teacher ID");
+      AppSnackbar.error('Invalid Teacher ID');
       return;
     }
     Get.toNamed(
@@ -280,7 +299,7 @@ class TeacherAddController extends GetxController {
   }
 
   void onTeacherApprove(TeacherModel row) {
-    Get.snackbar("Status", "Approved/Active: ${row.teacherReg ?? ""}");
+    AppSnackbar.success("Approved/Active: ${row.teacherReg ?? ""}", title: 'Status');
   }
 
   /// ── Active / Inactive toggle ──────────────────────────────────────────────
@@ -289,7 +308,7 @@ class TeacherAddController extends GetxController {
   Future<void> toggleTeacherStatus(TeacherModel row) async {
     final id = row.id;
     if (id == 0) {
-      Get.snackbar("Error", "Invalid Teacher ID");
+      AppSnackbar.error('Invalid Teacher ID');
       return;
     }
 
@@ -300,24 +319,22 @@ class TeacherAddController extends GetxController {
             '?SchoolId=$schoolId&id=$id',
       );
 
-      final res = await http.post(uri, headers: {'Content-Type': 'application/json'});
+      final res = await http.post(uri, headers: _jsonHeaders);
 
       if (res.statusCode == 200) {
-        Get.snackbar(
-          "Success",
+        AppSnackbar.success(
           row.isActive ? "Teacher marked Inactive" : "Teacher marked Active",
         );
         await fetchTeachers();
       } else {
-        Get.snackbar("Error", "Status update failed: ${res.statusCode}\n${res.body}");
+        _showError(null, statusCode: res.statusCode);
       }
     } catch (e) {
-      Get.snackbar("Error", "Status update error: $e");
+      _showError(e);
     } finally {
       statusLoadingId.value = null;
     }
   }
-
 
   String formatDate(String? iso) {
     if (iso == null || iso.isEmpty) return "-";
@@ -433,7 +450,7 @@ class TeacherAddController extends GetxController {
         target.value = result.files.first;
       }
     } catch (_) {
-      Get.snackbar('Error', 'Gallery se file pick failed');
+      AppSnackbar.error('Gallery se file pick failed');
     }
   }
 
@@ -452,7 +469,7 @@ class TeacherAddController extends GetxController {
         );
       }
     } catch (_) {
-      Get.snackbar('Error', 'Camera se photo lena failed');
+      AppSnackbar.error('Camera se photo lena failed');
     }
   }
 
@@ -468,7 +485,7 @@ class TeacherAddController extends GetxController {
         target.value = result.files.first;
       }
     } catch (_) {
-      Get.snackbar('Error', 'File pick failed');
+      AppSnackbar.error('File pick failed');
     }
   }
 
@@ -501,24 +518,35 @@ class TeacherAddController extends GetxController {
     return null;
   }
 
+  /// Dropdowns ka required-check (pehli missing field ka snackbar dikhata hai).
+  bool _dropdownsValid() {
+    final checks = <String, String?>{
+      'Blood Group': bloodGroup.value,
+      'Gender': gender.value,
+      'Caste': caste.value,
+      'Designation': designation.value,
+    };
+    for (final e in checks.entries) {
+      if (e.value == null) {
+        AppSnackbar.error('${e.key} is required');
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> submit({int? idForUpdate}) async {
-    if (bloodGroup.value == null) { Get.snackbar('Error', 'Blood Group is required'); return; }
-    if (gender.value == null) { Get.snackbar('Error', 'Gender is required'); return; }
-    if (caste.value == null) { Get.snackbar('Error', 'Caste is required'); return; }
-    if (designation.value == null) { Get.snackbar('Error', 'Designation is required'); return; }
+    if (!_dropdownsValid()) return;
     if (!(formKey.currentState?.validate() ?? false)) return;
     await _saveTeacher(idToSend: idForUpdate ?? editingId.value ?? 0, closeDialogOnSuccess: false);
   }
 
   Future<void> updateTeacherFromDialog() async {
     if (editingId.value == null || editingId.value == 0) {
-      Get.snackbar("Error", "Teacher Id missing");
+      AppSnackbar.error('Teacher Id missing');
       return;
     }
-    if (bloodGroup.value == null) { Get.snackbar('Error', 'Blood Group is required'); return; }
-    if (gender.value == null) { Get.snackbar('Error', 'Gender is required'); return; }
-    if (caste.value == null) { Get.snackbar('Error', 'Caste is required'); return; }
-    if (designation.value == null) { Get.snackbar('Error', 'Designation is required'); return; }
+    if (!_dropdownsValid()) return;
     if (!(dialogFormKey.currentState?.validate() ?? false)) return;
     await _saveTeacher(idToSend: editingId.value!, closeDialogOnSuccess: true);
   }
@@ -530,11 +558,13 @@ class TeacherAddController extends GetxController {
     isSubmitting.value = true;
     try {
       final schoolIdLocal = schoolId.trim();
-      if (schoolIdLocal.isEmpty) { Get.snackbar("Error", "SchoolId not found"); return; }
+      if (schoolIdLocal.isEmpty) {
+        AppSnackbar.error('School information not found. Please login again.');
+        return;
+      }
 
       final token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-      final fullName = teacherNameC.text.trim();
-      final nameParts = _splitName(fullName);
+      final nameParts = _splitName(teacherNameC.text.trim());
       final tdId = _getTdIdFromSelectedDesignation(designation.value);
 
       final uri = Uri.parse('https://playschool.edubloom.in/api/TeacherApp/AddUpdateTeacher2App/');
@@ -545,44 +575,44 @@ class TeacherAddController extends GetxController {
       req.headers['Cache-Control'] = 'no-cache';
       if (token.trim().isNotEmpty) req.headers['Authorization'] = 'Bearer ${token.trim()}';
 
-      req.fields['Id'] = idToSend.toString();
-      req.fields['UserId'] = "0";
-      req.fields['SchoolId'] = schoolIdLocal;
-      req.fields['RoleId'] = "0";
-      req.fields['FirstName'] = nameParts.$1;
-      req.fields['LastName'] = nameParts.$2;
-      req.fields['UserEmail'] = emailC.text.trim();
-      req.fields['MobileNumber'] = mobileC.text.trim();
-      req.fields['IsActive'] = 'true';
-      req.fields['RegistrationNo'] = teacherIdC.text.trim();
-      req.fields['AadharCardNo'] = totalExpC.text.trim();
-      req.fields['AadharNo'] = totalExpC.text.trim();
-      req.fields['AadhaarNo'] = totalExpC.text.trim();
-      req.fields['Qualification'] = qualificationC.text.trim();
-      req.fields['Salary'] = salaryC.text.trim();
-      req.fields['Specialization'] = specializationC.text.trim();
-      req.fields['TdId'] = tdId.toString();
-      req.fields['SpouseName'] = fatherHusbandNameC.text.trim();
+      req.fields.addAll({
+        'Id': idToSend.toString(),
+        'UserId': "0",
+        'SchoolId': schoolIdLocal,
+        'RoleId': "0",
+        'FirstName': nameParts.$1,
+        'LastName': nameParts.$2,
+        'UserEmail': emailC.text.trim(),
+        'MobileNumber': mobileC.text.trim(),
+        'IsActive': 'true',
+        'RegistrationNo': teacherIdC.text.trim(),
+        'AadharCardNo': totalExpC.text.trim(),
+        'AadharNo': totalExpC.text.trim(),
+        'AadhaarNo': totalExpC.text.trim(),
+        'Qualification': qualificationC.text.trim(),
+        'Salary': salaryC.text.trim(),
+        'Specialization': specializationC.text.trim(),
+        'TdId': tdId.toString(),
+        'SpouseName': fatherHusbandNameC.text.trim(),
+        'Caste': caste.value!,
+        'CreatedBy': "Admin",
+        'BloodGroup': bloodGroup.value!,
+        'Gender': gender.value!,
+        'LastOrganization': lastOrgC.text.trim(),
+        'TotalExperience': totalExpC.text.trim(),
+        'BankName': bankNameC.text.trim(),
+        'AccountNo': accountNoC.text.trim(),
+        'Ifsccode': ifscC.text.trim(),
+        'Address': addressC.text.trim(),
+        'City': cityC.text.trim(),
+        'State': stateC.text.trim(),
+      });
 
       final dobIso = _toIsoDateTimeOrEmpty(dobC.text.trim());
       if (dobIso.isNotEmpty) req.fields['Dob'] = dobIso;
 
-      req.fields['Caste'] = caste.value!;
-      req.fields['CreatedBy'] = "Admin";
-      req.fields['BloodGroup'] = bloodGroup.value!;
-      req.fields['Gender'] = gender.value!;
-      req.fields['LastOrganization'] = lastOrgC.text.trim();
-      req.fields['TotalExperience'] = totalExpC.text.trim();
-      req.fields['BankName'] = bankNameC.text.trim();
-      req.fields['AccountNo'] = accountNoC.text.trim();
-      req.fields['Ifsccode'] = ifscC.text.trim();
-
       final dojIso = _toIsoDateTimeOrEmpty(joiningDateC.text.trim());
       if (dojIso.isNotEmpty) req.fields['DateofJoining'] = dojIso;
-
-      req.fields['Address'] = addressC.text.trim();
-      req.fields['City'] = cityC.text.trim();
-      req.fields['State'] = stateC.text.trim();
 
       await _attachFileIfPicked(req, 'UserPic', userPic.value);
       await _attachFileIfPicked(req, 'IdProof', idProofPhoto.value);
@@ -590,14 +620,11 @@ class TeacherAddController extends GetxController {
       await _attachFileIfPicked(req, 'CallLetter', callLetterPhoto.value);
 
       final resp = await req.send();
+      final status = resp.statusCode;
 
-      if (resp.statusCode == 301 || resp.statusCode == 302 ||
-          resp.statusCode == 307 || resp.statusCode == 308) {
-        Get.snackbar(
-          "Redirect (${resp.statusCode})",
-          resp.headers['location'] ?? "No Location header",
-          duration: const Duration(seconds: 7),
-        );
+      // Redirect aaya — location / URL user ko nahi dikhana.
+      if (status == 301 || status == 302 || status == 307 || status == 308) {
+        _showError(null, statusCode: status);
         return;
       }
 
@@ -611,34 +638,31 @@ class TeacherAddController extends GetxController {
       final apiMessage = decoded?['messages']?.toString() ??
           decoded?['message']?.toString() ??
           decoded?['Message']?.toString();
+      final hasApiMessage = apiMessage?.isNotEmpty == true;
       final apiSuccess = decoded?['isSuccess'] == true || decoded?['success'] == true;
 
-      if ((resp.statusCode == 200 || resp.statusCode == 201) && (apiSuccess || decoded == null)) {
+      if ((status == 200 || status == 201) && (apiSuccess || decoded == null)) {
         if (closeDialogOnSuccess && (Get.isDialogOpen ?? false)) Get.back();
-        Get.snackbar(
-          'Success',
-          apiMessage?.isNotEmpty == true
-              ? apiMessage!
-              : (idToSend == 0 ? 'Teacher added successfully' : 'Teacher updated successfully'),
-        );
+        AppSnackbar.success(
+            idToSend == 0 ? 'Teacher added successfully' : 'Teacher updated successfully');
         editingId.value = null;
         await fetchTeachers();
         resetForm();
         return;
       }
 
-      if (resp.statusCode == 200 && !apiSuccess) {
-        Get.snackbar('Failed',
-            apiMessage?.isNotEmpty == true ? apiMessage! : 'Save failed',
-            duration: const Duration(seconds: 7));
+      // API ne khud bola save nahi hua — message sanitize hoke dikhega
+      // (lamba / technical hua to generic line).
+      if (status == 200) {
+        AppSnackbar.error(hasApiMessage ? apiMessage! : 'Save failed', title: 'Failed');
         return;
       }
 
-      Get.snackbar('Error',
-          apiMessage?.isNotEmpty == true ? apiMessage! : 'Save failed: ${resp.statusCode}\n$body',
-          duration: const Duration(seconds: 7));
+      AppSnackbar.error(hasApiMessage
+          ? apiMessage!
+          : AppSnackbar.friendlyMessage(null, statusCode: status));
     } catch (e) {
-      Get.snackbar('Error', 'Failed to save teacher: $e', duration: const Duration(seconds: 7));
+      _showError(e);
     } finally {
       isSubmitting.value = false;
     }
@@ -733,7 +757,7 @@ class TeacherAddController extends GetxController {
     lastOrgC.dispose();
     totalExpC.dispose();
     salaryC.dispose();
-    stateC.clear();
+    stateC.dispose();
     cityC.dispose();
     joiningDateC.dispose();
     addressC.dispose();

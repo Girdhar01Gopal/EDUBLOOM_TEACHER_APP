@@ -12,6 +12,7 @@ import '../models/mealactivitymodel.dart';
 import '../models/pre school student teach stu filter api model.dart';
 import '../models/viewactivitymodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart' show ClassTeacherFilterModel, ClassTeacherFilterData;
 
 class Mealcontroller extends GetxController {
@@ -89,8 +90,10 @@ class Mealcontroller extends GetxController {
             parsed.listData.where((e) => e.action == "1").toList();
         selectedClass.value = null;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -134,11 +137,16 @@ class Mealcontroller extends GetxController {
 
         debugPrint("✅ Fetched ${studentList.length} students");
       } else {
-        Get.snackbar("Error", "Unable to load students: ${res.statusCode}");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Unable to load students: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ fetchStudents error => $e");
-      Get.snackbar("Error", "Failed to fetch students");
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -165,9 +173,17 @@ class Mealcontroller extends GetxController {
               .map((e) => MData.fromJson(e))
               .toList();
         }
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Meal GET failed: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ fetchActivityList error => $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -227,46 +243,26 @@ class Mealcontroller extends GetxController {
     const url = "https://playschool.edubloom.in/api/DailyActiviesApp/PostMealApp";
 
     if (studentIds.isEmpty) {
-      Get.snackbar(
-        "Validation",
-        "Please select at least one student.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please select at least one student.");
       return false;
     }
 
     if (studentIds.any((id) => id == 0)) {
-      Get.snackbar(
-        "Error",
-        "Invalid student selected. Please re-select the student.",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        icon: const Icon(Icons.error, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Invalid student selected. Please re-select the student.");
       return false;
     }
 
     if (activityController.text.trim().isEmpty) {
-      Get.snackbar(
-        "Validation",
-        "Please describe the meal activity.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please describe the meal activity.");
       return false;
     }
 
     if (fromTime.value.isEmpty || toTime.value.isEmpty) {
-      Get.snackbar(
-        "Validation",
-        "Please select From and To time.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please select From and To time.");
       return false;
     }
 
@@ -274,12 +270,8 @@ class Mealcontroller extends GetxController {
     final toIso = _isoDateTimeFor(_toTimeOfDay);
 
     if (fromIso == null || toIso == null) {
-      Get.snackbar(
-        "Validation",
-        "Please pick both From Time and To Time again.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please pick both From Time and To Time again.");
       return false;
     }
 
@@ -330,10 +322,17 @@ class Mealcontroller extends GetxController {
         return true;
       } else {
         debugPrint("❌ Meal post failed => ${res.body}");
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Meal post failed: ${res.body}",
+          statusCode: res.statusCode,
+        );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Exception while posting meal => $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
       return false;
     } finally {
       isSubmitting(false);

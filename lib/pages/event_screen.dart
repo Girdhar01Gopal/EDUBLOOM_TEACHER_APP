@@ -13,6 +13,7 @@ import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -625,8 +626,9 @@ class _ViewEventTabState extends State<ViewEventTab> {
           });
         }
 
-        _showSnack(
-            "Downloaded ✓", "File downloaded successfully", Colors.green);
+        // 🆕 CHANGED: _showSnack -> AppSnackbar
+        AppSnackbar.success("File downloaded successfully",
+            title: "Downloaded ✓");
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -644,19 +646,10 @@ class _ViewEventTabState extends State<ViewEventTab> {
         if (mounted) {
           setState(() => _isDownloading[index] = false);
         }
-        _showSnack("Error", "Failed to download: $errorMessage", Colors.red);
+        // 🆕 CHANGED: raw error nahi, sirf "Something went wrong" dikhega,
+        // asli error console me print hoga
+        AppSnackbar.apiError(errorMessage);
       },
-    );
-  }
-
-  void _showSnack(String title, String message, Color color) {
-    Get.snackbar(
-      title,
-      message,
-      backgroundColor: color,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 3),
     );
   }
 

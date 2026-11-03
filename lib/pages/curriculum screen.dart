@@ -13,6 +13,7 @@ import '../controller/curriculum controller.dart';
 import '../models/classmodel.dart';
 import '../models/sectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 const String kCurriculumFileBasePath = 'Upload/Curriculum/';
 
@@ -755,8 +756,9 @@ class _ViewCurriculumTabState extends State<ViewCurriculumTab> {
           });
         }
 
-        _showSnack(
-            "Downloaded ✓", "File downloaded successfully", Colors.green);
+        // 🆕 CHANGED: _showSnack -> AppSnackbar
+        AppSnackbar.success("File downloaded successfully",
+            title: "Downloaded ✓");
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -774,19 +776,10 @@ class _ViewCurriculumTabState extends State<ViewCurriculumTab> {
         if (mounted) {
           setState(() => _isDownloading[index] = false);
         }
-        _showSnack("Error", "Failed to download: $errorMessage", Colors.red);
+        // 🆕 CHANGED: raw error nahi, sirf "Something went wrong" dikhega,
+        // asli error console me print hoga
+        AppSnackbar.apiError(errorMessage);
       },
-    );
-  }
-
-  void _showSnack(String title, String message, Color color) {
-    Get.snackbar(
-      title,
-      message,
-      backgroundColor: color,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 3),
     );
   }
 

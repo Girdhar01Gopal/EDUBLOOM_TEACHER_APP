@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
 
 import '../controller/Activitymaster.dart';
 import '../infrastructures/constant/image_constant.dart';
@@ -123,10 +122,13 @@ class Activityviewmaster extends GetView<Activitymastercontroller> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       child: Obx(() {
+        // ✅ List ek hi baar banegi (pehle har item par dobara ban rahi thi)
+        final items = controller.vehicleDocumentList;
+
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: controller.vehicleDocumentList.length,
+          itemCount: items.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             childAspectRatio: .95,
@@ -134,7 +136,7 @@ class Activityviewmaster extends GetView<Activitymastercontroller> {
             mainAxisSpacing: 16,
           ),
           itemBuilder: (context, index) {
-            var item = controller.vehicleDocumentList[index];
+            final item = items[index];
 
             return InkWell(
               onTap: () => controller.onSelectedBottom(index),

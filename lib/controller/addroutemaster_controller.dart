@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/add_route_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class RouteMasterController extends GetxController {
   // Add
@@ -37,7 +38,7 @@ class RouteMasterController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
 
     if (schoolId == null || schoolId!.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -63,10 +64,15 @@ class RouteMasterController extends GetxController {
       if (res.statusCode == 200) {
         routeModel.value = RouteModel.fromJson(jsonDecode(res.body));
       } else {
-        Get.snackbar("Error", "GetRoute API failed: ${res.statusCode}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "GetRoute API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch failed: $e");
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -77,16 +83,16 @@ class RouteMasterController extends GetxController {
     final busNo = busNoController.text.trim();
 
     if (routeNoText.isEmpty) {
-      Get.snackbar("Validation", "Route No is required");
+      AppSnackbar.error("Route No is required", title: "Validation");
       return;
     }
     final routeNo = int.tryParse(routeNoText);
     if (routeNo == null || routeNo <= 0) {
-      Get.snackbar("Validation", "Enter a valid Route No");
+      AppSnackbar.error("Enter a valid Route No", title: "Validation");
       return;
     }
     if (busNo.isEmpty) {
-      Get.snackbar("Validation", "Bus No is required");
+      AppSnackbar.error("Bus No is required", title: "Validation");
       return;
     }
 
@@ -116,18 +122,22 @@ class RouteMasterController extends GetxController {
         final ok = data.toUpperCase() == "SUCCESS" || msg.toLowerCase().contains("success");
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Route added" : msg);
+          AppSnackbar.success(msg.isEmpty ? "Route added" : msg);
           routeNoController.clear();
           busNoController.clear();
           await fetchRoutes();
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Route add failed" : msg);
+          // Server ka message technical hua to automatically "Something went wrong" ban jayega
+          AppSnackbar.error(msg.isEmpty ? "Route add failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "PostRoute API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "PostRoute API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add route failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -190,11 +200,11 @@ class RouteMasterController extends GetxController {
 
     final routeNo = int.tryParse(routeNoText);
     if (routeNo == null || routeNo <= 0) {
-      Get.snackbar("Validation", "Enter a valid Route No");
+      AppSnackbar.error("Enter a valid Route No", title: "Validation");
       return;
     }
     if (busNo.isEmpty) {
-      Get.snackbar("Validation", "Bus No is required");
+      AppSnackbar.error("Bus No is required", title: "Validation");
       return;
     }
 
@@ -225,16 +235,19 @@ class RouteMasterController extends GetxController {
 
         if (ok) {
           Get.back(); // close dialog
-          Get.snackbar("Success", msg.isEmpty ? "Route updated" : msg);
+          AppSnackbar.success(msg.isEmpty ? "Route updated" : msg);
           await fetchRoutes();
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Update failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Update failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "Update API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Update API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isUpdating(false);
     }

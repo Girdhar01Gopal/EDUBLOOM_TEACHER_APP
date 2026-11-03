@@ -14,6 +14,7 @@ import '../models/classmodel.dart'; // ✅ now contains ClassListModel / ClassDa
 import '../models/fee_type_model.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes wali logic)
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class FeeTypeReportController extends GetxController {
   final sessionList = <session_model.sListDdata>[].obs;
@@ -166,11 +167,16 @@ class FeeTypeReportController extends GetxController {
         // old ".where((e) => e.action == '1')" filter would empty the list.
         listDataa.assignAll(parsed.listData);
       } else {
-        Get.snackbar('Error', 'Class API failed: ${res.statusCode}');
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Class API failed: ${res.statusCode} : ${res.body}',
+          statusCode: res.statusCode,
+        );
         listDataa.value = [];
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Class API error: $e');
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
       listDataa.value = [];
     } finally {
       isPageLoading(false);
@@ -226,10 +232,13 @@ class FeeTypeReportController extends GetxController {
         final model = FeeTypeModel.fromJson(jsonData);
         feeTypeList.assignAll(model.listData ?? []);
       } else {
-        Get.snackbar('Error', 'FeeType API failed: ${response.statusCode}');
+        AppSnackbar.apiError(
+          'FeeType API failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'FeeType API error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -260,10 +269,13 @@ class FeeTypeReportController extends GetxController {
           selectedSession.value = cs;
         }
       } else {
-        Get.snackbar('Error', 'Session API failed: ${response.statusCode}');
+        AppSnackbar.apiError(
+          'Session API failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Session API error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -278,15 +290,15 @@ class FeeTypeReportController extends GetxController {
 
   Future<void> searchReport() async {
     if (selectedSession.value == null) {
-      Get.snackbar('Missing', 'Select Session first');
+      AppSnackbar.error('Select Session first', title: 'Missing');
       return;
     }
     if (selectedFeeType.value == null) {
-      Get.snackbar('Missing', 'Select Fee Type first');
+      AppSnackbar.error('Select Fee Type first', title: 'Missing');
       return;
     }
     if (selectedClass.value == null) {
-      Get.snackbar('Missing', 'Select Class first');
+      AppSnackbar.error('Select Class first', title: 'Missing');
       return;
     }
 
@@ -313,11 +325,21 @@ class FeeTypeReportController extends GetxController {
         final jsonData = jsonDecode(response.body);
         final report = FeeReport.fromJson(jsonData);
         feeReportList.assignAll(report.listData ?? []);
+
+        // ✅ Success / Info snackbar
+        if (feeReportList.isEmpty) {
+          AppSnackbar.error('No data found', title: 'Info');
+        } else {
+          AppSnackbar.success('Data loaded successfully');
+        }
       } else {
-        Get.snackbar('Error', 'Report api failed : ${response.statusCode}');
+        AppSnackbar.apiError(
+          'Report api failed : ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Report API error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSearching(false);
     }

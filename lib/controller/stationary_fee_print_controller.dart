@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../models/StationaryFeePrint_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class StationaryFeePrintController extends GetxController {
   // ── args ──────────────────────────────────────────────────
@@ -47,11 +48,7 @@ class StationaryFeePrintController extends GetxController {
         session.value.isNotEmpty) {
       fetchPaymentDetails();
     } else {
-      Get.snackbar(
-        'Error',
-        'Receipt No, Student ID ya Session missing hai',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppSnackbar.error('Receipt No, Student ID & Session may be missing');
     }
   }
 
@@ -76,18 +73,15 @@ class StationaryFeePrintController extends GetxController {
           schoolDetails.value = SchoolDetailModel.fromJson(decoded);
         }
       } else {
-        Get.snackbar(
-          'Error',
-          'School details load failed (${response.statusCode})',
-          snackPosition: SnackPosition.BOTTOM,
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'School details load failed (${response.statusCode}) : ${response.body}',
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'School details error: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoadingSchool.value = false;
     }
@@ -120,18 +114,13 @@ class StationaryFeePrintController extends GetxController {
         final model   = StationaryFeePrintResponse.fromJson(decoded);
         printItems.assignAll(model.listData);
       } else {
-        Get.snackbar(
-          'Error',
-          'Payment details load failed (${response.statusCode})',
-          snackPosition: SnackPosition.BOTTOM,
+        AppSnackbar.apiError(
+          'Payment details load failed (${response.statusCode}) : ${response.body}',
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Payment details error: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoadingPayment.value = false;
     }

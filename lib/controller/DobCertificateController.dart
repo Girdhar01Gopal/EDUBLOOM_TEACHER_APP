@@ -12,6 +12,7 @@ import '../models/student_model.dart';
 import '../res/app_url.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 const String kDobImageBaseUrl = 'https://playschool.edubloom.in/StudentImages/';
 
@@ -74,11 +75,16 @@ class StudentListController extends GetxController {
           _showError(model.messages ?? 'Failed to fetch students');
         }
       } else {
-        _showError('Server error: ${response.statusCode}');
+        // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
+        AppSnackbar.apiError(
+          'Server error: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ [DOB] fetchStudents: $e');
-      _showError('Could not fetch students.');
+      // 🆕 CHANGED: net band / API fail pe sirf "Something went wrong"
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -115,11 +121,16 @@ class StudentListController extends GetxController {
           _showError(model.messages ?? 'Certificate not found');
         }
       } else {
-        _showError('Server error: ${response.statusCode}');
+        // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
+        AppSnackbar.apiError(
+          'Server error: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ [DOB] fetchDobCertificate: $e');
-      _showError('Could not fetch certificate. Please retry.');
+      // 🆕 CHANGED: net band / API fail pe sirf "Something went wrong"
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isCertLoading(false);
     }
@@ -146,10 +157,9 @@ class StudentListController extends GetxController {
     return '$kDobImageBaseUrl${path.trim()}';
   }
 
+  // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+  // (API ka "messages" text; technical / lamba ho to apne aap hide ho jata hai)
   void _showError(String msg) {
-    Get.snackbar('Error', msg,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade900);
+    AppSnackbar.error(msg);
   }
 }

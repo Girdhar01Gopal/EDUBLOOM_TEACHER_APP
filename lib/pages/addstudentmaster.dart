@@ -7,6 +7,8 @@ import '../infrastructures/utils/custom_text.dart';
 import '../wigets/app_drawer.dart';
 
 class Addstudentmaster extends GetView<Addstudentcontrollermaster> {
+  const Addstudentmaster({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,10 +117,13 @@ class Addstudentmaster extends GetView<Addstudentcontrollermaster> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       child: Obx(() {
+        // Build the list once per rebuild (not once per grid item).
+        final items = controller.vehicleDocumentList;
+
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: controller.vehicleDocumentList.length,
+          itemCount: items.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             childAspectRatio: .95,
@@ -126,7 +131,7 @@ class Addstudentmaster extends GetView<Addstudentcontrollermaster> {
             mainAxisSpacing: 16,
           ),
           itemBuilder: (context, index) {
-            var item = controller.vehicleDocumentList[index];
+            final item = items[index];
 
             return InkWell(
               onTap: () => controller.onSelectedBottom(index),
@@ -152,7 +157,7 @@ class Addstudentmaster extends GetView<Addstudentcontrollermaster> {
                       height: 62.h,
                       width: 62.w,
                       decoration: BoxDecoration(
-                        color: item.bgColor,   // ← updated
+                        color: item.bgColor,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(

@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../models/session_model.dart' as session_model;
 
 import '../controller/day_care_controller.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 
 class DayCare extends GetView<DayCareController> {
   @override
@@ -161,12 +162,10 @@ class DayCare extends GetView<DayCareController> {
         ),
         onPressed: () {
           if (controller.session.value.isEmpty) {
-            Get.snackbar(
-              'Warning',
+            AppSnackbar.error(
               'Please select a session first',
-              backgroundColor: Colors.orange,
-              colorText: Colors.white,
-            );
+              title: 'Warning',
+            ); // 🔄
             return;
           }
           controller.fetchDaycareStudents();
@@ -304,12 +303,7 @@ class DayCare extends GetView<DayCareController> {
       child: ElevatedButton.icon(
         onPressed: () {
           if (student.registrationNo == null || student.registrationNo.toString().isEmpty) {
-            Get.snackbar(
-              'Error',
-              'Registration number not found',
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-            );
+            AppSnackbar.error('Registration number not found'); // 🔄
             return;
           }
 

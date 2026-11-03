@@ -14,6 +14,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/stationary_inventory_model.dart';
 import '../models/session_model.dart';      // ✅ ADD
 import '../res/app_url.dart';               // ✅ ADD
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class StationaryInventoryController extends GetxController {
   final TextEditingController searchController = TextEditingController();
@@ -84,9 +85,17 @@ class StationaryInventoryController extends GetxController {
         } else if (sessionList.isNotEmpty) {
           currentSession.value = sessionList.first;
         }
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode} : ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("Session fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSessionLoading(false);
     }
@@ -125,13 +134,11 @@ class StationaryInventoryController extends GetxController {
       ).timeout(const Duration(seconds: 25));
 
       if (res.statusCode != 200) {
-        errorMsg.value = "Failed (${res.statusCode})";
-        Get.snackbar(
-          "Error",
-          "Failed (${res.statusCode})",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        errorMsg.value = "Something went wrong. Please try again.";
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed (${res.statusCode}) : ${res.body}",
+          statusCode: res.statusCode,
         );
         return;
       }
@@ -157,16 +164,19 @@ class StationaryInventoryController extends GetxController {
 
       inventoryList.assignAll(list);
       filteredList.assignAll(list);
-    } catch (e) {
-      errorMsg.value = e.toString();
 
-      Get.snackbar(
-        "Error",
-        "Something went wrong: $e",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      // ✅ Success / Info snackbar
+      if (list.isEmpty) {
+        AppSnackbar.error("No data found", title: "Info");
+      } else {
+        AppSnackbar.success("Data loaded successfully");
+      }
+    } catch (e, s) {
+      // ✅ Screen ke _errorBox me bhi raw error / URL na dikhe
+      errorMsg.value = "Something went wrong. Please try again.";
+
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -203,11 +213,7 @@ class StationaryInventoryController extends GetxController {
       final list = visibleList;
 
       if (list.isEmpty) {
-        Get.snackbar(
-          "PDF",
-          "No data available to export",
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        AppSnackbar.error("No data available to export", title: "PDF");
         return;
       }
 
@@ -265,11 +271,11 @@ class StationaryInventoryController extends GetxController {
         [XFile(file.path)],
         text: 'Stationary Inventory PDF',
       );
-    } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Failed to generate/share PDF",
-        snackPosition: SnackPosition.BOTTOM,
+    } catch (e, s) {
+      AppSnackbar.apiError(
+        e,
+        stackTrace: s,
+        fallback: "Failed to generate/share PDF",
       );
     }
   }

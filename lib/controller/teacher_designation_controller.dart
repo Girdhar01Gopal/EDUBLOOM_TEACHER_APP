@@ -8,9 +8,12 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/designation model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 
 class TeacherDesignationController extends GetxController {
+  static const _jsonHeaders = {'Content-Type': 'application/json'};
+
   // ========= Form =========
   final formKey = GlobalKey<FormState>();
   final designationC = TextEditingController();
@@ -26,13 +29,17 @@ class TeacherDesignationController extends GetxController {
   // ========= School =========
   String schoolId = "";
 
+  // Raw exception / API text kabhi nahi dikhta — sirf friendly line.
+  void _showError(Object? error, {int? statusCode}) => AppSnackbar.error(
+      AppSnackbar.friendlyMessage(error, statusCode: statusCode));
+
   @override
   void onInit() async {
     super.onInit();
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error('School information not found. Please login again.');
       return;
     }
 
@@ -56,18 +63,16 @@ class TeacherDesignationController extends GetxController {
         '${AppUrl.base_url}api/TeacherApp/ViewDesignationApp/$schoolId',
       );
 
-      final res = await http.get(url, headers: {
-        'Content-Type': 'application/json',
-      });
+      final res = await http.get(url, headers: _jsonHeaders);
 
       if (res.statusCode == 200) {
         final parsed = DesignationResponse.fromJson(jsonDecode(res.body));
         designationList.assignAll(parsed.listData);
       } else {
-        Get.snackbar("Error", "GET failed: ${res.statusCode}\n${res.body}");
+        _showError(null, statusCode: res.statusCode);
       }
     } catch (e) {
-      Get.snackbar("Error", "Fetch error: $e");
+      _showError(e);
     } finally {
       isListLoading(false);
     }
@@ -100,7 +105,7 @@ class TeacherDesignationController extends GetxController {
 
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
         body: jsonEncode(payload),
       );
 
@@ -116,7 +121,8 @@ class TeacherDesignationController extends GetxController {
         final msg = (jsonData["messages"] ?? "").toString();
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Saved" : msg);
+          AppSnackbar.success(
+              tdId == 0 ? 'Designation added successfully' : 'Designation updated successfully');
 
           // clear add form only when adding new
           if (tdId == 0) designationC.clear();
@@ -124,13 +130,14 @@ class TeacherDesignationController extends GetxController {
           // refresh list
           await fetchDesignations();
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Save failed" : msg);
+          // API ka message sanitize hoke dikhega (lamba / technical hua to generic line).
+          AppSnackbar.error(msg.isEmpty ? "Save failed" : msg, title: 'Failed');
         }
       } else {
-        Get.snackbar("Error", "POST failed (${res.statusCode})\n${res.body}");
+        _showError(null, statusCode: res.statusCode);
       }
     } catch (e) {
-      Get.snackbar("Error", "Save error: $e");
+      _showError(e);
     } finally {
       isSaving(false);
     }
@@ -167,7 +174,7 @@ class TeacherDesignationController extends GetxController {
                   : () async {
                 final v = editC.text.trim();
                 if (v.isEmpty) {
-                  Get.snackbar("Validation", "Designation is required");
+                  AppSnackbar.error('Designation is required', title: 'Validation');
                   return;
                 }
                 await saveDesignation(tdId: row.tdId, designation: v);

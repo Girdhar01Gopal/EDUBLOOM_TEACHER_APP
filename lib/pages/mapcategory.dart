@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart'; // 🆕 ADDED: to open video UR
 
 import '../controller/mapcategory.dart';
 import '../models/viewphotosmodel.dart'; // ✅ PhotoData
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class Mapcategoryview extends StatefulWidget {
   const Mapcategoryview({super.key});
@@ -149,22 +150,26 @@ class _MapcategoryviewState extends State<Mapcategoryview>
         await Share.share('$imageUrl\n\n${heading ?? ""}');
         return;
       }
-      Get.snackbar("Error", "Unable to share image");
-    } catch (_) {
-      Get.snackbar("Error", "Failed to share image");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Unable to share image");
+    } catch (e, stack) {
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
   // ─── Share video ───
   Future<void> shareVideo(String? url) async {
     if (url == null || url.isEmpty) {
-      Get.snackbar("Error", "Video URL not found");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Video URL not found");
       return;
     }
     try {
       await Share.share(url, subject: 'Gallery Video');
-    } catch (_) {
-      Get.snackbar("Error", "Failed to share video");
+    } catch (e, stack) {
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -185,7 +190,8 @@ class _MapcategoryviewState extends State<Mapcategoryview>
   // 🆕 ADDED: actual launch logic with proper error handling + user feedback
   Future<void> _launchVideo(String? rawUrl) async {
     if (rawUrl == null || rawUrl.trim().isEmpty) {
-      Get.snackbar("Error", "Video URL not found");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Video URL not found");
       return;
     }
 
@@ -193,7 +199,8 @@ class _MapcategoryviewState extends State<Mapcategoryview>
     final uri = Uri.tryParse(normalized);
 
     if (uri == null) {
-      Get.snackbar("Error", "Invalid video URL");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Invalid video URL");
       return;
     }
 
@@ -204,11 +211,13 @@ class _MapcategoryviewState extends State<Mapcategoryview>
       );
 
       if (!launched) {
-        Get.snackbar("Error", "Could not open video link");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+        AppSnackbar.error("Could not open video link");
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Error launching video URL '$normalized': $e");
-      Get.snackbar("Error", "Could not open video link");
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -218,7 +227,8 @@ class _MapcategoryviewState extends State<Mapcategoryview>
     final imageUrl = getImageUrl(item);
 
     if (bytes == null && imageUrl == null) {
-      Get.snackbar("Error", "Image not available");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Image not available");
       return;
     }
 

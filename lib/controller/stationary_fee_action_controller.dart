@@ -10,6 +10,7 @@ import '../models/stationary_action2_.dart';
 import '../models/stationary_action3_.dart';
 import '../models/stationary_student_fee_list.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class StationaryItem {
   final int id;
@@ -97,11 +98,7 @@ class StationaryFeeActionController extends GetxController {
       fetchPaymentModes();
       fetchPaymentHistory();
     } else {
-      Get.snackbar(
-        'Error',
-        'StudentId, SchoolId or Session is missing',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppSnackbar.error('StudentId, SchoolId or Session is missing');
     }
   }
 
@@ -188,17 +185,18 @@ class StationaryFeeActionController extends GetxController {
             registrationNo.value = data.registrationNo!.trim();
           }
         } else {
-          Get.snackbar('Error', model.messages ?? 'Student details not found',
-              snackPosition: SnackPosition.BOTTOM);
+          AppSnackbar.error(model.messages ?? 'Student details not found');
         }
       } else {
-        Get.snackbar('Error',
-            'Failed to load student details. Status: ${response.statusCode}',
-            snackPosition: SnackPosition.BOTTOM);
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Failed to load student details. Status: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Something went wrong: $e',
-          snackPosition: SnackPosition.BOTTOM);
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoadingStudent.value = false;
     }
@@ -252,17 +250,16 @@ class StationaryFeeActionController extends GetxController {
           stationaryItems.assignAll(items);
         } else {
           stationaryItems.clear();
-          Get.snackbar('Info', 'No stationary items found',
-              snackPosition: SnackPosition.BOTTOM);
+          AppSnackbar.error('No stationary items found', title: 'Info');
         }
       } else {
-        Get.snackbar('Error',
-            'Failed to load stationary items. Status: ${response.statusCode}',
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.apiError(
+          'Failed to load stationary items. Status: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Stationary API error: $e',
-          snackPosition: SnackPosition.BOTTOM);
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoadingStationary.value = false;
     }
@@ -286,17 +283,16 @@ class StationaryFeeActionController extends GetxController {
               .where((pm) => pm.isNotEmpty)
               .toList();
         } else {
-          Get.snackbar('Info', 'No payment modes available.',
-              snackPosition: SnackPosition.BOTTOM);
+          AppSnackbar.error('No payment modes available.', title: 'Info');
         }
       } else {
-        Get.snackbar('Error',
-            'Failed to load payment modes. Status: ${response.statusCode}',
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.apiError(
+          'Failed to load payment modes. Status: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Error fetching payment modes: $e',
-          snackPosition: SnackPosition.BOTTOM);
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoadingPaymentModes.value = false;
     }
@@ -378,13 +374,13 @@ class StationaryFeeActionController extends GetxController {
           paymentHistory.clear();
         }
       } else {
-        Get.snackbar('Error',
-            'Failed to load payment history. Status: ${response.statusCode}',
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.apiError(
+          'Failed to load payment history. Status: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Payment history API error: $e',
-          snackPosition: SnackPosition.BOTTOM);
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoadingPaymentHistory.value = false;
     }
@@ -421,26 +417,22 @@ class StationaryFeeActionController extends GetxController {
 
   Future<void> payNow() async {
     if (selectedPaymentMode.value.trim().isEmpty) {
-      Get.snackbar('Validation', 'Please select payment mode',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Please select payment mode', title: 'Validation');
       return;
     }
     if (registrationNo.value.trim().isEmpty ||
         session.value.trim().isEmpty ||
         schoolId.value.trim().isEmpty) {
-      Get.snackbar('Validation',
-          'Registration No, Session or SchoolId missing',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Registration No, Session or SchoolId missing',
+          title: 'Validation');
       return;
     }
     if (classId.value <= 0 || sectionId.value <= 0) {
-      Get.snackbar('Validation', 'ClassId or SectionId missing',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('ClassId or SectionId missing', title: 'Validation');
       return;
     }
     if (studentId.value <= 0) {
-      Get.snackbar('Validation', 'StudentId missing',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('StudentId missing', title: 'Validation');
       return;
     }
 
@@ -453,9 +445,9 @@ class StationaryFeeActionController extends GetxController {
 
       if ((quantityText.isNotEmpty && payAmountText.isEmpty) ||
           (quantityText.isEmpty && payAmountText.isNotEmpty)) {
-        Get.snackbar('Validation',
+        AppSnackbar.error(
             'every selected row Quantity and Pay Amount must be filled ',
-            snackPosition: SnackPosition.BOTTOM);
+            title: 'Validation');
         return;
       }
       if (quantityText.isEmpty && payAmountText.isEmpty) continue;
@@ -464,19 +456,19 @@ class StationaryFeeActionController extends GetxController {
       final int enteredAmount = int.tryParse(payAmountText) ?? 0;
 
       if (enteredQty <= 0) {
-        Get.snackbar('Validation', 'Quantity will be greater than 0',
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.error('Quantity will be greater than 0',
+            title: 'Validation');
         return;
       }
       if (enteredAmount <= 0) {
-        Get.snackbar('Validation', 'Pay Amount will be greater than 0',
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.error('Pay Amount will be greater than 0',
+            title: 'Validation');
         return;
       }
       if (enteredQty > item.totalQuantity) {
-        Get.snackbar('Validation',
+        AppSnackbar.error(
             '${item.stationaryName} ki quantity available stock se zyada ',
-            snackPosition: SnackPosition.BOTTOM);
+            title: 'Validation');
         return;
       }
 
@@ -505,8 +497,8 @@ class StationaryFeeActionController extends GetxController {
     }
 
     if (validRows.isEmpty) {
-      Get.snackbar('Validation', 'Please enter at least one valid row',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Please enter at least one valid row',
+          title: 'Validation');
       return;
     }
 
@@ -524,9 +516,8 @@ class StationaryFeeActionController extends GetxController {
         );
 
         if (response.statusCode != 200) {
-          Get.snackbar('Error', _extractErrorMessage(response.body),
-              snackPosition: SnackPosition.BOTTOM,
-              duration: const Duration(seconds: 4));
+          // Server ka simple message dikhega, technical ho to Something went wrong
+          AppSnackbar.error(_extractErrorMessage(response.body));
           return;
         }
 
@@ -534,21 +525,16 @@ class StationaryFeeActionController extends GetxController {
           final responseData = jsonDecode(response.body);
           if (responseData is Map<String, dynamic> &&
               responseData['isSuccess'] != true) {
-            Get.snackbar('Error', _extractErrorMessage(response.body),
-                snackPosition: SnackPosition.BOTTOM,
-                duration: const Duration(seconds: 4));
+            AppSnackbar.error(_extractErrorMessage(response.body));
             return;
           }
         } catch (_) {
-          Get.snackbar('Error', 'Invalid server response',
-              snackPosition: SnackPosition.BOTTOM);
+          AppSnackbar.apiError('Invalid server response');
           return;
         }
       }
 
-      Get.snackbar('Success', 'Payment processed successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 3));
+      AppSnackbar.success('Payment processed successfully');
 
       for (final item in stationaryItems) {
         item.quantityController.clear();
@@ -556,10 +542,9 @@ class StationaryFeeActionController extends GetxController {
       }
       await fetchStationaryItems();
       await fetchPaymentHistory();
-    } catch (e) {
-      Get.snackbar('Error', 'Error while processing payment: $e',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 4));
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubmittingPayment.value = false;
     }

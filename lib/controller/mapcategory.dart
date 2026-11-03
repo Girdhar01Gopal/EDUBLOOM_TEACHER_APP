@@ -11,6 +11,7 @@ import '../models/viewphotosmodel.dart';         // GalleryPhotoModel, PhotoData
 import '../models/Gallerymapcategorymodel.dart'; // videomodel, vData
 import '../models/session_model.dart';           // SessionModel, sListDdata
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class Mapcategorycontroller extends GetxController {
   // ─── Observable Lists ───────────────────────────────────────
@@ -77,10 +78,16 @@ class Mapcategorycontroller extends GetxController {
         );
       } else {
         debugPrint("⚠️ Session API failed: ${res.statusCode}");
-        Get.snackbar("Error", "Failed to load sessions");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Session API failed: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Session fetch error: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isSessionLoading(false);
     }
@@ -140,11 +147,17 @@ class Mapcategorycontroller extends GetxController {
         debugPrint("⚠️ Images API failed: ${response.statusCode}");
         // ✅ ADDED: print body on failure too, helps see server-side error detail
         debugPrint("⚠️ Images API body: ${response.body}");
-        Get.snackbar("Error", "Failed to load images (${response.statusCode})");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Images API failed: ${response.statusCode} ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
     } catch (e, stack) {
       debugPrint("❌ Error Loading Images => $e");
       debugPrint("$stack");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -177,10 +190,16 @@ class Mapcategorycontroller extends GetxController {
         debugPrint("🎥 Videos Loaded: ${mappedCategories.length}");
       } else {
         debugPrint("⚠️ Videos API failed: ${response.statusCode}");
-        Get.snackbar("Error", "Failed to load video categories");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Videos API failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Error Loading Videos => $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }

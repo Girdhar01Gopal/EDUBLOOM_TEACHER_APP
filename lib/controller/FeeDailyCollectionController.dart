@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/FeeDailyCollectionmodel.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class FeeDailyCollectionController extends GetxController {
   final Rx<DateTime> startDate = DateTime.now().obs;
@@ -28,12 +29,7 @@ class FeeDailyCollectionController extends GetxController {
   Future<void> _loadSchoolId() async {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
     if (schoolId == null || schoolId!.trim().isEmpty) {
-      Get.snackbar(
-        "Error", "SchoolId not found in storage",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      AppSnackbar.error("SchoolId not found in storage");
     }
   }
 
@@ -92,12 +88,7 @@ class FeeDailyCollectionController extends GetxController {
       }
 
       if (schoolId == null || schoolId!.trim().isEmpty) {
-        Get.snackbar(
-          "Error", "School ID is missing",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        AppSnackbar.error("School ID is missing");
         return;
       }
 
@@ -114,19 +105,17 @@ class FeeDailyCollectionController extends GetxController {
       debugPrint("Body: ${res.body}");
 
       if (res.statusCode != 200) {
-        Get.snackbar("Error", "Failed (${res.statusCode})",
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.red,
-            colorText: Colors.white);
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed (${res.statusCode}) : ${res.body}",
+          statusCode: res.statusCode,
+        );
         return;
       }
 
       final decoded = jsonDecode(res.body);
       if (decoded is! List) {
-        Get.snackbar("Error", "Unexpected response format",
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.red,
-            colorText: Colors.white);
+        AppSnackbar.apiError("Unexpected response format");
         return;
       }
 
@@ -138,6 +127,9 @@ class FeeDailyCollectionController extends GetxController {
           .toList();
 
       items.assignAll(parsed);
+      if (items.isNotEmpty) {
+        AppSnackbar.success("Data loaded successfully");
+      }
 
       // ✅ Saari rows se unique column keys collect karo (order preserve)
       final colSet = <String>{};
@@ -147,16 +139,11 @@ class FeeDailyCollectionController extends GetxController {
       dynamicColumns.assignAll(colSet.toList());
 
       if (items.isEmpty) {
-        Get.snackbar("Info", "No data found",
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.orange,
-            colorText: Colors.white);
+        AppSnackbar.error("No data found", title: "Info");
       }
-    } catch (e) {
-      Get.snackbar("Error", "Something went wrong: $e",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white);
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }

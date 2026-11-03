@@ -15,6 +15,7 @@ import '../models/routeno.dart';
 import '../models/sectionmodel.dart';
 import '../models/student_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class StudentController extends GetxController {
   var sessionList = <session_model.sListDdata>[].obs;
@@ -171,9 +172,12 @@ class StudentController extends GetxController {
 
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      } else {
+        AppSnackbar.apiError('ClassTeacher API failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      print("Error loading ClassTeacher filter: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -223,10 +227,11 @@ class StudentController extends GetxController {
           filteredData.value = filtered;
         }
       } else {
-        Get.snackbar("Error", "Failed to fetch students");
+        AppSnackbar.apiError('GetAllStudentAsynsApp failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "An error occurred while fetching students");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -262,9 +267,12 @@ class StudentController extends GetxController {
         final jsonResponse = json.decode(response.body);
         final routeResponse = RouteResponse.fromJson(jsonResponse);
         routes.value = routeResponse.data;
+      } else {
+        AppSnackbar.apiError('GetRouteApp failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      print("Error loading routes: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -292,7 +300,8 @@ class StudentController extends GetxController {
       );
 
       if (response.statusCode != 200) {
-        Get.snackbar("Error", "Failed to fetch pickup points");
+        AppSnackbar.apiError('GetPikPointApp failed: ${response.body}',
+            statusCode: response.statusCode);
         return;
       }
 
@@ -308,8 +317,8 @@ class StudentController extends GetxController {
       stoppageList
         ..clear()
         ..addAll(points.isEmpty ? ["No Stoppages Available"] : points);
-    } catch (e) {
-      Get.snackbar("Error", "An error occurred while fetching pickup points");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -400,20 +409,24 @@ class StudentController extends GetxController {
         } else {
           final popup =
               data['popupMessage'] ?? data['messages'] ?? "Unknown error";
-          Get.snackbar("Error", popup,
-              backgroundColor: Colors.red.shade600, colorText: Colors.white);
+          AppSnackbar.error(popup.toString());
         }
       } else {
-        ShortMessage.toast(title: "Failed to Add Student");
+        AppSnackbar.apiError('PostStudentApp failed: $body',
+            statusCode: responseBody.statusCode);
       }
-    } catch (e) {
-      ShortMessage.toast(title: "An error occurred while adding student.");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isSubmitting.value = false;
     }
   }
 
-  Future<void> updateStudentByPostApi({required int studentId}) async {
+  // ✅ CHANGED: oldStudent parameter add kiya + Class/Section/Status bheje jaate hain
+  Future<void> updateStudentByPostApi({
+    required int studentId,
+    StudentData? oldStudent, // existing student pass karenge
+  }) async {
     try {
       final uri = Uri.parse("${AppUrl.base_url}api/StudentApp/PostStudentApp");
       final request = http.MultipartRequest('POST', uri);
@@ -435,6 +448,23 @@ class StudentController extends GetxController {
             'GuardianImage', guardianImage.value!.path));
       }
 
+      // ✅ DOB ko dd-MM-yyyy se yyyy-MM-dd me convert karo (add student jaisa)
+      String dobToSend = dob.text.trim();
+      final dobParts = dobToSend.split('-');
+      if (dobParts.length == 3 && dobParts[0].length == 2) {
+        dobToSend = '${dobParts[2]}-${dobParts[1]}-${dobParts[0]}';
+      }
+
+      // ✅ Purani class & section ki ID nikalo (naam match karke)
+      final oldClassName = (oldStudent?.className ?? '').trim().toLowerCase();
+      final oldSectionName =
+      (oldStudent?.sectionName ?? '').trim().toLowerCase();
+
+      final cls = classes.firstWhereOrNull(
+              (c) => c.className.trim().toLowerCase() == oldClassName);
+      final sec = sectionList.firstWhereOrNull(
+              (s) => (s.section ?? '').trim().toLowerCase() == oldSectionName);
+
       request.fields['StudentId'] = studentId.toString();
       request.fields['StudentName'] = studentName.value.trim();
       request.fields['FatherName'] = fatherName.value.trim();
@@ -446,7 +476,7 @@ class StudentController extends GetxController {
       request.fields['WhatsAppNo'] = whatsappNo.value.trim();
       request.fields['EmergencyNo'] = emergencyNo.value.trim();
       request.fields['Gender'] = gender.value.trim();
-      request.fields['DateOfBirth'] = dob.text.trim();
+      request.fields['DateOfBirth'] = dobToSend;
       request.fields['BloodGroup'] = bloodGroup.value.trim();
       request.fields['Religion'] = religion.value.trim();
       request.fields['Phone'] = phone.value.trim();
@@ -459,43 +489,57 @@ class StudentController extends GetxController {
       request.fields['Action'] =
       actionStatus.value.trim().isEmpty ? '1' : actionStatus.value.trim();
 
+      // ✅ YE MISSING THA — class/section/status bhejo
+      if (cls != null && sec != null) {
+        request.fields['Status'] = "0";
+        request.fields['Class'] = cls.classId.toString();
+        request.fields['Section'] = sec.sectionId.toString();
+      } else {
+        print('⚠️ Class/Section ID match nahi hui: '
+            '${oldStudent?.className} | ${oldStudent?.sectionName}');
+      }
 
       request.fields['AdmissionDate'] = admissionDate.value.trim().isNotEmpty
           ? admissionDate.value.trim()
           : DateTime.now().toIso8601String();
 
+      // 🔍 DEBUG
+      print('UPDATE URL: $uri');
+      print('UPDATE FIELDS: ${request.fields}');
+
       final response = await request.send();
       final responseBody = await http.Response.fromStream(response);
+
+      print('UPDATE STATUS: ${responseBody.statusCode}');
+      print('UPDATE BODY: ${responseBody.body}');
 
       if (responseBody.statusCode == 200) {
         final data = jsonDecode(responseBody.body);
         if (data['isSuccess'] == true) {
-          Get.snackbar("Success", "Student updated successfully!");
+          AppSnackbar.success("Student updated successfully!");
 
-          fetchVStudents();
+          await fetchVStudents(); // ✅ await karo
 
           // ✅ Admin app jaisa: Student screen tak wapas jao (stack clear nahi hota, back arrow chalta rehta hai)
           Get.until((route) => route.settings.name == RouteName.student_screen);
         } else {
-          final errorMessage = data['popupMessage'] ?? "Unknown error";
-          Get.snackbar("Error", errorMessage,
-              backgroundColor: Colors.red.shade600, colorText: Colors.white);
+          final errorMessage =
+              data['popupMessage'] ?? data['messages'] ?? "Unknown error";
+          AppSnackbar.error(errorMessage.toString());
         }
       } else {
-        Get.snackbar("Error", "Failed to update student.",
-            backgroundColor: Colors.red.shade600, colorText: Colors.white);
+        AppSnackbar.apiError('Update student failed: ${responseBody.body}',
+            statusCode: responseBody.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "An error occurred: $e",
-          backgroundColor: Colors.red.shade600, colorText: Colors.white);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
   Future<void> toggleStudentStatus(StudentData s) async {
     try {
       if (s.studentID == null) {
-        Get.snackbar("Error", "StudentID missing",
-            backgroundColor: Colors.red, colorText: Colors.white);
+        AppSnackbar.apiError('toggleStudentStatus: StudentID missing');
         return;
       }
 
@@ -541,20 +585,11 @@ class StudentController extends GetxController {
           duration: const Duration(seconds: 2),
         );
       } else {
-        Get.snackbar("Error", "Failed to update status: ${response.statusCode}",
-            backgroundColor: Colors.red.shade600,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.TOP,
-            margin: const EdgeInsets.all(12),
-            borderRadius: 12);
+        AppSnackbar.apiError('StudentActiveandInactive failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Status update error: $e",
-          backgroundColor: Colors.red.shade600,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          margin: const EdgeInsets.all(12),
-          borderRadius: 12);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -583,8 +618,8 @@ class StudentController extends GetxController {
         selectedClass.value = classes.isNotEmpty ? classes.first : null;
 
         // allowedClassNames already set in fetchClassTeacherFilter(), no change needed here
-      } catch (e) {
-        print("⚠️ Error mapping ClassTeacher classes: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
         classes.value = [];
         selectedClass.value = null;
       }
@@ -643,11 +678,11 @@ class StudentController extends GetxController {
           allowedClassNames.value = []; // 🆕 stale data clear
         }
       } else {
-        Get.snackbar("Error", "Failed to fetch classes: ${response.statusCode}",
-            backgroundColor: Colors.red, colorText: Colors.white);
+        AppSnackbar.apiError('GetClassTeacher failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      print("Error loading classes: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -675,11 +710,11 @@ class StudentController extends GetxController {
         classes.value = activeData.map((e) => ClassItem.fromJson(e)).toList();
         selectedClass.value = classes.isNotEmpty ? classes.first : null;
       } else {
-        Get.snackbar("Error", "Failed to fetch classes: ${response.statusCode}",
-            backgroundColor: Colors.red, colorText: Colors.white);
+        AppSnackbar.apiError('ViewClass (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      print("⚠️ Error fetching classes (staff): $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -715,9 +750,12 @@ class StudentController extends GetxController {
           sessionList.add(cs);
           selectedSession.value = cs;
         }
+      } else {
+        AppSnackbar.apiError('ViewSessionApp failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -778,11 +816,11 @@ class StudentController extends GetxController {
               .where((s) => s.isNotEmpty)
               .toList();
         } else {
-          Get.snackbar("Error", "Failed to fetch sections: ${response.statusCode}",
-              backgroundColor: Colors.red, colorText: Colors.white);
+          AppSnackbar.apiError('SectionTeacher failed: ${response.body}',
+              statusCode: response.statusCode);
         }
-      } catch (e) {
-        print("⚠️ Error fetching SectionTeacher sections: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
       } finally {
         isLoading(false);
       }
@@ -829,11 +867,11 @@ class StudentController extends GetxController {
             .where((s) => s.isNotEmpty)
             .toList();
       } else {
-        Get.snackbar("Error", "Failed to fetch sections: ${response.statusCode}",
-            backgroundColor: Colors.red, colorText: Colors.white);
+        AppSnackbar.apiError('GetSectionTeacher failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      print("Error loading sections: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -862,11 +900,11 @@ class StudentController extends GetxController {
             .where((s) => s.isNotEmpty)
             .toList();
       } else {
-        Get.snackbar("Error", "Failed to fetch sections: ${response.statusCode}",
-            backgroundColor: Colors.red, colorText: Colors.white);
+        AppSnackbar.apiError('ViewSectionApp (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      print("⚠️ Error fetching sections (staff): $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }

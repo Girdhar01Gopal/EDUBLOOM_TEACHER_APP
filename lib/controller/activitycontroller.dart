@@ -9,6 +9,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/Daycaremodel.dart';
 import '../models/activitystudentmodel.dart';
 import '../models/viewactivitymodel.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class Activitycontroller extends GetxController {
 
@@ -123,11 +124,16 @@ class Activitycontroller extends GetxController {
           debugPrint("⚠️ $zeroIds students have studentId=0");
         }
       } else {
-        Get.snackbar("Error", "Unable to load Day Care students: ${res.statusCode}");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Unable to load Day Care students: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Day Care fetch error => $e");
-      Get.snackbar("Error", "Failed to fetch Day Care students");
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -148,11 +154,16 @@ class Activitycontroller extends GetxController {
             (jsonBody["data"] as List).map((e) => Data.fromJson(e)).toList();
         debugPrint("✅ Pre School students loaded: ${studentList.length}");
       } else {
-        Get.snackbar("Error", "Unable to load Pre School students: ${res.statusCode}");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Unable to load Pre School students: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Pre School fetch error => $e");
-      Get.snackbar("Error", "Failed to fetch Pre School students");
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -186,9 +197,17 @@ class Activitycontroller extends GetxController {
 
           activityList.value = list;
         }
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GET Activities failed: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("fetchActivityList error => $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -222,47 +241,27 @@ class Activitycontroller extends GetxController {
   // -----------------------
   Future<bool> postActivityToApi(List<int> studentIds) async {
     if (studentIds.isEmpty) {
-      Get.snackbar(
-        "Validation",
-        "Please select at least one student.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please select at least one student.");
       return false;
     }
 
     if (studentIds.any((id) => id == 0)) {
       debugPrint("❌ One or more studentId = 0. Aborting.");
-      Get.snackbar(
-        "Error",
-        "Invalid student selected. Please re-select the student.",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        icon: const Icon(Icons.error, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Invalid student selected. Please re-select the student.");
       return false;
     }
 
     if (activityController.text.trim().isEmpty) {
-      Get.snackbar(
-        "Validation",
-        "Please enter activity description.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please enter activity description.");
       return false;
     }
 
     if (fromTime.value.isEmpty || toTime.value.isEmpty) {
-      Get.snackbar(
-        "Validation",
-        "Please select From and To time.",
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-      );
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Please select From and To time.");
       return false;
     }
 
@@ -326,10 +325,17 @@ class Activitycontroller extends GetxController {
         return true;
       } else {
         debugPrint("❌ Failed => ${res.body}");
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Post activity failed: ${res.body}",
+          statusCode: res.statusCode,
+        );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Post activity error => $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
       return false;
     }
   }

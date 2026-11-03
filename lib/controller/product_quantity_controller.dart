@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/product_quantity_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class ProductQuantityController extends GetxController {
   final TextEditingController quantityController = TextEditingController();
@@ -106,13 +107,18 @@ class ProductQuantityController extends GetxController {
         productDropdownList.clear();
         productMasterMap.clear();
         selectedProduct.value = "";
-        Get.snackbar("Error", "Product dropdown fetch failed");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Product dropdown fetch failed: ${res.statusCode} : ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       productDropdownList.clear();
       productMasterMap.clear();
       selectedProduct.value = "";
-      Get.snackbar("Error", "Dropdown fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isDropdownLoading(false);
     }
@@ -159,17 +165,21 @@ class ProductQuantityController extends GetxController {
         } else {
           productQuantityList.clear();
           filteredList.clear();
-          Get.snackbar("Error", parsed.messages ?? "Failed to load list");
+          // Server ka message technical hua to automatically "Something went wrong" ban jayega
+          AppSnackbar.error(parsed.messages ?? "Failed to load list");
         }
       } else {
         productQuantityList.clear();
         filteredList.clear();
-        Get.snackbar("Error", "List fetch failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "List fetch failed: ${res.statusCode} : ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       productQuantityList.clear();
       filteredList.clear();
-      Get.snackbar("Error", "List fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -180,24 +190,24 @@ class ProductQuantityController extends GetxController {
     final String quantityText = quantityController.text.trim();
 
     if (productName.isEmpty) {
-      Get.snackbar("Validation", "Please select product name");
+      AppSnackbar.error("Please select product name", title: "Validation");
       return;
     }
 
     if (quantityText.isEmpty) {
-      Get.snackbar("Validation", "Quantity cannot be empty");
+      AppSnackbar.error("Quantity cannot be empty", title: "Validation");
       return;
     }
 
     final int? qty = int.tryParse(quantityText);
     if (qty == null) {
-      Get.snackbar("Validation", "Quantity must be numeric");
+      AppSnackbar.error("Quantity must be numeric", title: "Validation");
       return;
     }
 
     final int pmasterId = productMasterMap[productName] ?? 0;
     if (pmasterId == 0) {
-      Get.snackbar("Error", "Invalid product selected");
+      AppSnackbar.error("Invalid product selected");
       return;
     }
 
@@ -239,28 +249,28 @@ class ProductQuantityController extends GetxController {
         if (decoded["isSuccess"] == true) {
           quantityController.clear();
           await fetchProductQuantityList();
-          Get.snackbar(
-            "Success",
+          AppSnackbar.success(
             "$productName quantity added successfully",
           );
         } else {
-          Get.snackbar(
-            "Error",
+          AppSnackbar.error(
             decoded["messages"]?.toString().trim().isNotEmpty == true
-                ? decoded["messages"]
+                ? decoded["messages"].toString()
                 : "Failed to add product quantity",
           );
         }
       } else {
-        Get.snackbar(
-          "Error",
-          decoded["messages"]?.toString().trim().isNotEmpty == true
-              ? decoded["messages"]
-              : "Add failed: ${res.statusCode}",
-        );
+        if (decoded["messages"]?.toString().trim().isNotEmpty == true) {
+          AppSnackbar.error(decoded["messages"].toString());
+        } else {
+          AppSnackbar.apiError(
+            "Add failed: ${res.statusCode} : ${res.body}",
+            statusCode: res.statusCode,
+          );
+        }
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -340,12 +350,18 @@ class ProductQuantityController extends GetxController {
                   editQuantityController.text.trim();
 
                   if (updatedQty.isEmpty) {
-                    Get.snackbar("Validation", "Quantity cannot be empty");
+                    AppSnackbar.error(
+                      "Quantity cannot be empty",
+                      title: "Validation",
+                    );
                     return;
                   }
 
                   if (int.tryParse(updatedQty) == null) {
-                    Get.snackbar("Validation", "Quantity must be numeric");
+                    AppSnackbar.error(
+                      "Quantity must be numeric",
+                      title: "Validation",
+                    );
                     return;
                   }
 
@@ -378,18 +394,18 @@ class ProductQuantityController extends GetxController {
     final int? qty = int.tryParse(updatedQuantity);
 
     if (updatedProductName.trim().isEmpty) {
-      Get.snackbar("Validation", "Please select product name");
+      AppSnackbar.error("Please select product name", title: "Validation");
       return;
     }
 
     if (qty == null) {
-      Get.snackbar("Validation", "Quantity must be numeric");
+      AppSnackbar.error("Quantity must be numeric", title: "Validation");
       return;
     }
 
     final int pmasterId = productMasterMap[updatedProductName] ?? 0;
     if (pmasterId == 0) {
-      Get.snackbar("Error", "Invalid product selected");
+      AppSnackbar.error("Invalid product selected");
       return;
     }
 
@@ -431,24 +447,28 @@ class ProductQuantityController extends GetxController {
             Get.back();
           }
           await fetchProductQuantityList();
-          Get.snackbar(
-            "Success",
-            decoded["messages"] ?? "Product quantity updated successfully",
+          AppSnackbar.success(
+            decoded["messages"]?.toString() ??
+                "Product quantity updated successfully",
           );
         } else {
-          Get.snackbar(
-            "Error",
-            decoded["messages"] ?? "Failed to update product quantity",
+          AppSnackbar.error(
+            decoded["messages"]?.toString() ??
+                "Failed to update product quantity",
           );
         }
       } else {
-        Get.snackbar(
-          "Error",
-          decoded["messages"] ?? "Update failed: ${res.statusCode}",
-        );
+        if (decoded["messages"] != null) {
+          AppSnackbar.error(decoded["messages"].toString());
+        } else {
+          AppSnackbar.apiError(
+            "Update failed: ${res.statusCode} : ${res.body}",
+            statusCode: res.statusCode,
+          );
+        }
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

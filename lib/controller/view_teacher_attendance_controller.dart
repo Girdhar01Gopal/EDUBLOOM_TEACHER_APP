@@ -2,12 +2,14 @@
 //  view_teacher_attendance_controller.dart
 // ============================================================
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/teacher_attendance_view2 model.dart';
+import '../utils/app_snackbar.dart';
 
 class ViewTeacherAttendanceController extends GetxController {
   // ── Credentials ───────────────────────────────────────────────────────────
@@ -60,16 +62,11 @@ class ViewTeacherAttendanceController extends GetxController {
     userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
     roleName = await PrefManager().readValue(key: PrefConst.RName) ?? "";
 
-    if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
-      return;
-    }
-    if (session.trim().isEmpty) {
-      Get.snackbar("Error", "Session not found");
-      return;
-    }
-    if (userId.trim().isEmpty) {
-      Get.snackbar("Error", "UserId not found");
+    // Raw "SchoolId not found" jaisa text nahi — friendly line.
+    if (schoolId.trim().isEmpty ||
+        session.trim().isEmpty ||
+        userId.trim().isEmpty) {
+      AppSnackbar.error('Your session information is missing. Please login again.');
       return;
     }
     if (roleName.toLowerCase().trim() == "schoolstaff") {
@@ -102,27 +99,27 @@ class ViewTeacherAttendanceController extends GetxController {
         headers["Authorization"] = "Bearer $token";
       }
 
+      final requestBody = jsonEncode({
+        "month": monthIndex,
+        "schoolId": schoolId,
+        "session": session,
+        "userId": int.tryParse(userId) ?? 0,
+        "roleName": roleName, // ✅ NEW
+      });
+
       final res = await http.post(
         Uri.parse(_api),
         headers: headers,
-        body: jsonEncode({
-          "month": monthIndex,
-          "schoolId": schoolId,
-          "session": session,
-          "userId": int.tryParse(userId) ?? 0,
-          "roleName": roleName, // ✅ NEW
-        }),
+        body: requestBody,
       );
-      print("API response: ${res.statusCode} ${res.body}");
-      print(
-        "Request body: ${jsonEncode({"month": monthIndex, "schoolId": schoolId, "session": session, "userId": int.tryParse(userId) ?? 0, "roleName": roleName})}",
-      );
+      debugPrint("API response: ${res.statusCode} ${res.body}");
+      debugPrint("Request body: $requestBody");
 
       if (res.statusCode != 200) {
-        final msg = res.body.length > 250
-            ? "${res.body.substring(0, 250)}…"
-            : res.body;
-        Get.snackbar("Error", "API failed: ${res.statusCode}\n$msg");
+        // Raw API body / status code user ko nahi dikhana.
+        AppSnackbar.error(
+          AppSnackbar.friendlyMessage(null, statusCode: res.statusCode),
+        );
         return;
       }
 
@@ -142,10 +139,13 @@ class ViewTeacherAttendanceController extends GetxController {
       reportList.assignAll(_mergeByReg(rawList));
 
       if (reportList.isEmpty) {
-        Get.snackbar("Info", "No attendance data found");
+        // AppSnackbar me sirf success/error style hain, isliye info bhi
+        // usi card me "Info" title ke saath dikhta hai.
+        AppSnackbar.success('No attendance data found', title: 'Info');
       }
     } catch (e) {
-      Get.snackbar("Error", "Fetch error: $e");
+      // Raw "Fetch error: $e" nahi — friendly line.
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
     } finally {
       isLoading(false);
     }

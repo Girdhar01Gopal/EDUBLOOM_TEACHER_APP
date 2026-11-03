@@ -1,16 +1,14 @@
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../infrastructures/constant/image_constant.dart';
 import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
+import '../utils/app_snackbar.dart';
 import '../view_model/login_view_model.dart';
 import 'home_page_controller.dart';
 
@@ -43,7 +41,7 @@ class Activitymastercontroller extends GetxController {
   final myRepo = LoginRepository();
 
   int selectedIndex = 0;
-  Future<dynamic>? selectedWidget = null;
+  Future<dynamic>? selectedWidget;
   RxInt counter = 0.obs;
   final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
   final RxBool isToday = RxBool(false);
@@ -67,14 +65,16 @@ class Activitymastercontroller extends GetxController {
   }
 
   Future<void> fetchtoken() async {
-    var expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+    final pref = PrefManager();
+    final expireDate = await pref.readValue(key: PrefConst.expireDate);
 
     if (expireDate != null) {
       DateTime lastDate = DateTime.parse(expireDate);
-      isToday.value = DateFormat('yyyy-MM-dd').format(lastDate) == DateFormat('yyyy-MM-dd').format(DateTime.now());
-      if(isToday.isTrue){
-        var username = await PrefManager().readValue(key: PrefConst.username);
-        var password = await PrefManager().readValue(key: PrefConst.password);
+      final fmt = DateFormat('yyyy-MM-dd');
+      isToday.value = fmt.format(lastDate) == fmt.format(DateTime.now());
+      if (isToday.isTrue) {
+        var username = await pref.readValue(key: PrefConst.username);
+        var password = await pref.readValue(key: PrefConst.password);
         Map data = {
           "userName": username.toString(),
           "password": password.toString(),
@@ -92,9 +92,12 @@ class Activitymastercontroller extends GetxController {
       if (data.data != null) {
         PrefManager().writeValue(key: PrefConst.token, value: data.data!.accessToker!.token.toString());
       } else if (data.statusCode == 400) {
-        debugPrint("API error");
+        // ❌ Raw API text nahi, sirf friendly message
+        AppSnackbar.error(AppSnackbar.friendlyMessage(null, statusCode: 400));
       }
-    }).onError((error, stackTrace) {});
+    }).onError((error, stackTrace) {
+      AppSnackbar.error(AppSnackbar.friendlyMessage(error));
+    });
   }
 
   void onSelectedBottom(int index) {

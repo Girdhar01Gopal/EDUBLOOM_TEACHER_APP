@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../infrastructures/utils/utils.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class Sectioncontroller extends GetxController {
   final TextEditingController sessionController = TextEditingController();
@@ -64,9 +65,16 @@ class Sectioncontroller extends GetxController {
         }
       } else {
         debugPrint('Request failed: ${response.statusCode}');
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Request failed: ${response.statusCode} | ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('Error fetching sections: $e');
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -75,7 +83,7 @@ class Sectioncontroller extends GetxController {
   // ✅ Add New Section
   Future<void> postSession() async {
     if (sessionController.text.trim().isEmpty) {
-      ShortMessage.toast(title: "Please enter section name");
+      AppSnackbar.error("Please enter section name", title: "Validation");
       return;
     }
 
@@ -98,13 +106,16 @@ class Sectioncontroller extends GetxController {
 
       if (response.statusCode == 200) {
         sessionController.clear();
-        ShortMessage.toast(title: "Section added successfully");
+        AppSnackbar.success("Section added successfully");
         await fetchSessionData();
       } else {
-        ShortMessage.toast(title: "Failed to add section");
+        AppSnackbar.apiError(
+          'Failed to add section: ${response.statusCode} | ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      ShortMessage.toast(title: "Error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -131,13 +142,16 @@ class Sectioncontroller extends GetxController {
 
       if (response.statusCode == 200) {
         Get.back();
-        ShortMessage.toast(title: "Updated successfully");
+        AppSnackbar.success("Updated successfully");
         await fetchSessionData();
       } else {
-        ShortMessage.toast(title: "Update failed");
+        AppSnackbar.apiError(
+          'Update failed: ${response.statusCode} | ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      ShortMessage.toast(title: "Update error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }

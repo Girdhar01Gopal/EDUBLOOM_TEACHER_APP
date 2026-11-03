@@ -11,6 +11,7 @@ import '../models/classmodel.dart';
 import '../models/new model teacher section attendance.dart'; // SectionForAttendanceModel
 import '../models/pre school student teach stu filter api model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData;
 
@@ -78,7 +79,7 @@ class AllFeesController extends GetxController {
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar('Error', 'SchoolId not found');
+      AppSnackbar.error('SchoolId not found'); // 🔄
       return;
     }
 
@@ -87,8 +88,8 @@ class AllFeesController extends GetxController {
     if (session.trim().isEmpty || session == 'null') {
       try {
         session = await _fetchCurrentSession();
-      } catch (e) {
-        Get.snackbar('Error', 'Session API error: $e');
+      } catch (e, s) {
+        AppSnackbar.apiError(e, stackTrace: s); // 🔄
       }
     }
 
@@ -99,13 +100,13 @@ class AllFeesController extends GetxController {
 
     try {
       classList.assignAll(await _fetchClasses());
-    } catch (e) {
-      Get.snackbar('Error', 'Class API error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
     try {
       sectionList.assignAll(await _fetchSections());
-    } catch (e) {
-      Get.snackbar('Error', 'Section API error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
 
     // Pehli class aur pehla section by default select
@@ -385,9 +386,9 @@ class AllFeesController extends GetxController {
           ...list.where((s) => s.category == FeeCategory.preschool),
         ...results.first.where((s) => s.category == FeeCategory.daycare),
       ]);
-    } catch (e) {
+    } catch (e, s) {
       allStudents.clear();
-      Get.snackbar('Error', 'All Fee API error: $e');
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isLoading(false);
     }

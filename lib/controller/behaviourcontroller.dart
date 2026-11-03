@@ -13,6 +13,7 @@ import '../models/stationary_action1.dart';
 import '../res/app_url.dart';
 import '../infrastructures/routes/page_constants.dart';
 import '../models/classmodel.dart' show ClassItem, ListDataa;
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 // ── EXTENSIONS USING EXPANDO TO DYNAMICALLY ADD FIELDS WITHOUT ALTERING THE MODEL FILES ──
 extension DataClassFields on Data {
@@ -182,9 +183,11 @@ class Behaviourcontroller extends GetxController {
         }).toList();
         // 🆕 duplicates hatao
         listDataa.value = _dedupeClasses(mapped);
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         // 🆕 FIX: loader band karna zaroori hai (pehle yahan missing tha,
         // isliye chips ki jagah loader ghumta rehta tha)
@@ -234,10 +237,17 @@ class Behaviourcontroller extends GetxController {
             _dedupeClasses(data.map((e) => ListDataa.fromJson(e)).toList());
       } else {
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetClassTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
       listDataa.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -271,9 +281,16 @@ class Behaviourcontroller extends GetxController {
             .toList() ?? []);
       } else {
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewClass failed: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -323,8 +340,10 @@ class Behaviourcontroller extends GetxController {
         // teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -443,11 +462,16 @@ class Behaviourcontroller extends GetxController {
           debugPrint("⚠️ $zeroIds students have studentId=0");
         }
       } else {
-        Get.snackbar("Error", "Unable to load Day Care students: ${res.statusCode}");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Unable to load Day Care students: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Day Care fetch error => $e");
-      Get.snackbar("Error", "Failed to fetch Day Care students");
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -500,11 +524,16 @@ class Behaviourcontroller extends GetxController {
         // right after a fresh fetch, so this just mirrors the full list).
         _applyClassFilter();
       } else {
-        Get.snackbar("Error", "Unable to load students: ${res.statusCode}");
+        // 🆕 CHANGED: raw message nahi, sirf "Something went wrong" dikhega
+        AppSnackbar.apiError(
+          "Unable to load students: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("❌ Pre School fetch error => $e");
-      Get.snackbar("Error", "Failed to fetch students");
+      // 🆕 CHANGED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -544,19 +573,33 @@ class Behaviourcontroller extends GetxController {
 
     debugPrint("Fetching All Activities: $url");
 
-    final res = await http.get(Uri.parse(url));
-    debugPrint("Behaviour GET STATUS: ${res.statusCode}");
+    // 🆕 ADDED: try/catch — pehle yahan koi error handling nahi thi,
+    // isliye internet na hone par raw exception bahar aa jata tha
+    try {
+      final res = await http.get(Uri.parse(url));
+      debugPrint("Behaviour GET STATUS: ${res.statusCode}");
 
-    if (res.statusCode == 200) {
-      final jsonBody = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        final jsonBody = jsonDecode(res.body);
 
-      if (jsonBody["data"] != null) {
-        activityList.value = (jsonBody["data"] as List).map((e) {
-          final b = beData.fromJson(e);
-          b.className = e['className']?.toString();
-          return b;
-        }).toList();
+        if (jsonBody["data"] != null) {
+          activityList.value = (jsonBody["data"] as List).map((e) {
+            final b = beData.fromJson(e);
+            b.className = e['className']?.toString();
+            return b;
+          }).toList();
+        }
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Behaviour GET failed: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
+    } catch (e, stack) {
+      debugPrint("❌ fetchActivityList error => $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -704,6 +747,10 @@ class Behaviourcontroller extends GetxController {
         await fetchActivityList();
         resetForm();
         Get.offNamed(RouteName.behaviour);
+      } else {
+        AppSnackbar.apiError(
+          lastError.isEmpty ? "Failed to post Behaviour" : lastError,
+        );
       }
     } finally {
       isPosting.value = false;

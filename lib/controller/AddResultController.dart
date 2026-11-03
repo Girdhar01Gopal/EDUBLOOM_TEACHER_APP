@@ -16,6 +16,7 @@ import '../models/terms_result_model.dart';
 import '../models/viewsectionmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -166,58 +167,6 @@ class AddResultController extends GetxController {
   }
 
   // =========================
-  // SNACKBARS
-  // =========================
-  void _showSnack(
-      String title,
-      String message, {
-        Color? backgroundColor,
-        Color? colorText,
-      }) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: backgroundColor ?? Colors.red.shade100,
-      colorText: colorText ?? Colors.black87,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-      borderRadius: 8,
-      icon: _snackIcon(title),
-    );
-  }
-
-  // ✅ Already submitted snackbar
-  void _showAlreadySubmittedSnack() {
-    Get.snackbar(
-      "Already Submitted",
-      "This result is already submitted.",
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.amber.shade700,
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(12),
-      duration: const Duration(seconds: 3),
-      borderRadius: 8,
-      icon: const Icon(Icons.info_outline, color: Colors.white),
-    );
-  }
-
-  Widget? _snackIcon(String title) {
-    switch (title.toLowerCase()) {
-      case "success":
-        return const Icon(Icons.check_circle, color: Colors.white);
-      case "error":
-        return const Icon(Icons.error, color: Colors.red);
-      case "validation":
-        return const Icon(Icons.warning_amber_rounded, color: Colors.orange);
-      case "info":
-        return const Icon(Icons.info, color: Colors.blue);
-      default:
-        return null;
-    }
-  }
-
-  // =========================
   // INIT
   // =========================
   @override
@@ -238,7 +187,7 @@ class AddResultController extends GetxController {
     debugPrint("👤 Role read: '$role' | isStaffLogin: ${isStaffLogin.value}");
 
     if (schoolId.trim().isEmpty) {
-      _showSnack("Error", "School ID not found. Please login again.");
+      AppSnackbar.error("School ID not found. Please login again.");
       return;
     }
 
@@ -285,8 +234,8 @@ class AddResultController extends GetxController {
         fetchTerms(),
         fetchGrades(),
       ]);
-    } catch (e) {
-      _showSnack("Error", "Failed to load data: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -366,8 +315,8 @@ class AddResultController extends GetxController {
       // GetClassTeacher me action null aata hai, isliye filter nahi lagayenge
       classList.assignAll(parsed.listData);
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       classList.value = [];
     }
 
@@ -392,8 +341,8 @@ class AddResultController extends GetxController {
           .where((e) => e.action == "1")
           .toList();
       selectedClass.value = null;
-    } catch (e) {
-      Get.snackbar("Error", "Class fetch error (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isClassLoading(false);
     }
@@ -420,9 +369,9 @@ class AddResultController extends GetxController {
         list.map<ListDaataa>((e) => ListDaataa.fromJson(e)).toList(),
       );
       selectedSubject.value = null;
-    } catch (e) {
+    } catch (e, s) {
       subjectList.clear();
-      _showSnack("Error", "Subject fetch failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
 
     // if (subjectList.isEmpty) {
@@ -446,8 +395,8 @@ class AddResultController extends GetxController {
         subjectList.value = [];
       }
       selectedSubject.value = null;
-    } catch (e) {
-      _showSnack("Error", "Subject fetch failed (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubjectLoading(false);
     }
@@ -493,10 +442,10 @@ class AddResultController extends GetxController {
           }).toList(),
         );
         selectedSection.value = null;
-      } catch (e) {
+      } catch (e, s) {
         sectionList.clear();
         selectedSection.value = null;
-        _showSnack("Error", "Section fetch failed: $e");
+        AppSnackbar.apiError(e, stackTrace: s);
       }
 
       // if (sectionList.isEmpty) {
@@ -521,10 +470,10 @@ class AddResultController extends GetxController {
         );
         selectedSection.value = null;
       }
-    } catch (e) {
+    } catch (e, s) {
       sectionList.clear();
       selectedSection.value = null;
-      _showSnack("Error", "Section fetch failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
 
     // if (sectionList.isEmpty) {
@@ -548,8 +497,8 @@ class AddResultController extends GetxController {
         rawList.map((e) => stListData.fromJson(e)).toList(),
       );
       selectedSection.value = null;
-    } catch (e) {
-      _showSnack("Error", "Section fetch failed (staff): $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSectionLoading(false);
     }
@@ -569,10 +518,10 @@ class AddResultController extends GetxController {
             .toList(),
       );
       selectedTerm.value = null;
-    } catch (e) {
+    } catch (e, s) {
       termList.clear();
       selectedTerm.value = null;
-      _showSnack("Error", "Term fetch failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -596,9 +545,9 @@ class AddResultController extends GetxController {
             .map((g) => g.grade)
             .toList(),
       );
-    } catch (e) {
+    } catch (e, s) {
       gradeOptions.clear();
-      _showSnack("Error", "Grade fetch failed: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -608,23 +557,19 @@ class AddResultController extends GetxController {
   // =========================
   Future<void> searchStudents() async {
     if (selectedClass.value == null) {
-      _showSnack("Validation", "Please select a Class",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Please select a Class", title: "Validation");
       return;
     }
     if (selectedSubject.value == null) {
-      _showSnack("Validation", "Please select a Subject",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Please select a Subject", title: "Validation");
       return;
     }
     if (selectedSection.value == null) {
-      _showSnack("Validation", "Please select a Section",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Please select a Section", title: "Validation");
       return;
     }
     if (selectedTerm.value == null) {
-      _showSnack("Validation", "Please select a Term",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("Please select a Term", title: "Validation");
       return;
     }
 
@@ -650,8 +595,8 @@ class AddResultController extends GetxController {
       final decoded = _safeDecodeResponse(res, label: "ViewStudentbyClass");
 
       if (decoded == null) {
-        _showSnack("Info", "No students found for selected filters.",
-            backgroundColor: Colors.blue.shade100, colorText: Colors.black87);
+        AppSnackbar.error("No students found for selected filters.",
+            title: "Info");
         return;
       }
 
@@ -663,8 +608,8 @@ class AddResultController extends GetxController {
       }
 
       if (jsonList.isEmpty) {
-        _showSnack("Info", "No students found for selected filters.",
-            backgroundColor: Colors.blue.shade100, colorText: Colors.black87);
+        AppSnackbar.error("No students found for selected filters.",
+            title: "Info");
         return;
       }
 
@@ -678,18 +623,14 @@ class AddResultController extends GetxController {
             RxString(gradeOptions.isNotEmpty ? gradeOptions.first : "");
       }
 
-      _showSnack(
-        "Success",
-        "${parsed.length} students loaded successfully.",
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      AppSnackbar.success("${parsed.length} students loaded successfully.");
 
       currentTab.value = 1;
-    } catch (e) {
+    } catch (e, s) {
       studentList.clear();
       gradeMap.clear();
-      _showSnack("Error", "Search failed: $e");
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSearching(false);
     }
@@ -697,8 +638,7 @@ class AddResultController extends GetxController {
 
   Future<void> submitGrades() async {
     if (studentList.isEmpty) {
-      _showSnack("Warning", "No students to submit.",
-          backgroundColor: Colors.orange.shade100);
+      AppSnackbar.error("No students to submit.", title: "Warning");
       return;
     }
 
@@ -709,7 +649,8 @@ class AddResultController extends GetxController {
 
     if (pendingStudents.isEmpty) {
       // Sab already submitted — alag snackbar
-      _showAlreadySubmittedSnack();
+      AppSnackbar.error("This result is already submitted.",
+          title: "Already Submitted");
       return;
     }
 
@@ -772,25 +713,20 @@ class AddResultController extends GetxController {
 
       // ✅ Result snackbars
       if (failCount == 0) {
-        _showSnack(
-          "Success",
+        AppSnackbar.success(
           "Grades submitted successfully for $successCount student(s).",
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
         );
       } else if (successCount > 0) {
-        _showSnack(
-          "Warning",
+        AppSnackbar.error(
           "$successCount submitted, $failCount failed. Please retry.",
-          backgroundColor: Colors.orange.shade200,
-          colorText: Colors.black87,
+          title: "Warning",
         );
       } else {
-        _showSnack(
-            "Error", "All submissions failed ($failCount). Please try again.");
+        AppSnackbar.error(
+            "All submissions failed ($failCount). Please try again.");
       }
-    } catch (e) {
-      _showSnack("Error", "Submit failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubmitting(false);
     }

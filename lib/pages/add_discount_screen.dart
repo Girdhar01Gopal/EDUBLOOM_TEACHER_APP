@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controller/add_discount_controller.dart';
 import '../models/fee_type_model.dart';
 import '../models/fees_duration_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ NEW
 
 class AddDiscountScreen extends GetView<AddDiscountController> {
   @override
@@ -158,24 +159,19 @@ class AddDiscountScreen extends GetView<AddDiscountController> {
                     final totalAmount = controller.getTotalAmount(); // You need to implement this method
 
                     if (discountAmount > totalAmount) {
-                      Get.snackbar(
-                        'Invalid Discount',
+                      // ✅ CHANGED
+                      AppSnackbar.error(
                         'Discount amount cannot be greater than total fee amount (₹$totalAmount)',
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
-                        duration: Duration(seconds: 3),
+                        title: 'Invalid Discount',
                       );
                       return;
                     }
 
                     if (discountAmount <= 0) {
-                      Get.snackbar(
-                        'Invalid Discount',
+                      // ✅ CHANGED
+                      AppSnackbar.error(
                         'Please enter a valid discount amount',
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
+                        title: 'Invalid Discount',
                       );
                       return;
                     }

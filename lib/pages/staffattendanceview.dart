@@ -24,6 +24,19 @@ const Color kCheckInGreenLight = Color(0xFF43B983);
 const Color kCheckOutRed = Color(0xFFB23A3A);
 const Color kCheckOutRedDark = Color(0xFF7A1414);
 
+// ======================== TIME FORMAT HELPERS ========================
+String _p2(int n) => n.toString().padLeft(2, '0');
+int _h12(DateTime d) => d.hour % 12 == 0 ? 12 : d.hour % 12;
+String _ampm(DateTime d) => d.hour >= 12 ? "PM" : "AM";
+
+String _fmtClock(DateTime d) =>
+    "${_p2(_h12(d))}:${_p2(d.minute)}:${_p2(d.second)} ${_ampm(d)}";
+
+String _fmtTime(DateTime? d) {
+  if (d == null) return "--:--";
+  return "${_p2(_h12(d))}:${_p2(d.minute)} ${_ampm(d)}";
+}
+
 class Staffattendanceview extends StatelessWidget {
   const Staffattendanceview({super.key});
 
@@ -31,48 +44,47 @@ class Staffattendanceview extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(Staffattendancecontroller(), permanent: true);
 
-    return Obx(() {
-      return Scaffold(
-        backgroundColor: kScreenBg,
-        extendBodyBehindAppBar: false,
-        body: RefreshIndicator(
-          color: kPrimary,
-          onRefresh: () => controller.refreshListTab(),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(children: [_HeaderCard(controller: controller)]),
+    return Scaffold(
+      backgroundColor: kScreenBg,
+      extendBodyBehindAppBar: false,
+      body: RefreshIndicator(
+        color: kPrimary,
+        onRefresh: () => controller.refreshListTab(),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(children: [_HeaderCard(controller: controller)]),
+            ),
+            Obx(() => controller.isPageLoading.value
+                ? Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: LinearProgressIndicator(
+                backgroundColor: kPrimary.withOpacity(0.15),
+                valueColor: const AlwaysStoppedAnimation<Color>(kPrimary),
+                minHeight: 3,
               ),
-              if (controller.isPageLoading.value)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  child: LinearProgressIndicator(
-                    backgroundColor: kPrimary.withOpacity(0.15),
-                    valueColor: const AlwaysStoppedAnimation<Color>(kPrimary),
-                    minHeight: 3,
-                  ),
-                ),
-            ],
-          ),
+            )
+                : const SizedBox.shrink()),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 }
 
-// ======================== HEADER CARD ========================
-class _HeaderCard extends StatefulWidget {
-  final Staffattendancecontroller controller;
-  const _HeaderCard({required this.controller});
+// ======================== LIVE CLOCK ========================
+// Sirf ye text har second rebuild hota hai (pehle poora header rebuild hota tha).
+class _LiveClock extends StatefulWidget {
+  const _LiveClock();
 
   @override
-  State<_HeaderCard> createState() => _HeaderCardState();
+  State<_LiveClock> createState() => _LiveClockState();
 }
 
-class _HeaderCardState extends State<_HeaderCard> {
+class _LiveClockState extends State<_LiveClock> {
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
 
@@ -90,25 +102,27 @@ class _HeaderCardState extends State<_HeaderCard> {
     super.dispose();
   }
 
-  String _fmtClock(DateTime d) {
-    final h24 = d.hour;
-    final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
-    final ampm = h24 >= 12 ? "PM" : "AM";
-    return "${h12.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')} $ampm";
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _fmtClock(_now),
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 27.sp,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.5,
+      ),
+    );
   }
+}
 
-  String _fmtTime(DateTime? d) {
-    if (d == null) return "--:--";
-    final h24 = d.hour;
-    final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
-    final ampm = h24 >= 12 ? "PM" : "AM";
-    return "${h12.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} $ampm";
-  }
+// ======================== HEADER CARD ========================
+class _HeaderCard extends StatelessWidget {
+  final Staffattendancecontroller controller;
+  const _HeaderCard({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final controller = widget.controller;
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -177,26 +191,18 @@ class _HeaderCardState extends State<_HeaderCard> {
 
           SizedBox(height: 14.h),
 
-          Text(
+          Obx(() => Text(
             controller.displayDateLong,
             style: TextStyle(
               color: Colors.white.withOpacity(0.9),
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
-          ),
+          )),
 
           SizedBox(height: 4.h),
 
-          Text(
-            _fmtClock(_now),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 27.sp,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
+          const _LiveClock(),
 
           SizedBox(height: 18.h),
 
@@ -338,90 +344,87 @@ class _HeaderCardState extends State<_HeaderCard> {
                     SizedBox(
                       width: double.infinity,
                       height: 48.h,
-                      child: Builder(
-                        builder: (context) {
-                          final checkedIn = controller.isCheckedIn.value;
-                          final saving = controller.isCheckInOutSaving.value;
-                          return Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12.r),
-                              gradient: saving
-                                  ? LinearGradient(
-                                      colors: [
-                                        Colors.grey.shade300,
-                                        Colors.grey.shade300,
-                                      ],
-                                    )
-                                  : LinearGradient(
-                                      colors: checkedIn
-                                          ? [kCheckOutRed, kCheckOutRedDark]
-                                          : [kCheckInGreenLight, kCheckInGreen],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                              boxShadow: saving
-                                  ? []
-                                  : [
-                                      BoxShadow(
-                                        color:
-                                            (checkedIn
-                                                    ? kCheckOutRedDark
-                                                    : kCheckInGreen)
-                                                .withOpacity(0.35),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
+                      // Obx: button state (check in / out / saving) turant update ho
+                      child: Obx(() {
+                        final checkedIn = controller.isCheckedIn.value;
+                        final saving = controller.isCheckInOutSaving.value;
+                        return Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.r),
+                            gradient: saving
+                                ? LinearGradient(
+                              colors: [
+                                Colors.grey.shade300,
+                                Colors.grey.shade300,
+                              ],
+                            )
+                                : LinearGradient(
+                              colors: checkedIn
+                                  ? [kCheckOutRed, kCheckOutRedDark]
+                                  : [kCheckInGreenLight, kCheckInGreen],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
                             ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12.r),
-                                onTap: saving
-                                    ? null
-                                    : controller.handleCheckInOut,
-                                child: Center(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      saving
-                                          ? const SizedBox(
-                                              height: 18,
-                                              width: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : Icon(
-                                              checkedIn
-                                                  ? Icons.logout_rounded
-                                                  : Icons.login_rounded,
-                                              size: 20,
-                                              color: Colors.white,
-                                            ),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        saving
-                                            ? "Please wait..."
-                                            : (checkedIn
-                                                  ? "Check Out"
-                                                  : "Check In"),
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15.sp,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.2,
-                                        ),
+                            boxShadow: saving
+                                ? []
+                                : [
+                              BoxShadow(
+                                color:
+                                (checkedIn
+                                    ? kCheckOutRedDark
+                                    : kCheckInGreen)
+                                    .withOpacity(0.35),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12.r),
+                              onTap: saving ? null : controller.handleCheckInOut,
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    saving
+                                        ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
                                       ),
-                                    ],
-                                  ),
+                                    )
+                                        : Icon(
+                                      checkedIn
+                                          ? Icons.logout_rounded
+                                          : Icons.login_rounded,
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      saving
+                                          ? "Please wait..."
+                                          : (checkedIn
+                                          ? "Check Out"
+                                          : "Check In"),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      }),
                     )
                   else
                     Padding(

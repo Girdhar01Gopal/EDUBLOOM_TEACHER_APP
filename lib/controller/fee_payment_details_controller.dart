@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/fee_payment_details_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class FeePaymentDetailsController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -30,7 +31,7 @@ class FeePaymentDetailsController extends GetxController {
 
     if (schoolCode.value.trim().isEmpty) {
       errorMsg.value =
-      "SchoolId not found in storage. Login ke baad save nahi ho raha.";
+      "SchoolId not found in storage. not saved after login.";
       return;
     }
 
@@ -51,10 +52,15 @@ class FeePaymentDetailsController extends GetxController {
         session.value =
             jsonData['currentSession']?['currentSession']?.toString() ?? "";
       } else {
-        Get.snackbar("Error", "Session fetch failed: ${res.statusCode}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode} : ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Session fetch failed: $e");
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -74,10 +80,7 @@ class FeePaymentDetailsController extends GetxController {
 
   Future<void> fetchPaymentDetails() async {
     if (session.value.trim().isEmpty) {
-      Get.snackbar("Error", "Session not available",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP);
+      AppSnackbar.error("Session not available");
       return;
     }
 
@@ -96,12 +99,10 @@ class FeePaymentDetailsController extends GetxController {
       ).timeout(const Duration(seconds: 25));
 
       if (res.statusCode != 200) {
-        Get.snackbar(
-          "Error",
-          "Failed (${res.statusCode})",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed (${res.statusCode}) : ${res.body}",
+          statusCode: res.statusCode,
         );
         return;
       }
@@ -119,16 +120,19 @@ class FeePaymentDetailsController extends GetxController {
           .toList();
 
       payments.assignAll(list);
-    } catch (e) {
-      errorMsg.value = e.toString();
 
-      Get.snackbar(
-        "Error",
-        "Something went wrong: $e",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      // ✅ Success / Info snackbar
+      if (payments.isEmpty) {
+        AppSnackbar.error("No data found", title: "Info");
+      } else {
+        AppSnackbar.success("Data loaded successfully");
+      }
+    } catch (e, s) {
+      // ✅ Screen ke _errorBox me bhi raw error / URL na dikhe
+      errorMsg.value = "Something went wrong. Please try again.";
+
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }

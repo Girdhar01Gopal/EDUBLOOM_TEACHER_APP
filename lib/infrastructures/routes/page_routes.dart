@@ -964,6 +964,7 @@ GetPage(
       name: RouteName.attendance_screen,
       page: () => AttendancePage(),
       binding: AttendanceBinding(),
+      transition: Transition.leftToRight,
     ),
 
     GetPage(

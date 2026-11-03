@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../controller/mealcontroller.dart';
 import '../models/class_list_model.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 const Color kAxisMaroon = Color(0xFF97144D);
 
@@ -635,9 +636,7 @@ Widget _submitButton(Mealcontroller controller) {
       onPressed: () async {
         final success = await controller.postActivityToApi(controller.selectedStudentIds);
         if (success) {
-          Get.snackbar("Success", "Meal Activity posted successfully", backgroundColor: Colors.green, colorText: Colors.white, icon: const Icon(Icons.check_circle, color: Colors.white));
-        } else {
-          Get.snackbar("Error", "Failed to post activity", backgroundColor: Colors.red, colorText: Colors.white, icon: const Icon(Icons.error, color: Colors.white));
+          AppSnackbar.success("Meal Activity posted successfully");
         }
       },
       icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),

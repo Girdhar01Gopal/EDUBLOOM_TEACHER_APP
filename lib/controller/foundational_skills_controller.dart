@@ -9,6 +9,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/foundational_skills_model.dart';
 import '../models/session_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class FoundationalSkillsController extends GetxController {
   // ========= Text Controllers =========
@@ -36,7 +37,7 @@ class FoundationalSkillsController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -64,8 +65,9 @@ class FoundationalSkillsController extends GetxController {
 
       final contentType = res.headers['content-type'] ?? '';
       if (!contentType.contains('application/json')) {
-        Get.snackbar("Error",
-            "Session API unexpected response (${res.statusCode})");
+        AppSnackbar.apiError(
+            "Session API unexpected response (${res.statusCode})",
+            statusCode: res.statusCode);
         return;
       }
 
@@ -78,15 +80,16 @@ class FoundationalSkillsController extends GetxController {
             sessionModel.currentSession?.session?.toString().trim() ?? "";
 
         if (session.isEmpty) {
-          Get.snackbar("Error",
+          AppSnackbar.error(
               "No active session found. Please set a session first.");
         }
       } else {
-        Get.snackbar("Error",
-            "Failed to fetch session (${res.statusCode})");
+        AppSnackbar.apiError(
+            "Failed to fetch session (${res.statusCode})",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Session fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -101,7 +104,7 @@ class FoundationalSkillsController extends GetxController {
         // ✅ Try fetching session once more before giving up
         await _fetchCurrentSession();
         if (session.trim().isEmpty) {
-          Get.snackbar("Error", "Session not found. Please login again.");
+          AppSnackbar.error("Session not found. Please login again.");
           return;
         }
       }
@@ -115,8 +118,9 @@ class FoundationalSkillsController extends GetxController {
       final contentType = res.headers['content-type'] ?? '';
       if (!contentType.contains('application/json')) {
         _clearLists();
-        Get.snackbar(
-            "Error", "Unexpected server response (${res.statusCode})");
+        AppSnackbar.apiError(
+            "Unexpected server response (${res.statusCode})",
+            statusCode: res.statusCode);
         return;
       }
 
@@ -127,11 +131,12 @@ class FoundationalSkillsController extends GetxController {
         filteredList.assignAll(parsed.listData);
       } else {
         _clearLists();
-        Get.snackbar("Error", "Failed to load data (${res.statusCode})");
+        AppSnackbar.apiError("Failed to load data (${res.statusCode})",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
+    } catch (e, s) {
       _clearLists();
-      Get.snackbar("Error", "Fetch error: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -161,12 +166,13 @@ class FoundationalSkillsController extends GetxController {
     final text = foundationalSkillsController.text.trim();
 
     if (text.isEmpty) {
-      Get.snackbar("Validation", "Foundational Skills cannot be empty");
+      AppSnackbar.error("Foundational Skills cannot be empty",
+          title: "Validation");
       return;
     }
 
     if (session.trim().isEmpty) {
-      Get.snackbar("Error", "Session not found. Please login again.");
+      AppSnackbar.error("Session not found. Please login again.");
       return;
     }
 
@@ -195,7 +201,8 @@ class FoundationalSkillsController extends GetxController {
       );
 
       if (!_isJson(res)) {
-        Get.snackbar("Error", "Server error (${res.statusCode})");
+        AppSnackbar.apiError("Server error (${res.statusCode})",
+            statusCode: res.statusCode);
         return;
       }
 
@@ -207,19 +214,27 @@ class FoundationalSkillsController extends GetxController {
         if (decoded["isSuccess"] == true) {
           foundationalSkillsController.clear();
           await fetchFoundationalSkills();
-          Get.snackbar("Success", decoded["messages"] ?? "Added successfully");
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Added successfully");
         } else {
-          Get.snackbar("Error", decoded["messages"] ?? "Something went wrong");
+          // Short clean server message is shown; technical text becomes
+          // "Something went wrong" automatically.
+          AppSnackbar.error(
+              (decoded["messages"] ?? "Something went wrong").toString());
         }
       } else if (res.statusCode == 409) {
-        Get.snackbar("Duplicate",
-            decoded["messages"] ?? "Skill already exists for this school.");
+        AppSnackbar.error(
+            (decoded["messages"] ?? "Skill already exists for this school.")
+                .toString(),
+            title: "Duplicate");
       } else {
-        Get.snackbar("Error",
-            decoded["messages"] ?? "POST failed (${res.statusCode})");
+        AppSnackbar.apiError(
+            decoded["messages"] ?? "POST failed (${res.statusCode})",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -254,8 +269,8 @@ class FoundationalSkillsController extends GetxController {
                   : () async {
                 final updatedText = editController.text.trim();
                 if (updatedText.isEmpty) {
-                  Get.snackbar(
-                      "Validation", "Field cannot be empty");
+                  AppSnackbar.error("Field cannot be empty",
+                      title: "Validation");
                   return;
                 }
                 await updateFoundationalSkill(item, updatedText);
@@ -313,7 +328,8 @@ class FoundationalSkillsController extends GetxController {
       );
 
       if (!_isJson(res)) {
-        Get.snackbar("Error", "Server error (${res.statusCode})");
+        AppSnackbar.apiError("Server error (${res.statusCode})",
+            statusCode: res.statusCode);
         return;
       }
 
@@ -325,20 +341,24 @@ class FoundationalSkillsController extends GetxController {
         if (decoded["isSuccess"] == true) {
           Get.back();
           await fetchFoundationalSkills();
-          Get.snackbar(
-              "Success", decoded["messages"] ?? "Updated successfully");
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Updated successfully");
         } else {
-          Get.snackbar("Error", decoded["messages"] ?? "Something went wrong");
+          AppSnackbar.error(
+              (decoded["messages"] ?? "Something went wrong").toString());
         }
       } else if (res.statusCode == 409) {
-        Get.snackbar("Duplicate",
-            decoded["messages"] ?? "Skill already exists for this school.");
+        AppSnackbar.error(
+            (decoded["messages"] ?? "Skill already exists for this school.")
+                .toString(),
+            title: "Duplicate");
       } else {
-        Get.snackbar("Error",
-            decoded["messages"] ?? "Update failed (${res.statusCode})");
+        AppSnackbar.apiError(
+            decoded["messages"] ?? "Update failed (${res.statusCode})",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

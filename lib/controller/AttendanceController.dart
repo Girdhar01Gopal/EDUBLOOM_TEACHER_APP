@@ -12,6 +12,7 @@ import '../models/sectionmodel.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart' hide ClassItem; // 🆕 ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
 class AttendanceController extends GetxController {
@@ -113,8 +114,7 @@ class AttendanceController extends GetxController {
       token = await PrefManager().readValue(key: PrefConst.token) ?? "";
 
       if (schoolId.trim().isEmpty) {
-        _snack("Error", "SchoolId not found in storage",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('SchoolId not found in storage');
         return;
       }
 
@@ -135,8 +135,8 @@ class AttendanceController extends GetxController {
 
       await Future.wait(
           [fetchClasses(), fetchSections()]);
-    } catch (e) {
-      _snack("Error", "Initialization failed: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading.value = false;
     }
@@ -163,11 +163,11 @@ class AttendanceController extends GetxController {
           session.value = cs.session ?? "";
         }
       } else {
-        _snack("Error", "Session load failed (${res.statusCode})",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('ViewSessionApp failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      _snack("Error", "Sessions error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -212,9 +212,12 @@ class AttendanceController extends GetxController {
 
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      } else {
+        AppSnackbar.apiError('ClassTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      debugPrint("Error loading ClassTeacher filter: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -246,8 +249,8 @@ class AttendanceController extends GetxController {
           });
         }).toList();
         selectedClass.value = null;
-      } catch (e) {
-        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
         listDataa.value = [];
       }
       return;
@@ -258,8 +261,7 @@ class AttendanceController extends GetxController {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       if (userId == null || userId.trim().isEmpty) {
-        _snack("Error", "UserId not found in storage",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('UserId not found in storage');
         return;
       }
 
@@ -295,11 +297,11 @@ class AttendanceController extends GetxController {
           selectedClass.value = null;
         }
       } else {
-        _snack("Error", "Classes load failed (${res.statusCode})",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('GetClassTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      _snack("Error", "Classes error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -320,12 +322,11 @@ class AttendanceController extends GetxController {
             .toList() ?? [];
         selectedClass.value = null;
       } else {
-        _snack("Error", "Classes load failed (${response.statusCode})",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('ViewClass (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching classes (staff): $e");
-      _snack("Error", "Classes error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -345,8 +346,7 @@ class AttendanceController extends GetxController {
         final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
         if (userId == null || userId.trim().isEmpty) {
-          _snack("Error", "UserId not found in storage",
-              color: Colors.red.shade600);
+          AppSnackbar.apiError('UserId not found in storage');
           return;
         }
 
@@ -388,12 +388,11 @@ class AttendanceController extends GetxController {
 
           selectedSection.value = null;
         } else {
-          _snack("Error", "Sections load failed (${res.statusCode})",
-              color: Colors.red.shade600);
+          AppSnackbar.apiError('SectionTeacher failed: ${res.body}',
+              statusCode: res.statusCode);
         }
-      } catch (e) {
-        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
-        _snack("Error", "Sections error: $e", color: Colors.red.shade600);
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
       }
       return;
     }
@@ -403,8 +402,7 @@ class AttendanceController extends GetxController {
       final userId = await PrefManager().readValue(key: PrefConst.Userid);
 
       if (userId == null || userId.trim().isEmpty) {
-        _snack("Error", "UserId not found in storage",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('UserId not found in storage');
         return;
       }
 
@@ -432,12 +430,11 @@ class AttendanceController extends GetxController {
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
       } else {
-        _snack("Error", "Sections load failed (${res.statusCode})",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('GetSectionTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
-      _snack("Error", "Sections error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -473,12 +470,11 @@ class AttendanceController extends GetxController {
 
         selectedSection.value = null;
       } else {
-        _snack("Error", "Sections load failed (${response.statusCode})",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('ViewSectionApp (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching sections (staff): $e");
-      _snack("Error", "Sections error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -491,30 +487,25 @@ class AttendanceController extends GetxController {
 
   bool _validateFilters() {
     if (schoolId.isEmpty) {
-      _snack("Validation", "School ID not found",
-          color: Colors.orange.shade700, icon: Icons.warning_amber_rounded);
+      AppSnackbar.error("School ID not found", title: 'Validation');
       return false;
     }
     if ((selectedSession.value?.session ?? "").isEmpty) {
-      _snack("Validation", "Please select a session",
-          color: Colors.orange.shade700, icon: Icons.warning_amber_rounded);
+      AppSnackbar.error("Please select a session", title: 'Validation');
       return false;
     }
     if (selectedClass.value?.classId == null ||
         selectedClass.value!.classId == 0) {
-      _snack("Validation", "Please select a class",
-          color: Colors.orange.shade700, icon: Icons.warning_amber_rounded);
+      AppSnackbar.error("Please select a class", title: 'Validation');
       return false;
     }
     if (selectedSection.value?.sectionId == null ||
         selectedSection.value!.sectionId == 0) {
-      _snack("Validation", "Please select a section",
-          color: Colors.orange.shade700, icon: Icons.warning_amber_rounded);
+      AppSnackbar.error("Please select a section", title: 'Validation');
       return false;
     }
     if (selectedRawDate.value.trim().isEmpty) {
-      _snack("Validation", "Please select a date",
-          color: Colors.orange.shade700, icon: Icons.warning_amber_rounded);
+      AppSnackbar.error("Please select a date", title: 'Validation');
       return false;
     }
     return true;
@@ -606,19 +597,17 @@ class AttendanceController extends GetxController {
             duration: const Duration(seconds: 4),
           );
         } else {
-          _snack(
-            "Students Loaded",
+          AppSnackbar.success(
             "${students.length} students loaded — select status & submit",
-            color: Colors.green.shade600,
-            icon: Icons.check_circle,
+            title: "Students Loaded",
           );
         }
       } else {
-        _snack("Error", "Failed to load students (${res.statusCode})",
-            color: Colors.red.shade600);
+        AppSnackbar.apiError('ViewStudentAttendenceApp failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      _snack("Error", "Something went wrong: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading.value = false;
     }
@@ -681,8 +670,8 @@ class AttendanceController extends GetxController {
       return res.statusCode == 200 ||
           res.statusCode == 201 ||
           res.statusCode == 204;
-    } catch (e) {
-      debugPrint("⚠️ Error saving [${student.studentID}]: $e");
+    } catch (e, st) {
+      debugPrint("⚠️ Error saving [${student.studentID}]: $e\n$st");
       return false;
     }
   }
@@ -704,22 +693,16 @@ class AttendanceController extends GetxController {
       final bool success = await _saveOneStudent(student);
 
       if (success) {
-        _snack(
-          "Saved",
+        AppSnackbar.success(
           "${student.studentName ?? 'Student'}'s attendance (${student.action ?? 'Present'}) saved successfully ✓",
-          color: Colors.green.shade600,
-          icon: Icons.check_circle_outline,
+          title: "Saved",
         );
       } else {
-        _snack(
-          "Save Failed",
-          "Could not save attendance for ${student.studentName ?? 'this student'}. Please retry.",
-          color: Colors.red.shade600,
-          icon: Icons.error_outline,
-        );
+        AppSnackbar.apiError(
+            'saveSingleStudent failed for studentId=${student.studentID} (${student.studentName})');
       }
-    } catch (e) {
-      _snack("Error", "Unexpected error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       if (id != null) {
         savingStudentIds.remove(id);
@@ -732,12 +715,7 @@ class AttendanceController extends GetxController {
     if (!_validateFilters()) return;
 
     if (students.isEmpty) {
-      _snack(
-        "Error",
-        "No students loaded — tap 'Manage Attendance' first",
-        color: Colors.red.shade600,
-        icon: Icons.error_outline,
-      );
+      AppSnackbar.error("No students loaded — tap 'Manage Attendance' first");
       return;
     }
 
@@ -792,12 +770,9 @@ class AttendanceController extends GetxController {
         _submittedKeys.add(_currentKey);
         isAttendanceAlreadyMarked.value = true;
 
-        _snack(
-          "Attendance Submitted",
+        AppSnackbar.success(
           "Saved for all $successCount students successfully ✓",
-          color: Colors.green.shade600,
-          icon: Icons.check_circle_outline,
-          duration: const Duration(seconds: 3),
+          title: "Attendance Submitted",
         );
         await Future.delayed(const Duration(milliseconds: 900));
         Get.back();
@@ -809,15 +784,11 @@ class AttendanceController extends GetxController {
           icon: Icons.warning_amber_rounded,
         );
       } else {
-        _snack(
-          "Submit Failed",
-          "Could not save attendance. Check connection & retry.\n(Check debug logs for details)",
-          color: Colors.red.shade600,
-          icon: Icons.error_outline,
-        );
+        AppSnackbar.apiError(
+            'manageAttendance: all $failCount saves failed (see logs above)');
       }
-    } catch (e) {
-      _snack("Error", "Unexpected error: $e", color: Colors.red.shade600);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isSubmitting.value = false;
     }

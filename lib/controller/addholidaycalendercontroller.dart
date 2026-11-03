@@ -7,6 +7,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/holiday_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class AddHolidayCalendarController extends GetxController {
   String schoolId = "";
@@ -36,7 +37,7 @@ class AddHolidayCalendarController extends GetxController {
         await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -76,7 +77,7 @@ class AddHolidayCalendarController extends GetxController {
     final m = focusedMonth.value;
     final list = holidayList
         .where((h) =>
-            h.dateHoliday.year == m.year && h.dateHoliday.month == m.month)
+    h.dateHoliday.year == m.year && h.dateHoliday.month == m.month)
         .toList()
       ..sort((a, b) => a.dateHoliday.compareTo(b.dateHoliday));
     return list;
@@ -94,15 +95,18 @@ class AddHolidayCalendarController extends GetxController {
       isListLoading(true);
       final url = Uri.parse('${AppUrl.base_url}${AppUrl.getHoliday}$schoolId');
       final res =
-          await http.get(url, headers: {"Content-Type": "application/json"});
+      await http.get(url, headers: {"Content-Type": "application/json"});
 
       if (res.statusCode == 200) {
         holidayList.assignAll(Holiday.listFromJson(jsonDecode(res.body)));
       } else {
-        Get.snackbar("Error", "Failed to load holidays: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Failed to load holidays: ${res.statusCode}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to load holidays: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isListLoading(false);
     }
@@ -125,12 +129,12 @@ class AddHolidayCalendarController extends GetxController {
 
   Future<bool> saveHoliday() async {
     if (selectedDate.value == null) {
-      Get.snackbar("Validation", "Please select a date");
+      AppSnackbar.error("Please select a date", title: "Validation");
       return false;
     }
     final occasion = occasionController.text.trim();
     if (occasion.isEmpty) {
-      Get.snackbar("Validation", "Please enter the occasion");
+      AppSnackbar.error("Please enter the occasion", title: "Validation");
       return false;
     }
 
@@ -178,24 +182,25 @@ class AddHolidayCalendarController extends GetxController {
 
       if ((res.statusCode == 200 || res.statusCode == 201) &&
           body?['isSuccess'] != false) {
-        Get.snackbar(
-            "Success",
+        AppSnackbar.success(
             (message != null && message.isNotEmpty)
                 ? message
                 : editingHdId.value == 0
-                    ? "Holiday added successfully"
-                    : "Holiday updated successfully");
+                ? "Holiday added successfully"
+                : "Holiday updated successfully");
         resetForm();
         await fetchHolidays();
         return true;
       } else {
-        Get.snackbar("Error", message ?? "Save failed: ${res.statusCode}");
+        // error() hides technical / long text automatically
+        // and shows "Something went wrong" instead.
+        AppSnackbar.error(message ?? "Save failed. Please try again.");
         return false;
       }
     } catch (e, st) {
       debugPrint("══════ ADD HOLIDAY ERROR ══════");
       debugPrint("$e\n$st");
-      Get.snackbar("Error", "Save failed: $e");
+      AppSnackbar.apiError(e, stackTrace: st);
       return false;
     } finally {
       isSaving(false);

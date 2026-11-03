@@ -10,6 +10,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/session_model.dart';
 import '../models/terms_result_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class TermResultController extends GetxController {
   final TextEditingController termController = TextEditingController();
@@ -77,7 +78,7 @@ class TermResultController extends GetxController {
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -136,10 +137,11 @@ class TermResultController extends GetxController {
 
       termList.assignAll(parsed.listData ?? <TermData>[]);
       filteredList.assignAll(parsed.listData ?? <TermData>[]);
-    } catch (e) {
+    } catch (e, s) {
       termList.clear();
       filteredList.clear();
-      Get.snackbar("Error", "Fetch error: $e");
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -170,7 +172,7 @@ class TermResultController extends GetxController {
     final String text = termController.text.trim();
 
     if (text.isEmpty) {
-      Get.snackbar("Validation", "Term cannot be empty");
+      AppSnackbar.error("Term cannot be empty", title: "Validation");
       return;
     }
 
@@ -179,7 +181,7 @@ class TermResultController extends GetxController {
     );
 
     if (alreadyExists) {
-      Get.snackbar("Warning", "This term already exists");
+      AppSnackbar.error("This term already exists", title: "Warning");
       return;
     }
 
@@ -219,12 +221,15 @@ class TermResultController extends GetxController {
       if (isSuccess) {
         termController.clear();
         await fetchTerms();
-        Get.snackbar("Success", message);
+        // Fixed success text (server text is never shown directly)
+        AppSnackbar.success("Term saved successfully.");
       } else {
-        Get.snackbar("Error", message);
+        // Short clean server message is shown; technical text becomes
+        // "Something went wrong" automatically.
+        AppSnackbar.error(message);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -260,8 +265,8 @@ class TermResultController extends GetxController {
                 final String updatedText =
                 editController.text.trim();
                 if (updatedText.isEmpty) {
-                  Get.snackbar(
-                      "Validation", "Term cannot be empty");
+                  AppSnackbar.error("Term cannot be empty",
+                      title: "Validation");
                   return;
                 }
                 await updateTerm(item, updatedText);
@@ -298,7 +303,7 @@ class TermResultController extends GetxController {
     );
 
     if (alreadyExists) {
-      Get.snackbar("Warning", "This term already exists");
+      AppSnackbar.error("This term already exists", title: "Warning");
       return;
     }
 
@@ -341,12 +346,13 @@ class TermResultController extends GetxController {
       if (isSuccess) {
         Get.back();
         await fetchTerms();
-        Get.snackbar("Success", message);
+        // Fixed success text (server text is never shown directly)
+        AppSnackbar.success("Term updated successfully.");
       } else {
-        Get.snackbar("Error", message);
+        AppSnackbar.error(message);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

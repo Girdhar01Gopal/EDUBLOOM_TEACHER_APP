@@ -11,6 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../controller/home_page_controller.dart';
 import '../models/id_card_print_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 const _imgBase = 'https://playschool.edubloom.in';
 
@@ -172,6 +173,9 @@ class IdCardPrintScreen extends StatefulWidget {
 }
 
 class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
+  // Shown on screen instead of raw API / exception text
+  static const String _genericError = 'Something went wrong. Please try again.';
+
   bool   _isLoading = true;
   String? _error;
   IdCardStudentData? _student;
@@ -224,13 +228,23 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
             model.data!.isNotEmpty) {
           setState(() => _student = model.data!.first);
         } else {
-          setState(() => _error = model.messages ?? 'Failed to load data');
+          // Server's own short message is shown only if it is clean
+          AppSnackbar.error(model.messages ?? 'Failed to load data');
+          setState(() => _error = _genericError);
         }
       } else {
-        setState(() => _error = 'Server error: ${response.statusCode}');
+        // Real status code prints only in console
+        AppSnackbar.apiError(
+          'Server error: ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
+        setState(() => _error = _genericError);
       }
-    } catch (e) {
-      setState(() => _error = 'Error: $e');
+    } catch (e, s) {
+      // Net off / timeout / bad response -> user sees "Something went wrong",
+      // real error (with url) prints only in the console.
+      AppSnackbar.apiError(e, stackTrace: s);
+      setState(() => _error = _genericError);
     } finally {
       setState(() => _isLoading = false);
     }

@@ -8,6 +8,7 @@ import '../models/expenses_add_category_model.dart';
 import '../models/paymentmodel.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class AddExpenseController extends GetxController {
   // ─── Text Controllers ──────────────────────────────────────────────────────
@@ -94,25 +95,24 @@ class AddExpenseController extends GetxController {
               .toList();
           expensesList.assignAll(list);
         } else {
-          Get.snackbar(
-            'Error',
-            jsonResponse['messages'] ?? 'Failed to fetch expenses.',
-            snackPosition: SnackPosition.BOTTOM,
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+          // (technical / lamba text apne aap hide ho jata hai)
+          AppSnackbar.error(
+            jsonResponse['messages']?.toString() ??
+                'Failed to fetch expenses.',
           );
         }
       } else {
-        Get.snackbar(
-          'Error',
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        AppSnackbar.apiError(
           'Fetch failed: ${response.statusCode}',
-          snackPosition: SnackPosition.BOTTOM,
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Error fetching expenses: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error (URL wagairah) user ko nahi dikhega,
+      // sirf "Something went wrong", asli error console me
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoadingExpenses.value = false;
     }
@@ -144,18 +144,15 @@ class AddExpenseController extends GetxController {
         categories.sort((a, b) => b.createDate.compareTo(a.createDate));
         categoryItems.assignAll(categories);
       } else {
-        Get.snackbar(
-          'Error',
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        AppSnackbar.apiError(
           'Failed to load categories: ${response.statusCode}',
-          snackPosition: SnackPosition.BOTTOM,
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Error fetching categories: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoadingCategories.value = false;
     }
@@ -192,25 +189,20 @@ class AddExpenseController extends GetxController {
               .toList();
           paymentModeItems.assignAll(validItems);
         } else {
-          Get.snackbar(
-            'Info',
-            'No payment modes available.',
-            snackPosition: SnackPosition.BOTTOM,
-          );
+          // 🆕 CHANGED: Get.snackbar('Info') -> AppSnackbar.error
+          // (AppSnackbar mein Info type nahi hai)
+          AppSnackbar.error('No payment modes available.', title: 'Info');
         }
       } else {
-        Get.snackbar(
-          'Error',
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        AppSnackbar.apiError(
           'Failed to load payment modes: ${response.statusCode}',
-          snackPosition: SnackPosition.BOTTOM,
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Error fetching payment modes: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoadingPaymentModes.value = false;
     }
@@ -218,25 +210,22 @@ class AddExpenseController extends GetxController {
 
   // ─── 4. POST Add Expense ───────────────────────────────────────────────────
   Future<void> addExpense() async {
+    // 🆕 CHANGED: Get.snackbar -> AppSnackbar (validations)
     if (selectedCategoryId.value == null) {
-      Get.snackbar('Validation', 'Please select a category',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Please select a category', title: 'Validation');
       return;
     }
     if (selectedPaymentModeId.value == null) {
-      Get.snackbar('Validation', 'Please select a payment mode',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Please select a payment mode', title: 'Validation');
       return;
     }
     if (dateController.text.trim().isEmpty || selectedDate == null) {
-      Get.snackbar('Validation', 'Please select a date',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Please select a date', title: 'Validation');
       return;
     }
     final int? amount = int.tryParse(amountController.text.trim());
     if (amount == null || amount <= 0) {
-      Get.snackbar('Validation', 'Please enter a valid amount',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('Please enter a valid amount', title: 'Validation');
       return;
     }
 
@@ -283,38 +272,30 @@ class AddExpenseController extends GetxController {
 
         if (jsonResponse['isSuccess'] == true) {
           _clearForm();
-          Get.snackbar(
-            'Success',
-            jsonResponse['messages'] ?? 'Expense added successfully.',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: const Color(0xFF4CAF50),
-            colorText: Colors.white,
-            duration: const Duration(seconds: 3),
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar.success
+          AppSnackbar.success(
+            jsonResponse['messages']?.toString() ??
+                'Expense added successfully.',
           );
           await fetchExpenses();
         } else {
-          Get.snackbar(
-            'Error',
-            jsonResponse['messages'] ?? 'Failed to add expense.',
-            snackPosition: SnackPosition.BOTTOM,
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+          AppSnackbar.error(
+            jsonResponse['messages']?.toString() ?? 'Failed to add expense.',
           );
         }
       } else {
         debugPrint('Error Response: ${response.body}');
-        Get.snackbar(
-          'Error',
+        // 🆕 CHANGED: response.body user ko nahi dikhegi, sirf console me
+        AppSnackbar.apiError(
           'Server error: ${response.statusCode}\n${response.body}',
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 5),
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Exception in addExpense: $e');
-      Get.snackbar(
-        'Error',
-        'Error: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isPosting.value = false;
     }

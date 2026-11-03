@@ -18,6 +18,7 @@ import '../models/feedurationmodel.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel (Notes jaisa)
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class AddFeeHeadController extends GetxController {
   // ================= DROPDOWNS =================
@@ -96,7 +97,7 @@ class AddFeeHeadController extends GetxController {
     userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
 
     if (schoolId.isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -149,33 +150,45 @@ class AddFeeHeadController extends GetxController {
 
   // ================= FETCH APIs =================
   Future<void> fetchSessions() async {
-    final res = await http.get(Uri.parse(_sessionUrl));
-    if (res.statusCode != 200) return;
-
-    final jsonData = jsonDecode(res.body);
-    sessionList.clear();
-
-    if (jsonData['currentSession'] != null) {
-      final cs = session_model.sListDdata(
-        sessionId: jsonData['currentSession']['currentSessionId'],
-        session: jsonData['currentSession']['currentSession'],
-        action: jsonData['currentSession']['action'],
-        schoolId: jsonData['currentSession']['schoolId'],
-      );
-      sessionList.add(cs);
-      selectedSession.value = cs;
-    }
-
-    final list = jsonData['listData'];
-    if (list is List) {
-      for (final e in list) {
-        try {
-          final item = session_model.sListDdata.fromJson(e);
-          if (!sessionList.any((x) => x.sessionId == item.sessionId)) {
-            sessionList.add(item);
-          }
-        } catch (_) {}
+    try {
+      final res = await http.get(Uri.parse(_sessionUrl));
+      if (res.statusCode != 200) {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
+        return;
       }
+
+      final jsonData = jsonDecode(res.body);
+      sessionList.clear();
+
+      if (jsonData['currentSession'] != null) {
+        final cs = session_model.sListDdata(
+          sessionId: jsonData['currentSession']['currentSessionId'],
+          session: jsonData['currentSession']['currentSession'],
+          action: jsonData['currentSession']['action'],
+          schoolId: jsonData['currentSession']['schoolId'],
+        );
+        sessionList.add(cs);
+        selectedSession.value = cs;
+      }
+
+      final list = jsonData['listData'];
+      if (list is List) {
+        for (final e in list) {
+          try {
+            final item = session_model.sListDdata.fromJson(e);
+            if (!sessionList.any((x) => x.sessionId == item.sessionId)) {
+              sessionList.add(item);
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -292,16 +305,15 @@ class AddFeeHeadController extends GetxController {
         }
         selectedClass.value = null;
       } else {
-        Get.snackbar(
-          "Error",
-          "Failed to fetch classes: ${response.statusCode}",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        AppSnackbar.apiError(
+          "Failed to fetch classes: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
         );
         classList.value = [];
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("Error loading classes: $e");
+      AppSnackbar.apiError(e, stackTrace: s);
       classList.value = [];
     }
 
@@ -333,22 +345,42 @@ class AddFeeHeadController extends GetxController {
   }
 
   Future<void> fetchFeeTypes() async {
-    final res = await http.get(Uri.parse(_feeTypeUrl));
-    if (res.statusCode != 200) return;
+    try {
+      final res = await http.get(Uri.parse(_feeTypeUrl));
+      if (res.statusCode != 200) {
+        AppSnackbar.apiError(
+          "FeeType fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
+        return;
+      }
 
-    final parsed = FeeTypeModel.fromJson(jsonDecode(res.body));
-    feeTypeList.assignAll(parsed.listData ?? []);
-    selectedFeeType.value = null;
+      final parsed = FeeTypeModel.fromJson(jsonDecode(res.body));
+      feeTypeList.assignAll(parsed.listData ?? []);
+      selectedFeeType.value = null;
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
+    }
   }
 
   Future<void> fetchFeeDurations() async {
-    final res = await http.get(Uri.parse(_feeDurationUrl));
-    if (res.statusCode != 200) return;
+    try {
+      final res = await http.get(Uri.parse(_feeDurationUrl));
+      if (res.statusCode != 200) {
+        AppSnackbar.apiError(
+          "FeeDuration fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
+        return;
+      }
 
-    final parsed = FeeDurationMaster.fromJson(jsonDecode(res.body));
-    feeDurationList.assignAll(parsed.listData);
-    // ✅ CHANGED: clear multi-select list instead of single value
-    selectedFeeDurations.clear();
+      final parsed = FeeDurationMaster.fromJson(jsonDecode(res.body));
+      feeDurationList.assignAll(parsed.listData);
+      // ✅ CHANGED: clear multi-select list instead of single value
+      selectedFeeDurations.clear();
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
+    }
   }
 
   // =========================
@@ -443,11 +475,14 @@ class AddFeeHeadController extends GetxController {
         sectionList.assignAll(sectionModel.listData ?? []);
         selectedSection.value = null;
       } else {
-        Get.snackbar('Error', 'Failed to load sections');
+        AppSnackbar.apiError(
+          'Failed to load sections: ${response.statusCode} | ${response.body}',
+          statusCode: response.statusCode,
+        );
         sectionList.value = [];
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sections');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       sectionList.value = [];
     }
 
@@ -489,20 +524,24 @@ class AddFeeHeadController extends GetxController {
       );
 
       if (res.statusCode != 200) {
-        Get.snackbar("Error", "List API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "List API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
         return;
       }
 
       final parsed = AddFeeHeadMasterModel.fromJson(jsonDecode(res.body));
       if (parsed.isSuccess != true) {
         feeHeadList.clear();
-        Get.snackbar("Failed", parsed.messages);
+        // Server ka message technical hua to automatically "Something went wrong" ban jayega
+        AppSnackbar.error(parsed.messages, title: "Failed");
         return;
       }
 
       feeHeadList.assignAll(parsed.data);
-    } catch (e) {
-      Get.snackbar("Error", "Fetch list error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -532,13 +571,13 @@ class AddFeeHeadController extends GetxController {
         selectedFeeType.value == null ||
         selectedFeeDurations.isEmpty ||
         selectedSection.value == null) {
-      Get.snackbar("Validation", "All fields are required");
+      AppSnackbar.error("All fields are required", title: "Validation");
       return;
     }
 
     final amount = amountController.text.trim();
     if (amount.isEmpty) {
-      Get.snackbar("Validation", "Enter amount");
+      AppSnackbar.error("Enter amount", title: "Validation");
       return;
     }
 
@@ -547,7 +586,7 @@ class AddFeeHeadController extends GetxController {
     final int? feeTypeId = selectedFeeType.value!.feeTypeId;
 
     if (classId == null || sectionId == null || feeTypeId == null) {
-      Get.snackbar("Validation", "Invalid selection (IDs missing)");
+      AppSnackbar.error("Invalid selection (IDs missing)", title: "Validation");
       return;
     }
 
@@ -558,7 +597,7 @@ class AddFeeHeadController extends GetxController {
         .toList();
 
     if (durationIds.isEmpty) {
-      Get.snackbar("Validation", "Invalid fee duration selection");
+      AppSnackbar.error("Invalid fee duration selection", title: "Validation");
       return;
     }
 
@@ -591,20 +630,21 @@ class AddFeeHeadController extends GetxController {
       }
 
       if (successCount > 0) {
-        Get.snackbar(
-          "Success",
-          failCount == 0
-              ? "Fee Head saved for $successCount duration(s)"
-              : "Saved for $successCount duration(s), failed for $failCount",
-        );
         amountController.clear();
         selectedClass.value = null;
         selectedFeeType.value = null;
         selectedFeeDurations.clear();
         selectedSection.value = null;
         await fetchFeeHeadList();
+
+        // ✅ Success snackbar list refresh ke baad, taaki list wala snackbar ise replace na kare
+        AppSnackbar.success(
+          failCount == 0
+              ? "Fee Head saved for $successCount duration(s)"
+              : "Saved for $successCount duration(s), failed for $failCount",
+        );
       } else {
-        Get.snackbar("Failed", "Could not save fee head");
+        AppSnackbar.error("Could not save fee head", title: "Failed");
       }
     } finally {
       isSaving(false);

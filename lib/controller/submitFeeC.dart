@@ -10,6 +10,7 @@ import '../models/paymentmodel.dart';
 import '../models/student_fee_model.dart';
 import '../res/app_url.dart';
 import '../models/duefeesmodel.dart';
+import '../utils/app_snackbar.dart'; // ✅ NEW
 
 class SubmitFeeController extends GetxController {
   final feeItems = <ListData>[].obs;
@@ -24,6 +25,7 @@ class SubmitFeeController extends GetxController {
   final paidAmounts = <String, dynamic>{}.obs;
 
   final discountedAmounts = <String, int>{}.obs;
+  final discountList = <Map<String, dynamic>>[].obs;
 
   final paymentModes = <PaymentData>[].obs;
   final selectedPaymentMode = ''.obs;
@@ -222,19 +224,20 @@ class SubmitFeeController extends GetxController {
         final jsonResponse = jsonDecode(response.body);
         paymentModes.value = PaymentModel.fromJson(jsonResponse).listData ?? [];
       } else {
-        Get.snackbar('Error', 'Failed to load payment modes');
+        // ✅ CHANGED: user sees only "Something went wrong", real error in console
+        AppSnackbar.apiError(response.body, statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load payment modes');
+    } catch (e, s) {
+      // ✅ CHANGED
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
-  Future<void> fetchDiscount(int registrationNo) async {
-    if (registrationNo == null) return;
+  Future<void> fetchDiscount(int studentId) async {
+    if (studentId == 0 || session.value.isEmpty) return;
 
-    isLoading.value = true;
     final url = Uri.parse(
-      "${AppUrl.base_url}api/FeePaymentApp/GetDiscountdetailsApp/${session.value}/${schoolId.value}?registrationNo=$registrationNo",
+      "${AppUrl.base_url}api/FeePaymentApp/GetDiscountdetailsApp/${session.value}/$studentId",
     );
 
     try {
@@ -243,14 +246,17 @@ class SubmitFeeController extends GetxController {
       });
 
       if (response.statusCode == 200) {
-        // keep your existing logic
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          discountList.assignAll(
+            data.map((e) => Map<String, dynamic>.from(e)).toList(),
+          );
+        }
       } else {
-        // Get.snackbar("Error", "Failed to load discount details.");
+        debugPrint("fetchDiscount error: ${response.statusCode} => ${response.body}");
       }
     } catch (e) {
-      Get.snackbar("Error", "Error occurred while fetching discount details.");
-    } finally {
-      isLoading.value = false;
+      debugPrint("fetchDiscount exception: $e");
     }
   }
 
@@ -352,20 +358,15 @@ class SubmitFeeController extends GetxController {
     dueAmounts.refresh();
 
     if (remainingDiscount > 0) {
-      Get.snackbar(
-        'Info',
+      // ✅ CHANGED
+      AppSnackbar.success(
         'Discount of ₹${discountAmount - remainingDiscount} applied. Remaining ₹$remainingDiscount not used.',
-        backgroundColor: Colors.blue,
-        colorText: Colors.white,
+        title: 'Info',
       );
     } else {
-      Get.snackbar(
-        'Success',
-        'Discount of ₹$discountAmount applied successfully',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-      Get.offAll(RouteName.dashboard_screen);
+      // ✅ CHANGED
+      AppSnackbar.success('Discount of ₹$discountAmount applied successfully');
+      Get.offAllNamed(RouteName.fees_screen);
     }
   }
 
@@ -379,12 +380,8 @@ class SubmitFeeController extends GetxController {
 
 
     if (totalDueAmount == 0 && totalAmount == 0) {
-      Get.snackbar(
-        'Info',
-        'All selected fees are already paid',
-        backgroundColor: Colors.blue,
-        colorText: Colors.white,
-      );
+      // ✅ CHANGED
+      AppSnackbar.success('All selected fees are already paid', title: 'Info');
       return;
     }
 
@@ -558,11 +555,10 @@ class SubmitFeeController extends GetxController {
                         : (selectedDue > totalAmount ? selectedDue : totalAmount.toInt());
 
                     if (enteredAmount > dynamicMax) {
-                      Get.snackbar(
-                        'Warning',
+                      // ✅ CHANGED
+                      AppSnackbar.error(
                         'Payment amount cannot exceed ₹$dynamicMax',
-                        backgroundColor: Colors.orange,
-                        colorText: Colors.white,
+                        title: 'Warning',
                       );
 
                       totalPayAmount.value = dynamicMax;
@@ -715,20 +711,21 @@ class SubmitFeeController extends GetxController {
                             ((mode == 'UPI') && upiId.value.isEmpty);
 
                         if (invalid) {
-                          Get.snackbar(
-                            'Error',
-                            'Please fill in all fields',
-                            backgroundColor: Colors.red,
-                            colorText: Colors.white,
-                          );
+                          // ✅ CHANGED
+                          AppSnackbar.error('Please fill in all fields');
                           return;
                         }
 
+                        FocusManager.instance.primaryFocus?.unfocus(); // keyboard pehle band
+
                         submitFeeInstallment(fesmonth: feesmonth, studentn: studentname, feetype: feetype, dueamount: due, paydatee: paymentDateController.text );
 
-                        payAmountController.dispose();
-                        paymentDateController.dispose();
                         Get.back();
+
+                        Future.delayed(const Duration(milliseconds: 600), () {
+                          payAmountController.dispose();
+                          paymentDateController.dispose();
+                        });
                       },
                       child: const Text('Pay Now'),
                     ),
@@ -836,7 +833,8 @@ class SubmitFeeController extends GetxController {
     }
 
     if (paymentItems.isEmpty) {
-      Get.snackbar("Error", "No valid payment items to submit");
+      // ✅ CHANGED
+      AppSnackbar.error("No valid payment items to submit");
       return;
     }
 
@@ -852,11 +850,9 @@ class SubmitFeeController extends GetxController {
 
       if (response.statusCode == 200) {
         print(response.body);
-        Get.snackbar(
-          "Success",
+        // ✅ CHANGED
+        AppSnackbar.success(
           "Payment of ₹$totalPayValue submitted successfully for ${paymentItems.length} fee(s)!",
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
         );
 
         // Clear selections and refresh
@@ -864,11 +860,13 @@ class SubmitFeeController extends GetxController {
         await refreshData();
       } else {
         print("ERROR => ${response.body}");
-        Get.snackbar("Error", "Submission failed (${response.statusCode})");
+        // ✅ CHANGED: no status code / api text shown to user
+        AppSnackbar.apiError(response.body, statusCode: response.statusCode);
       }
-    } catch (e) {
+    } catch (e, s) {
       print("Exception => $e");
-      Get.snackbar("Error", "$e");
+      // ✅ CHANGED: no raw exception / url shown to user
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 

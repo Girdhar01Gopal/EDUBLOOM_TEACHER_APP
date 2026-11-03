@@ -53,6 +53,39 @@ class Staffaddview extends GetView<Addstaffcontroller> {
   }
 }
 
+// ── Form fields (Add tab + Edit dialog dono me same) ──────────────────────────
+List<Widget> _formSections(Addstaffcontroller controller, int cols) {
+  return [
+    _Grid(columns: cols, children: [
+      _TextFieldBlock(label: 'Staff Name *', controller: controller.teacherNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, 'Staff Name')),
+      _ReadOnlyFieldBlock(label: 'Staff ID', controller: controller.teacherIdC),
+      _TextFieldBlock(label: "Father/Husband's Name *", controller: controller.fatherHusbandNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, "Father/Husband's Name")),
+      _DateFieldBlock(label: 'Date Of Birth *', controller: controller.dobC, onPick: () => controller.pickDate(controller: controller.dobC, firstDate: DateTime(1950), lastDate: DateTime.now()), validator: (v) => controller.requiredValidator(v, 'Date Of Birth')),
+      _DropdownBlock(label: 'Blood Group *', valueRx: controller.bloodGroup, itemsBuilder: () => controller.bloodGroups, hint: 'Select Blood Group'),
+      _DropdownBlock(label: 'Gender *', valueRx: controller.gender, itemsBuilder: () => controller.genders, hint: 'Select Gender'),
+      _DropdownBlock(label: 'Caste *', valueRx: controller.caste, itemsBuilder: () => controller.castes, hint: 'Select Caste'),
+      _TextFieldBlock(label: 'E-Mail ', controller: controller.emailC, keyboardType: TextInputType.emailAddress, validator: controller.emailValidator, hint: 'Enter email'),
+      _TextFieldBlock(label: 'Mobile No *', controller: controller.mobileC, keyboardType: TextInputType.phone, validator: controller.mobileValidator, maxLength: 10, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)]),
+      _DropdownBlock(label: 'Staff Type *', valueRx: controller.designation, itemsBuilder: () => controller.designationNames, hint: 'Select Staff Type', isLoadingRx: controller.isDesignationLoading),
+      _TextFieldBlock(label: 'License No', controller: controller.salaryC, keyboardType: TextInputType.number, validator: (v) => controller.numberOptionalValidator(v, 'License No'), inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
+      _TextFieldBlock(label: 'State *', controller: controller.stateC, validator: (v) => controller.requiredValidator(v, 'State'), hint: 'Enter state', textCapitalization: TextCapitalization.words),
+      _TextFieldBlock(label: 'City *', controller: controller.cityC, validator: (v) => controller.requiredValidator(v, 'City'), textCapitalization: TextCapitalization.words),
+      _DateFieldBlock(label: 'Date Of Joining *', controller: controller.joiningDateC, onPick: () => controller.pickDate(controller: controller.joiningDateC, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 3650))), validator: (v) => controller.requiredValidator(v, 'Date Of Joining')),
+      _TextFieldBlock(label: 'Address *', controller: controller.addressC, validator: (v) => controller.requiredValidator(v, 'Address'), hint: 'Enter address', maxLines: 2, textCapitalization: TextCapitalization.sentences),
+    ]),
+
+    const SizedBox(height: 18),
+    _Grid(columns: cols == 1 ? 1 : 2, children: [
+      _fileCol('Upload Staff Photo', controller.userPic, controller),
+      _fileCol('Upload ID Proof', controller.idProofPhoto, controller),
+    ]),
+    const SizedBox(height: 18),
+    _Grid(columns: cols == 1 ? 1 : 2, children: [
+      _fileCol('Upload License Photo', controller.resumePhoto, controller),
+    ]),
+  ];
+}
+
 // ── Add Staff Tab ─────────────────────────────────────────────────────────────
 class AddTeacherTab extends GetView<Addstaffcontroller> {
   const AddTeacherTab({super.key});
@@ -95,33 +128,7 @@ class AddTeacherTab extends GetView<Addstaffcontroller> {
                           )),
                           const SizedBox(height: 16),
 
-                          _Grid(columns: cols, children: [
-                            _TextFieldBlock(label: 'Staff Name *', controller: controller.teacherNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, 'Staff Name')),
-                            _ReadOnlyFieldBlock(label: 'Staff ID', controller: controller.teacherIdC),
-                            _TextFieldBlock(label: "Father/Husband's Name *", controller: controller.fatherHusbandNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, "Father/Husband's Name")),
-                            _DateFieldBlock(label: 'Date Of Birth *', controller: controller.dobC, onPick: () => controller.pickDate(controller: controller.dobC, firstDate: DateTime(1950), lastDate: DateTime.now()), validator: (v) => controller.requiredValidator(v, 'Date Of Birth')),
-                            _DropdownBlock(label: 'Blood Group *', valueRx: controller.bloodGroup, itemsBuilder: () => controller.bloodGroups, hint: 'Select Blood Group'),
-                            _DropdownBlock(label: 'Gender *', valueRx: controller.gender, itemsBuilder: () => controller.genders, hint: 'Select Gender'),
-                            _DropdownBlock(label: 'Caste *', valueRx: controller.caste, itemsBuilder: () => controller.castes, hint: 'Select Caste'),
-                            _TextFieldBlock(label: 'E-Mail ', controller: controller.emailC, keyboardType: TextInputType.emailAddress, validator: controller.emailValidator, hint: 'Enter email'),
-                            _TextFieldBlock(label: 'Mobile No *', controller: controller.mobileC, keyboardType: TextInputType.phone, validator: controller.mobileValidator, maxLength: 10, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)]),
-                            _DropdownBlock(label: 'Staff Type *', valueRx: controller.designation, itemsBuilder: () => controller.designationNames, hint: 'Select Staff Type', isLoadingRx: controller.isDesignationLoading),
-                            _TextFieldBlock(label: 'License No', controller: controller.salaryC, keyboardType: TextInputType.number, validator: (v) => controller.numberOptionalValidator(v, 'License No'), inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
-                            _TextFieldBlock(label: 'State *', controller: controller.stateC, validator: (v) => controller.requiredValidator(v, 'State'), hint: 'Enter state', textCapitalization: TextCapitalization.words),
-                            _TextFieldBlock(label: 'City *', controller: controller.cityC, validator: (v) => controller.requiredValidator(v, 'City'), textCapitalization: TextCapitalization.words),
-                            _DateFieldBlock(label: 'Date Of Joining *', controller: controller.joiningDateC, onPick: () => controller.pickDate(controller: controller.joiningDateC, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 3650))), validator: (v) => controller.requiredValidator(v, 'Date Of Joining')),
-                            _TextFieldBlock(label: 'Address *', controller: controller.addressC, validator: (v) => controller.requiredValidator(v, 'Address'), hint: 'Enter address', maxLines: 2, textCapitalization: TextCapitalization.sentences),
-                          ]),
-
-                          const SizedBox(height: 18),
-                          _Grid(columns: cols == 1 ? 1 : 2, children: [
-                            _fileCol('Upload Staff Photo', controller.userPic, controller),
-                            _fileCol('Upload ID Proof', controller.idProofPhoto, controller),
-                          ]),
-                          const SizedBox(height: 18),
-                          _Grid(columns: cols == 1 ? 1 : 2, children: [
-                            _fileCol('Upload License Photo', controller.resumePhoto, controller),
-                          ]),
+                          ..._formSections(controller, cols),
                           const SizedBox(height: 22),
 
                           Row(children: [
@@ -450,34 +457,7 @@ class _EditTeacherDialogForm extends StatelessWidget {
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Grid(columns: cols, children: [
-              _TextFieldBlock(label: 'Staff Name *', controller: controller.teacherNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, 'Staff Name')),
-              _ReadOnlyFieldBlock(label: 'Staff ID', controller: controller.teacherIdC),
-              _TextFieldBlock(label: "Father/Husband's Name *", controller: controller.fatherHusbandNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, "Father/Husband's Name")),
-              _DateFieldBlock(label: 'Date Of Birth *', controller: controller.dobC, onPick: () => controller.pickDate(controller: controller.dobC, firstDate: DateTime(1950), lastDate: DateTime.now()), validator: (v) => controller.requiredValidator(v, 'Date Of Birth')),
-              _DropdownBlock(label: 'Blood Group *', valueRx: controller.bloodGroup, itemsBuilder: () => controller.bloodGroups, hint: 'Select Blood Group'),
-              _DropdownBlock(label: 'Gender *', valueRx: controller.gender, itemsBuilder: () => controller.genders, hint: 'Select Gender'),
-              _DropdownBlock(label: 'Caste *', valueRx: controller.caste, itemsBuilder: () => controller.castes, hint: 'Select Caste'),
-              _TextFieldBlock(label: 'E-Mail ', controller: controller.emailC, keyboardType: TextInputType.emailAddress, validator: controller.emailValidator, hint: 'Enter email'),
-              _TextFieldBlock(label: 'Mobile No *', controller: controller.mobileC, keyboardType: TextInputType.phone, validator: controller.mobileValidator, maxLength: 10, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)]),
-              _DropdownBlock(label: 'Staff Type *', valueRx: controller.designation, itemsBuilder: () => controller.designationNames, hint: 'Select Staff Type', isLoadingRx: controller.isDesignationLoading),
-              _TextFieldBlock(label: 'License No', controller: controller.salaryC, keyboardType: TextInputType.number, validator: (v) => controller.numberOptionalValidator(v, 'License No'), inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
-              _TextFieldBlock(label: 'State *', controller: controller.stateC, validator: (v) => controller.requiredValidator(v, 'State'), hint: 'Enter state', textCapitalization: TextCapitalization.words),
-              _TextFieldBlock(label: 'City *', controller: controller.cityC, validator: (v) => controller.requiredValidator(v, 'City'), textCapitalization: TextCapitalization.words),
-              _DateFieldBlock(label: 'Date Of Joining *', controller: controller.joiningDateC, onPick: () => controller.pickDate(controller: controller.joiningDateC, firstDate: DateTime(2000), lastDate: DateTime.now().add(const Duration(days: 3650))), validator: (v) => controller.requiredValidator(v, 'Date Of Joining')),
-              _TextFieldBlock(label: 'Address *', controller: controller.addressC, validator: (v) => controller.requiredValidator(v, 'Address'), hint: 'Enter address', maxLines: 2, textCapitalization: TextCapitalization.sentences),
-            ]),
-            const SizedBox(height: 18),
-            _Grid(columns: cols == 1 ? 1 : 2, children: [
-              _fileCol('Upload Staff Photo', controller.userPic, controller),
-              _fileCol('Upload ID Proof', controller.idProofPhoto, controller),
-            ]),
-            const SizedBox(height: 18),
-            _Grid(columns: cols == 1 ? 1 : 2, children: [
-              _fileCol('Upload License Photo', controller.resumePhoto, controller),
-            ]),
-          ],
+          children: _formSections(controller, cols),
         );
       },
     );
@@ -502,7 +482,9 @@ class _Grid extends StatelessWidget {
     final rows = <Widget>[];
     for (int i = 0; i < children.length; i += columns) {
       final rowChildren = children.skip(i).take(columns).toList();
-      while (rowChildren.length < columns) rowChildren.add(const SizedBox());
+      while (rowChildren.length < columns) {
+        rowChildren.add(const SizedBox());
+      }
       rows.add(Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Row(
@@ -641,7 +623,8 @@ class _DropdownBlock extends StatelessWidget {
         final loading = isLoadingRx?.value ?? false;
         String? sel = valueRx.value?.trim();
         if (sel != null && sel.isNotEmpty) {
-          final matched = items.where((e) => e.toLowerCase() == sel!.toLowerCase()).toList();
+          final lower = sel.toLowerCase();
+          final matched = items.where((e) => e.toLowerCase() == lower).toList();
           sel = matched.length == 1 ? matched.first : null;
         } else {
           sel = null;

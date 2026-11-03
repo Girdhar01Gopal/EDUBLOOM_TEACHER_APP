@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/daycare_durationmaster_model.dart';
+import '../utils/app_snackbar.dart';
 
 class DayCareDurationController extends GetxController {
   final TextEditingController dayCareDurationController = TextEditingController();
@@ -53,11 +54,11 @@ class DayCareDurationController extends GetxController {
     final dayCareDurationValue = dayCareDurationController.text.trim();
 
     if (dayCareDurationValue.isEmpty) {
-      Get.snackbar("Validation", "Please enter Day Care Duration");
+      AppSnackbar.error("Please enter Day Care Duration", title: "Validation");
       return;
     }
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -88,17 +89,22 @@ class DayCareDurationController extends GetxController {
         final ok = jsonRes["isSuccess"] == true;
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Day Care Duration added" : msg);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Day Care Duration added successfully");
           dayCareDurationController.clear();
           await fetchDayCareDurations(showLoader: false);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Not saved" : msg);
+          // Short clean server message is shown; technical text becomes
+          // "Something went wrong" automatically.
+          AppSnackbar.error(msg.isEmpty ? "Not saved" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "API failed: ${res.statusCode}");
+        AppSnackbar.apiError("API failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Save failed: $e");
+    } catch (e, s) {
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -111,11 +117,12 @@ class DayCareDurationController extends GetxController {
     final dayCareDurationValue = dayCareDuration.trim();
 
     if (dayCareDurationValue.isEmpty) {
-      Get.snackbar("Validation", "Day Care Duration cannot be empty");
+      AppSnackbar.error("Day Care Duration cannot be empty",
+          title: "Validation");
       return;
     }
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -152,16 +159,19 @@ class DayCareDurationController extends GetxController {
 
         if (ok) {
           Get.back();
-          Get.snackbar("Success", msg.isEmpty ? "Updated" : msg);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Day Care Duration updated successfully");
           await fetchDayCareDurations(showLoader: false);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Update failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Update failed" : msg,
+              title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "Update API failed: ${res.statusCode}");
+        AppSnackbar.apiError("Update API failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -170,7 +180,7 @@ class DayCareDurationController extends GetxController {
   // ✅ Toggle Active/Inactive
   Future<void> toggleActiveInactive({required int dayCareDurationId}) async {
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -200,13 +210,18 @@ class DayCareDurationController extends GetxController {
 
         final msg = (jsonRes["messages"] ?? "").toString();
 
-        Get.snackbar("Success", msg.isEmpty ? "Status updated" : msg);
+        // Short clean server message is shown; otherwise a fixed text.
+        // Technical text becomes "Something went wrong" automatically.
+        AppSnackbar.success(msg.isEmpty || msg.length > 140
+            ? "Status updated successfully"
+            : msg);
         await fetchDayCareDurations(showLoader: false);
       } else {
-        Get.snackbar("Error", "Status update API failed: ${res.statusCode}");
+        AppSnackbar.apiError("Status update API failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Status update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -214,7 +229,7 @@ class DayCareDurationController extends GetxController {
 
   Future<void> fetchDayCareDurations({bool showLoader = true}) async {
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -235,10 +250,11 @@ class DayCareDurationController extends GetxController {
         final list = DayCareDurationModel.fromJsonList(jsonRes);
         dayCareDurations.assignAll(list);
       } else {
-        Get.snackbar("Error", "Fetch failed: ${res.statusCode}");
+        AppSnackbar.apiError("Fetch failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       if (showLoader) isLoading(false);
     }

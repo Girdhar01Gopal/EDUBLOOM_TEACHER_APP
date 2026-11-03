@@ -12,6 +12,7 @@ import '../res/app_url.dart';
 import '../models/session_model.dart' as session_model;
 import '../models/fee_type_model.dart';
 import '../models/daycare_durationmaster_model.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class DayCareFeeMasterController extends GetxController {
   // ========= Session Dropdown =========
@@ -53,7 +54,7 @@ class DayCareFeeMasterController extends GetxController {
 
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -100,10 +101,15 @@ class DayCareFeeMasterController extends GetxController {
           selectedSession.value = null;
         }
       } else {
-        Get.snackbar("Error", "Session API failed: ${res.statusCode}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Session error: $e");
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -124,10 +130,13 @@ class DayCareFeeMasterController extends GetxController {
         feeTypeList.assignAll(parsed.listData ?? []);
         selectedFeeType.value = null;
       } else {
-        Get.snackbar("Error", "Fee Type API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Fee Type API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fee Type error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -152,10 +161,13 @@ class DayCareFeeMasterController extends GetxController {
         final list = DayCareDurationModel.fromJsonList(jsonData);
         daycareDurationList.assignAll(list);
       } else {
-        Get.snackbar("Error", "Daycare Duration API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "Daycare Duration API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Daycare Duration error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -188,7 +200,8 @@ class DayCareFeeMasterController extends GetxController {
         final ok = jsonData["isSuccess"] == true;
         if (!ok) {
           daycareFeeList.clear();
-          Get.snackbar("Failed", (jsonData["messages"] ?? "Fetch failed").toString());
+          // Server ka message technical hua to automatically "Something went wrong" ban jayega
+          AppSnackbar.error((jsonData["messages"] ?? "Fetch failed").toString(), title: "Failed");
           return;
         }
 
@@ -197,10 +210,13 @@ class DayCareFeeMasterController extends GetxController {
           data.map((e) => DaycareFeeRow.fromJson(e as Map<String, dynamic>)).toList(),
         );
       } else {
-        Get.snackbar("Error", "List API failed: ${res.statusCode}\n${res.body}");
+        AppSnackbar.apiError(
+          "List API failed: ${res.statusCode}\n${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch list error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -214,25 +230,25 @@ class DayCareFeeMasterController extends GetxController {
     final months = selectedMonths;
 
     if (session == null || session.isEmpty) {
-      Get.snackbar("Validation", "Select Session");
+      AppSnackbar.error("Select Session", title: "Validation");
       return;
     }
     if (duration == null || duration.isEmpty) {
-      Get.snackbar("Validation", "Select Daycare Duration");
+      AppSnackbar.error("Select Daycare Duration", title: "Validation");
       return;
     }
     if (months.isEmpty) {
-      Get.snackbar("Validation", "Select at least one Daycare Month");
+      AppSnackbar.error("Select at least one Daycare Month", title: "Validation");
       return;
     }
     if (amountText.isEmpty) {
-      Get.snackbar("Validation", "Enter Amount");
+      AppSnackbar.error("Enter Amount", title: "Validation");
       return;
     }
 
     final amountInt = int.tryParse(amountText);
     if (amountInt == null || amountInt <= 0) {
-      Get.snackbar("Validation", "Enter valid amount");
+      AppSnackbar.error("Enter valid amount", title: "Validation");
       return;
     }
 
@@ -276,21 +292,25 @@ class DayCareFeeMasterController extends GetxController {
         final msg = (jsonData["messages"] ?? "").toString();
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Daycare fee saved" : msg);
-
           amountController.clear();
           selectedDaycareDuration.value = null;
           selectedMonths.clear();
 
           await fetchDaycareFees();
+
+          // ✅ Success snackbar list refresh ke baad, taaki list wala snackbar ise replace na kare
+          AppSnackbar.success(msg.isEmpty ? "Daycare fee saved" : msg);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Save failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Save failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "API failed (${res.statusCode})\n${res.body}");
+        AppSnackbar.apiError(
+          "API failed (${res.statusCode})\n${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Save error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSaving(false);
     }
@@ -375,15 +395,15 @@ class DayCareFeeMasterController extends GetxController {
                 final newAmount = txt.text.trim();
                 final val = int.tryParse(newAmount);
                 if (val == null || val <= 0) {
-                  Get.snackbar("Validation", "Enter valid amount");
+                  AppSnackbar.error("Enter valid amount", title: "Validation");
                   return;
                 }
                 if (editDuration.value == null) {
-                  Get.snackbar("Validation", "Select Daycare Duration");
+                  AppSnackbar.error("Select Daycare Duration", title: "Validation");
                   return;
                 }
                 if (editMonths.isEmpty) {
-                  Get.snackbar("Validation", "Select at least one Month");
+                  AppSnackbar.error("Select at least one Month", title: "Validation");
                   return;
                 }
 
@@ -511,16 +531,19 @@ class DayCareFeeMasterController extends GetxController {
         final msg = (jsonData["messages"] ?? "").toString();
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Updated" : msg);
           await fetchDaycareFees();
+          AppSnackbar.success(msg.isEmpty ? "Updated" : msg);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Update failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Update failed" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "Update API failed (${res.statusCode})\n${res.body}");
+        AppSnackbar.apiError(
+          "Update API failed (${res.statusCode})\n${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSaving(false);
     }

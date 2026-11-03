@@ -39,19 +39,7 @@ class AddTeacherView extends GetView<TeacherAddController> {
     if (tabs.isEmpty) {
       return Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF97144D),
-          foregroundColor: Colors.white,
-          title: const Text(
-            '📚 Teacher Management',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Get.back(),
-          ),
-        ),
+        appBar: _appBar(),
         body: const Center(
           child: Text('You do not have access to this module.'),
         ),
@@ -62,19 +50,8 @@ class AddTeacherView extends GetView<TeacherAddController> {
       length: tabs.length,
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F6F9),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF97144D),
-          foregroundColor: Colors.white,
-          title: const Text(
-            '📚 Teacher Management',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Get.back(),
-          ),
-          // ── Sirf tab hi tabh dikhana jab 1 se zyada tab ho ────
+        // ── Sirf tab hi tabh dikhana jab 1 se zyada tab ho ────
+        appBar: _appBar(
           bottom: tabs.length > 1
               ? TabBar(
             labelColor: Colors.white,
@@ -90,7 +67,26 @@ class AddTeacherView extends GetView<TeacherAddController> {
       ),
     );
   }
+
+  AppBar _appBar({PreferredSizeWidget? bottom}) {
+    return AppBar(
+      backgroundColor: const Color(0xFF97144D),
+      foregroundColor: Colors.white,
+      title: const Text(
+        '📚 Teacher Management',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+      ),
+      centerTitle: true,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Get.back(),
+      ),
+      bottom: bottom,
+    );
+  }
 }
+
+int _columnsFor(double width) => width >= 1100 ? 3 : (width >= 800 ? 2 : 1);
 
 // ── Add Teacher Tab ─────────────────────────────────────────────────────────
 class AddTeacherTab extends GetView<TeacherAddController> {
@@ -108,8 +104,7 @@ class AddTeacherTab extends GetView<TeacherAddController> {
         key: controller.formKey,
         child: LayoutBuilder(
           builder: (context, c) {
-            final width = c.maxWidth;
-            final cols = width >= 1100 ? 3 : (width >= 800 ? 2 : 1);
+            final cols = _columnsFor(c.maxWidth);
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -137,43 +132,8 @@ class AddTeacherTab extends GetView<TeacherAddController> {
                           )),
                           const SizedBox(height: 16),
 
-                          _Grid(columns: cols, children: [
-                            _TextFieldBlock(label: 'Teacher Name *', controller: controller.teacherNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, 'Teacher Name')),
-                            _ReadOnlyFieldBlock(label: 'Teacher ID', controller: controller.teacherIdC),
-                            _TextFieldBlock(label: "Father/Husband's Name *", controller: controller.fatherHusbandNameC, textCapitalization: TextCapitalization.words, validator: (v) => controller.requiredValidator(v, "Father/Husband's Name")),
-                            _DateFieldBlock(label: 'Date Of Birth *', controller: controller.dobC, onPick: () => controller.pickDate(controller: controller.dobC, firstDate: DateTime(1950), lastDate: DateTime.now()), validator: (v) => controller.requiredValidator(v, 'Date Of Birth')),
-                            _DropdownBlock(label: 'Blood Group *', valueRx: controller.bloodGroup, itemsBuilder: () => controller.bloodGroups, hint: 'Select Blood Group'),
-                            _DropdownBlock(label: 'Gender *', valueRx: controller.gender, itemsBuilder: () => controller.genders, hint: 'Select Gender'),
-                            _DropdownBlock(label: 'Caste *', valueRx: controller.caste, itemsBuilder: () => controller.castes, hint: 'Select Caste'),
-                            _TextFieldBlock(label: 'E-Mail ', controller: controller.emailC, keyboardType: TextInputType.emailAddress, validator: controller.emailValidator, hint: 'Enter email'),
-                            _TextFieldBlock(label: 'Mobile No *', controller: controller.mobileC, keyboardType: TextInputType.phone, validator: controller.mobileValidator, maxLength: 10, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)]),
-                            _TextFieldBlock(label: 'Qualification', controller: controller.qualificationC),
-                            _TextFieldBlock(label: 'Last Organization', controller: controller.lastOrgC),
-                            _DropdownBlock(label: 'Designation *', valueRx: controller.designation, itemsBuilder: () => controller.designationNames, hint: 'Select Designation', isLoadingRx: controller.isDesignationLoading),
-                            _TextFieldBlock(label: 'Total Experience', controller: controller.totalExpC, keyboardType: TextInputType.number, validator: (v) => controller.numberOptionalValidator(v, 'Total Experience')),
-                            _TextFieldBlock(label: 'Salary', controller: controller.salaryC, keyboardType: TextInputType.number, validator: (v) => controller.numberOptionalValidator(v, 'Salary'), inputFormatters: [FilteringTextInputFormatter.digitsOnly]),
-                            _TextFieldBlock(label: 'State *', controller: controller.stateC, validator: (v) => controller.requiredValidator(v, 'State'), hint: 'Enter state', textCapitalization: TextCapitalization.words),
-                            _TextFieldBlock(label: 'City *', controller: controller.cityC, validator: (v) => controller.requiredValidator(v, 'City'), textCapitalization: TextCapitalization.words),
-                            _DateFieldBlock(label: 'Date Of Joining *', controller: controller.joiningDateC, onPick: () => controller.pickDate(controller: controller.joiningDateC, firstDate: DateTime(2000), lastDate: DateTime(DateTime.now().year + 2)), validator: (v) => controller.requiredValidator(v, 'Date Of Joining')),
-                            _TextFieldBlock(label: 'Address *', controller: controller.addressC, validator: (v) => controller.requiredValidator(v, 'Address')),
-                            _TextFieldBlock(label: 'Specialization *', controller: controller.specializationC, validator: (v) => controller.requiredValidator(v, 'Specialization')),
-                            _TextFieldBlock(label: 'Bank Name *', controller: controller.bankNameC, validator: (v) => controller.requiredValidator(v, 'Bank Name'), textCapitalization: TextCapitalization.words),
-                            _TextFieldBlock(label: 'Account No', controller: controller.accountNoC, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(18)]),
-                            _TextFieldBlock(label: 'IFSC Code *', controller: controller.ifscC, validator: (v) => controller.requiredValidator(v, 'IFSC Code'), textCapitalization: TextCapitalization.characters, inputFormatters: [LengthLimitingTextInputFormatter(11)]),
-                            if (cols > 1) const SizedBox.shrink(),
-                            if (cols > 2) const SizedBox.shrink(),
-                          ]),
+                          _TeacherFormFields(controller: controller, cols: cols),
 
-                          const SizedBox(height: 18),
-                          _Grid(columns: cols == 1 ? 1 : 2, children: [
-                            _fileCol('Upload User Pic', controller.userPic, controller),
-                            _fileCol('Upload Id Proof Photo', controller.idProofPhoto, controller),
-                          ]),
-                          const SizedBox(height: 18),
-                          _Grid(columns: cols == 1 ? 1 : 2, children: [
-                            _fileCol('Upload Resume Photo', controller.resumePhoto, controller),
-                            _fileCol('Upload Call Letter Photo', controller.callLetterPhoto, controller),
-                          ]),
                           const SizedBox(height: 22),
 
                           Row(children: [
@@ -308,9 +268,7 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            onPressed: ctrl.isSubmitting.value
-                                ? null
-                                : () async => await ctrl.updateTeacherFromDialog(),
+                            onPressed: ctrl.isSubmitting.value ? null : ctrl.updateTeacherFromDialog,
                             icon: ctrl.isSubmitting.value
                                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                                 : const Icon(Icons.save_outlined),
@@ -354,7 +312,7 @@ class ViewTeacherTab extends GetView<TeacherAddController> {
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                       const Spacer(),
                       Obx(() => IconButton(
-                        onPressed: controller.isTeacherLoading.value ? null : () async => await controller.fetchTeachers(),
+                        onPressed: controller.isTeacherLoading.value ? null : controller.fetchTeachers,
                         icon: controller.isTeacherLoading.value
                             ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.refresh),
@@ -537,8 +495,19 @@ class _EditTeacherDialogForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cols = MediaQuery.of(context).size.width >= 1100 ? 3 : (MediaQuery.of(context).size.width >= 800 ? 2 : 1);
+    final cols = _columnsFor(MediaQuery.of(context).size.width);
+    return _TeacherFormFields(controller: controller, cols: cols);
+  }
+}
 
+// ── Shared form fields (Add tab + Edit dialog dono me same) ──────────────────
+class _TeacherFormFields extends StatelessWidget {
+  final TeacherAddController controller;
+  final int cols;
+  const _TeacherFormFields({required this.controller, required this.cols});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -768,7 +737,7 @@ class _FilePickerField extends StatelessWidget {
               ? IconButton(tooltip: 'Remove', onPressed: onClear, icon: const Icon(Icons.close))
               : const Icon(Icons.upload_file),
         ),
-        controller: TextEditingController(text: hasFile ? f!.name : ''),
+        controller: TextEditingController(text: hasFile ? f.name : ''),
       );
     });
   }

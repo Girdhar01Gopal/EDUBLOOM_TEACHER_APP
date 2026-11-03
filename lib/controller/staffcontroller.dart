@@ -1,15 +1,13 @@
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../infrastructures/constant/image_constant.dart';
 import '../infrastructures/routes/page_constants.dart';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/login_model.dart';
 import '../repo/repo.dart';
+import '../utils/app_snackbar.dart'; // ✅ common top snackbar
 import '../view_model/login_view_model.dart';
 import 'home_page_controller.dart';
 
@@ -41,10 +39,12 @@ class Staffcontroller extends GetxController {
   final myRepo = LoginRepository();
 
   int selectedIndex = 0;
-  Future<dynamic>? selectedWidget = null;
+  Future<dynamic>? selectedWidget;
   RxInt counter = 0.obs;
-  final loginViewModel = Provider.of<LoginViewModel>(Get.context!);
+  final loginViewModel = Provider.of<LoginViewModel>(Get.context!, listen: false);
   final RxBool isToday = RxBool(false);
+
+  static final DateFormat _dayFmt = DateFormat('dd-MM-yyyy');
 
   List<_TileSpec> get _visibleTiles {
     final accessible = accessibleChildNames('Staff');
@@ -61,34 +61,46 @@ class Staffcontroller extends GetxController {
   }
 
   Future<void> fetchtoken() async {
-    var expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+    final expireDate = await PrefManager().readValue(key: PrefConst.expireDate);
+    if (expireDate == null) return;
 
-    if (expireDate != null) {
-      DateTime lastDate = DateTime.parse(expireDate);
-      isToday.value = DateFormat('dd-mm-yyyy').format(lastDate) == DateFormat('dd-mm-yyyy').format(DateTime.now());
-      if(isToday.isTrue){
-        var username = await PrefManager().readValue(key: PrefConst.username);
-        var password = await PrefManager().readValue(key: PrefConst.password);
-        Map data = {
-          "userName": username.toString(),
-          "password": password.toString(),
-          "rememberMe": true
-        };
-        loginApi(data);
-      }
+    try {
+      final lastDate = DateTime.parse(expireDate);
+      isToday.value = _dayFmt.format(lastDate) == _dayFmt.format(DateTime.now());
+    } catch (e) {
+      debugPrint("Expire date parse error: $e");
+      return;
+    }
+
+    if (isToday.isTrue) {
+      final username = await PrefManager().readValue(key: PrefConst.username);
+      final password = await PrefManager().readValue(key: PrefConst.password);
+      final Map data = {
+        "userName": username.toString(),
+        "password": password.toString(),
+        "rememberMe": true
+      };
+      await loginApi(data);
     }
   }
 
   Future<void> loginApi(dynamic data) async {
-    myRepo.loginApi(data: data).then((value) async {
-      var data = Login_Model.fromJson(value);
+    try {
+      final value = await myRepo.loginApi(data: data);
+      final res = Login_Model.fromJson(value);
 
-      if (data.data != null) {
-        PrefManager().writeValue(key: PrefConst.token, value: data.data!.accessToker!.token.toString());
-      } else if (data.statusCode == 400) {
+      if (res.data != null) {
+        await PrefManager().writeValue(
+            key: PrefConst.token, value: res.data!.accessToker!.token.toString());
+      } else if (res.statusCode == 400) {
         debugPrint("API error");
+        // ✅ raw API message nahi, sirf friendly line
+        AppSnackbar.error(AppSnackbar.friendlyMessage(null, statusCode: 400));
       }
-    }).onError((error, stackTrace) {});
+    } catch (e) {
+      debugPrint("Login API error: $e");
+      AppSnackbar.error(AppSnackbar.friendlyMessage(e));
+    }
   }
 
   void onSelectedBottom(int index) {
@@ -99,9 +111,9 @@ class Staffcontroller extends GetxController {
   }
 }
 
-  class DhashboardItemsModel {
-    String name;
-    IconData icons;
-    Color color;
-    DhashboardItemsModel(this.name, this.icons, this.color);
-  }
+class DhashboardItemsModel {
+  String name;
+  IconData icons;
+  Color color;
+  DhashboardItemsModel(this.name, this.icons, this.color);
+}

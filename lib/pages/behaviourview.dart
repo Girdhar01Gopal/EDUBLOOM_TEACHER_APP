@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controller/behaviourcontroller.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 
 const Color axisMaroon = Color(0xFF97144D);
@@ -959,38 +960,15 @@ Widget _submitButton(Behaviourcontroller controller) {
         // ✅ Same validation style as Meal — block if no student
         // selected before hitting the API.
         if (controller.selectedStudentIds.isEmpty) {
-          Get.snackbar(
-            "Validation",
-            "Please select a student first.",
-            backgroundColor: Colors.orange,
-            colorText: Colors.white,
-            icon: const Icon(Icons.warning_amber_rounded, color: Colors.white),
-          );
+          // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+          AppSnackbar.error("Please select a student first.");
           return;
         }
 
         final success =
         await controller.postActivityToApi(controller.selectedStudentIds);
         if (success) {
-          // ── Success snackbar: solid green background, white text,
-          // and the message always says "Behaviour". Controller has
-          // already refreshed the list, reset the form, and navigated
-          // back to RouteName.behaviour by the time we get here. ──
-          Get.snackbar(
-            "Success",
-            "Behaviour posted successfully",
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-            icon: const Icon(Icons.check_circle, color: Colors.white),
-          );
-        } else {
-          Get.snackbar(
-            "Error",
-            "Failed to post Behaviour",
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            icon: const Icon(Icons.error, color: Colors.white),
-          );
+          AppSnackbar.success("Behaviour posted successfully");
         }
       },
       icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),

@@ -9,12 +9,13 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../controller/student_controller daycare.dart';
+import '../utils/app_snackbar.dart';
 import 'mother_image_picker daycare.dart';
 
 
 // ─── Palette ───────────────────────────────────────────────
 const _teal      = Color(0xFF97144D); // Axis Bank maroon
-const _tealLight = Color(0xFFC2185B); // lighter maroon accent
+const _tealLight = Color(0xFFC2185B);
 const _surface   = Color(0xFFFFFFFF);
 const _textSecondary = Color(0xFF607D8B);
 
@@ -29,12 +30,15 @@ class FatherImagedaycare extends GetView<StudentControllerdaycare> {
     );
     if (source == null) return;
 
-    final XFile? picked = await controller.picker.pickImage(source: source);
-    if (picked != null) {
-      controller.fatherPic.value = File(picked.path);
-    } else {
-      Get.snackbar('Notice', 'No image selected.',
-          backgroundColor: Colors.orange, colorText: Colors.white);
+    try {
+      final XFile? picked = await controller.picker.pickImage(source: source);
+      if (picked != null) {
+        controller.fatherPic.value = File(picked.path);
+      } else {
+        AppSnackbar.error('No image selected.', title: 'Notice');
+      }
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 

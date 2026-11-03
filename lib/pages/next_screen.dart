@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import '../models/session_model.dart' as session_model;
 
 import '../controller/student_controller.dart';
+import '../utils/app_snackbar.dart';
 import 'next_next_student.dart';
 
 
@@ -25,6 +26,9 @@ class NextStudent extends GetView<StudentController> {
   final _formKey           = GlobalKey<FormState>();
   final _studentPhoneCtrl  = TextEditingController();
   final _whatsappCtrl      = TextEditingController();
+
+  // ✅ FIX: Guardian Phone ka apna controller (rebuild par field stable rahe)
+  final _guardianPhoneCtrl = TextEditingController();
 
   // Admission date controller (display only — set by picker)
   final _admissionDateCtrl = TextEditingController();
@@ -58,6 +62,9 @@ class NextStudent extends GetView<StudentController> {
   // ── Date Picker (today ya past only, dd/mm/yyyy format) ───
   Future<void> _pickAdmissionDate(
       BuildContext context, StateSetter ss) async {
+    // ✅ FIX: picker kholne se pehle focus clear
+    FocusScope.of(context).unfocus();
+
     final today = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -87,10 +94,10 @@ class NextStudent extends GetView<StudentController> {
           '${picked.day.toString().padLeft(2, '0')}/'
           '${picked.month.toString().padLeft(2, '0')}/'
           '${picked.year}';
-      ss(() {
-        _admissionDateCtrl.text = formatted;
-        controller.admissionDate.value = formatted;
-      });
+      // ✅ FIX: setState (ss) hata diya — poora StatefulBuilder rebuild hone se
+      // keyboard glitch aata tha. Controller text set karne se field khud update hota hai.
+      _admissionDateCtrl.text = formatted;
+      controller.admissionDate.value = formatted;
     }
   }
 
@@ -350,6 +357,7 @@ class NextStudent extends GetView<StudentController> {
                       icon: Icons.phone_outlined,
                       keyboard: TextInputType.phone,
                       maxLength: 10,
+                      extController: _guardianPhoneCtrl,   // ✅ FIX
                       onChanged: (v) =>
                       controller.guardianPhone.value = v,
                     ),
@@ -470,8 +478,8 @@ class NextStudent extends GetView<StudentController> {
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                             colors: [
-                              Color(0xFF00897B),
-                              Color(0xFF00695C)
+                              Color(0xFFAD1457),
+                              Color(0xFFAD1457)
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight),
@@ -504,23 +512,13 @@ class NextStudent extends GetView<StudentController> {
                             if (controller.guardianPhone.value
                                 .length !=
                                 10) {
-                              Get.snackbar(
-                                'Error',
-                                'Guardian Phone must be 10 digits',
-                                backgroundColor: Colors.red.shade700,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                              );
+                              AppSnackbar.error(
+                                  'Guardian Phone must be 10 digits');
                               return;
                             }
                             if (controller.phone.value.length != 10) {
-                              Get.snackbar(
-                                'Error',
-                                'Student Phone must be 10 digits',
-                                backgroundColor: Colors.red.shade700,
-                                colorText: Colors.white,
-                                snackPosition: SnackPosition.TOP,
-                              );
+                              AppSnackbar.error(
+                                  'Student Phone must be 10 digits');
                               return;
                             }
                             Navigator.push(

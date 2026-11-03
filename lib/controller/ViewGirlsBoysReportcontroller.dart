@@ -7,6 +7,7 @@ import '../models/session_model.dart' as session_model;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/ViewGirlsBoysReportmodel.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class ViewGirlsBoysReportController extends GetxController {
   // Session dropdown
@@ -74,10 +75,15 @@ class ViewGirlsBoysReportController extends GetxController {
           selectedSession.value = cs;
         }
       } else {
-        Get.snackbar('Error', 'Session API failed: ${response.statusCode}');
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Session API failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPageLoading(false);
     }
@@ -88,11 +94,11 @@ class ViewGirlsBoysReportController extends GetxController {
 
   Future<void> fetchStudents() async {
     if (selectedSession.value == null) {
-      Get.snackbar("Missing", "Select Session");
+      AppSnackbar.error("Select Session", title: "Missing");
       return;
     }
     if (selectedGender.value.isEmpty) {
-      Get.snackbar("Missing", "Select Gender");
+      AppSnackbar.error("Select Gender", title: "Missing");
       return;
     }
 
@@ -100,7 +106,7 @@ class ViewGirlsBoysReportController extends GetxController {
     final gender = selectedGender.value;
 
     if (session.isEmpty) {
-      Get.snackbar("Missing", "Session is empty");
+      AppSnackbar.error("Session is empty", title: "Missing");
       return;
     }
 
@@ -132,14 +138,24 @@ class ViewGirlsBoysReportController extends GetxController {
                 e as Map<String, dynamic>))
                 .toList(),
           );
+
+          // ✅ Success / Info snackbar
+          if (reportList.isEmpty) {
+            AppSnackbar.error("No data found", title: "Info");
+          } else {
+            AppSnackbar.success("Data loaded successfully");
+          }
         } else {
-          Get.snackbar("Error", "Unexpected response format");
+          AppSnackbar.apiError("Unexpected response format");
         }
       } else {
-        Get.snackbar('Error', 'Report API failed: ${response.statusCode}');
+        AppSnackbar.apiError(
+          'Report API failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Report API error: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSubmitting(false);
     }

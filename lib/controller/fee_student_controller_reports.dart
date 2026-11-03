@@ -19,6 +19,7 @@ import '../res/app_url.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes wali logic)
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class FeeStudentReportsController extends GetxController {
   RxList<Student> studentList = <Student>[].obs; // List of student
@@ -94,7 +95,7 @@ class FeeStudentReportsController extends GetxController {
   // Method to fetch student data based on session, class, and section
   Future<void> fetchStudentData() async {
     if (selectedSession.value == null || selectedClass.value == null || selectedSection.value == null) {
-      Get.snackbar('Error', 'Please select session, class, and section.');
+      AppSnackbar.error('Please select session, class, and section.');
       return;
     }
 
@@ -117,11 +118,25 @@ class FeeStudentReportsController extends GetxController {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         studentList.value = StudentList.fromJson(data).listData; // Populate the student list
+
+        // ✅ Success / Info snackbar
+        if (studentList.isEmpty) {
+          AppSnackbar.error('No data found', title: 'Info');
+        } else {
+          AppSnackbar.success('Data loaded successfully');
+        }
       } else {
         print("Failed to load student data: ${response.statusCode}");
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed to load student data: ${response.statusCode} : ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       print("Error fetching student data: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -207,7 +222,7 @@ class FeeStudentReportsController extends GetxController {
     // 3️⃣ NORMAL TEACHER — GetClassTeacher API
     if (session.value.isEmpty) {
       // session abhi tak select/available nahi hai
-      Get.snackbar('Error', 'Session not found');
+      AppSnackbar.error('Session not found');
       return;
     }
 
@@ -234,11 +249,14 @@ class FeeStudentReportsController extends GetxController {
 
         selectedClass.value = null;
       } else {
-        Get.snackbar('Error', 'Failed to load classes');
+        AppSnackbar.apiError(
+          'Failed to load classes: ${res.statusCode} : ${res.body}',
+          statusCode: res.statusCode,
+        );
         listDataa.value = [];
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Error fetching classes: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       listDataa.value = [];
     } finally {
       isLoading(false);
@@ -463,8 +481,8 @@ class FeeStudentReportsController extends GetxController {
           session.value = cs.session ?? ''; // Ye line ensure karegi ki session default select ho
         }
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }

@@ -13,6 +13,7 @@ import '../models/session_model.dart' as session_model;
 import '../models/viewattendancemodel.dart';
 import '../models/viewsectionmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'student_controller.dart' hide ClassItem; // 🆕 ClassTeacherFilterModel / ClassTeacherFilterData reuse ke liye
 
 class ViewAttendanceController extends GetxController {
@@ -62,7 +63,7 @@ class ViewAttendanceController extends GetxController {
     token = await PrefManager().readValue(key: PrefConst.token) ?? "";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar('Error', 'SchoolId not found in storage');
+      AppSnackbar.apiError('SchoolId not found in storage');
       return;
     }
 
@@ -106,9 +107,12 @@ class ViewAttendanceController extends GetxController {
           sessionList.add(cs);
           selectedSession.value = cs;
         }
+      } else {
+        AppSnackbar.apiError('ViewSessionApp failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -160,9 +164,12 @@ class ViewAttendanceController extends GetxController {
 
         // 🆕 Agar ClassTeacher API se class data mila, to matlab ye class teacher hai
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
+      } else {
+        AppSnackbar.apiError('ClassTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      debugPrint("Error loading ClassTeacher filter: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -196,8 +203,8 @@ class ViewAttendanceController extends GetxController {
           });
         }).toList();
         selectedClass.value = null;
-      } catch (e) {
-        debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
         listDataa.value = [];
       }
       return;
@@ -244,9 +251,12 @@ class ViewAttendanceController extends GetxController {
           listDataa.value = [];
           selectedClass.value = null;
         }
+      } else {
+        AppSnackbar.apiError('GetClassTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      debugPrint("Error fetching classes: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -269,9 +279,12 @@ class ViewAttendanceController extends GetxController {
             ?.where((e) => e.action == "1")
             .toList() ?? [];
         selectedClass.value = null;
+      } else {
+        AppSnackbar.apiError('ViewClass (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching classes (staff): $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -335,9 +348,12 @@ class ViewAttendanceController extends GetxController {
           }).toList();
 
           selectedSection.value = null;
+        } else {
+          AppSnackbar.apiError('SectionTeacher failed: ${res.body}',
+              statusCode: res.statusCode);
         }
-      } catch (e) {
-        debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
+      } catch (e, st) {
+        AppSnackbar.apiError(e, stackTrace: st);
       } finally {
         isLoading(false);
       }
@@ -377,9 +393,12 @@ class ViewAttendanceController extends GetxController {
         final List<dynamic> data = decoded['data'] ?? decoded['listData'] ?? [];
         sectionList.value = data.map((e) => ListDatta.fromJson(e)).toList();
         selectedSection.value = null;
+      } else {
+        AppSnackbar.apiError('GetSectionTeacher failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -417,9 +436,12 @@ class ViewAttendanceController extends GetxController {
         }).toList();
 
         selectedSection.value = null;
+      } else {
+        AppSnackbar.apiError('ViewSectionApp (staff) failed: ${response.body}',
+            statusCode: response.statusCode);
       }
-    } catch (e) {
-      debugPrint("⚠️ Error fetching sections (staff): $e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -430,7 +452,7 @@ class ViewAttendanceController extends GetxController {
         selectedClass.value == null ||
         selectedSection.value == null ||
         selectedMonth.value == null) {
-      Get.snackbar("Error", "Please select all fields");
+      AppSnackbar.error("Please select all fields");
       return;
     }
     try {
@@ -467,10 +489,11 @@ class ViewAttendanceController extends GetxController {
           students.value = allStudents;
         }
       } else {
-        Get.snackbar("Error", "Failed to load attendance");
+        AppSnackbar.apiError('ViewStudentAttendanceDetailsApp failed: ${res.body}',
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "$e");
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     } finally {
       isLoading(false);
     }
@@ -531,8 +554,8 @@ class ViewAttendanceController extends GetxController {
       return res.statusCode == 200 ||
           res.statusCode == 201 ||
           res.statusCode == 204;
-    } catch (e) {
-      debugPrint("⚠️ editAttendance error: $e");
+    } catch (e, st) {
+      debugPrint("⚠️ editAttendance error: $e\n$st");
       return false;
     }
   }

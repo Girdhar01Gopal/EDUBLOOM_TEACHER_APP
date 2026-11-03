@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/Daycaremodel.dart';
 import '../models/detaildaycaremodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'package:flutter/material.dart';
 
 class DayCareController extends GetxController {
@@ -80,8 +81,8 @@ class DayCareController extends GetxController {
       // Optionally, re-filter fee data based on session or other criteria
       filterFeeDataByRegistrationNo(feeDataList.first.registrationNo ?? '');
 
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to refresh data: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isloading(false); // Stop loading indicator
     }
@@ -115,17 +116,18 @@ class DayCareController extends GetxController {
         print("Fetched ${studentList.length} students.");
 
         if (studentList.isEmpty) {
-          Get.snackbar('No students found',
-              'No students were found for the selected session.');
+          AppSnackbar.success('No students were found for the selected session.',
+              title: 'No students found'); // 🔄
         }
       } else {
         print("Failed to fetch data: ${response.statusCode}");
         print("Response body: ${response.body}");
-        Get.snackbar('Error', 'Failed to fetch daycare students');
+        AppSnackbar.apiError('Failed to fetch daycare students',
+            statusCode: response.statusCode); // 🔄
       }
-    } catch (e) {
+    } catch (e, s) {
       print("Error fetching data: $e");
-      Get.snackbar('Error', 'Error fetching daycare students: $e');
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isloading(false);
     }
@@ -163,8 +165,8 @@ class DayCareController extends GetxController {
           session.value = cs.session ?? '';// Ye line ensure karegi ki session default select ho
         }
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load sessions: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isLoading(false);
     }
@@ -234,7 +236,8 @@ class DayCareController extends GetxController {
             .toList();
 
         if (feeDataList.isEmpty) {
-          Get.snackbar('No data', 'No fee data found for this student');
+          AppSnackbar.success('No fee data found for this student',
+              title: 'No data'); // 🔄
           isloading(false);
           return;
         }
@@ -245,11 +248,12 @@ class DayCareController extends GetxController {
         filterFeeDataByRegistrationNo(registrationno);
       } else {
         print("Failed to fetch data: ${response.statusCode}");
-        Get.snackbar('Error', 'Failed to fetch fee data');
+        AppSnackbar.apiError('Failed to fetch fee data',
+            statusCode: response.statusCode); // 🔄
       }
-    } catch (e) {
+    } catch (e, s) {
       print("Error fetching data: $e");
-      Get.snackbar('Error', 'Error: $e');
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     } finally {
       isloading(false);
     }
@@ -263,10 +267,10 @@ class DayCareController extends GetxController {
     );
 
     if (filteredFeeDataList.isEmpty) {
-      Get.snackbar(
-        'No data',
+      AppSnackbar.success(
         'No records found for registration: $registrationNo',
-      );
+        title: 'No data',
+      ); // 🔄
       return;
     }
 

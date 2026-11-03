@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../controller/student_controller.dart';
 import '../models/student_model.dart';
+import '../utils/app_snackbar.dart';
 
 // ─── Palette ───────────────────────────────────────────────
 const _teal = Color(0xFF99144E);
@@ -53,12 +54,10 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
           student = updated;
         });
       } else {
-        Get.snackbar("Info", "Latest data not loaded",
-            backgroundColor: Colors.orange, colorText: Colors.white);
+        AppSnackbar.error("Latest data not loaded", title: 'Info');
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to refresh: $e",
-          backgroundColor: Colors.red, colorText: Colors.white);
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 
@@ -613,28 +612,23 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                             label: const Text("Update Student"),
                             onPressed: () {
                               if (student.studentID == null) {
-                                Get.snackbar(
-                                    "Error", "StudentID missing",
-                                    backgroundColor: Colors.red,
-                                    colorText: Colors.white);
+                                AppSnackbar.apiError(
+                                    'Update student: StudentID missing');
                                 return;
                               }
                               if (c.studentName.value.trim().isEmpty) {
-                                Get.snackbar(
-                                    "Error", "Student Name required",
-                                    backgroundColor: Colors.red,
-                                    colorText: Colors.white);
+                                AppSnackbar.error("Student Name required");
                                 return;
                               }
                               if (c.phone.value.trim().isEmpty) {
-                                Get.snackbar(
-                                    "Error", "Phone required",
-                                    backgroundColor: Colors.red,
-                                    colorText: Colors.white);
+                                AppSnackbar.error("Phone required");
                                 return;
                               }
+                              // ✅ CHANGED: oldStudent pass kiya (class/section ke liye)
                               c.updateStudentByPostApi(
-                                  studentId: student.studentID!);
+                                studentId: student.studentID!,
+                                oldStudent: student,
+                              );
                             },
                           ),
                         ),
@@ -940,9 +934,13 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
       ),
     );
     if (source == null) return;
-    final picked = await c.picker.pickImage(source: source);
-    if (picked != null) {
-      targetRx.value = File(picked.path);
+    try {
+      final picked = await c.picker.pickImage(source: source);
+      if (picked != null) {
+        targetRx.value = File(picked.path);
+      }
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 

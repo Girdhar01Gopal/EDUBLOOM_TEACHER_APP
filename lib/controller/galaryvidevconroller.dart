@@ -14,6 +14,7 @@ import '../models/session_model.dart';
 import '../models/new model teacher section attendance.dart';
 import '../models/viewphotosmodel.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 import 'mapcategory.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData;
@@ -58,33 +59,11 @@ class Galaryvidevconroller extends GetxController {
   // ─── Snackbar Helpers ───────────────────────────────────────────────────────
 
   void _showSuccess(String message) {
-    Get.snackbar(
-      "Success",
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: const Color(0xFF2E7D32),
-      colorText: Colors.white,
-      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      borderRadius: 12,
-      duration: const Duration(seconds: 3),
-      animationDuration: const Duration(milliseconds: 400),
-    );
+    AppSnackbar.success(message);
   }
 
   void _showError(String message) {
-    Get.snackbar(
-      "Error",
-      message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: const Color(0xFFC62828),
-      colorText: Colors.white,
-      icon: const Icon(Icons.error_outline, color: Colors.white),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      borderRadius: 12,
-      duration: const Duration(seconds: 3),
-      animationDuration: const Duration(milliseconds: 400),
-    );
+    AppSnackbar.error(message);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -478,6 +457,7 @@ class Galaryvidevconroller extends GetxController {
       try {
         parsedDate = DateTime.parse(dateController.text.trim());
       } catch (e) {
+        debugPrint("⚠️ Invalid date => $e");
         _showError("Invalid date selected. Please pick the date again.");
         return;
       }
@@ -558,7 +538,10 @@ class Galaryvidevconroller extends GetxController {
         dateController.clear();
       } else {
         debugPrint("❌ FAILED ${response.statusCode}");
-        _showError("Upload Failed (${response.statusCode})");
+        AppSnackbar.apiError(
+          'Upload Failed => $responseBody',
+          statusCode: response.statusCode,
+        );
       }
     } catch (e, stack) {
       if (Get.isDialogOpen ?? false) {
@@ -566,7 +549,7 @@ class Galaryvidevconroller extends GetxController {
       }
       debugPrint("❌ Exception: $e");
       debugPrint("$stack");
-      _showError("Something went wrong");
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -589,48 +572,56 @@ class Galaryvidevconroller extends GetxController {
       return;
     }
 
-    final url = Uri.parse(
-      "https://playschool.edubloom.in/api/Gallery/PostVideo",
-    );
+    try {
+      final url = Uri.parse(
+        "https://playschool.edubloom.in/api/Gallery/PostVideo",
+      );
 
-    final body = {
-      "videoId": 0,
-      // ✅ CHANGED: multiple selected class & section ids bhejenge
-      "class": selectedClassIds,
-      "section": selectedSectionIds,
-      "videoUrl": videoUrlController.text.trim(),
-      "action": "1",
-      "createBy": "Admin",
-      "updateBy": "Admin",
-      "session": session.value,
-      "schoolId": schoolId,
-    };
+      final body = {
+        "videoId": 0,
+        // ✅ CHANGED: multiple selected class & section ids bhejenge
+        "class": selectedClassIds,
+        "section": selectedSectionIds,
+        "videoUrl": videoUrlController.text.trim(),
+        "action": "1",
+        "createBy": "Admin",
+        "updateBy": "Admin",
+        "session": session.value,
+        "schoolId": schoolId,
+      };
 
-    debugPrint("📤 Sending Video => $body");
+      debugPrint("📤 Sending Video => $body");
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
 
-    debugPrint("📥 Upload Video Response Code: ${response.statusCode}");
-    debugPrint("📥 Upload Video Response Body: ${response.body}");
+      debugPrint("📥 Upload Video Response Code: ${response.statusCode}");
+      debugPrint("📥 Upload Video Response Body: ${response.body}");
 
-    if (response.statusCode == 200) {
-      _showSuccess("Video Uploaded Successfully");
+      if (response.statusCode == 200) {
+        _showSuccess("Video Uploaded Successfully");
 
-      // ✅ ADDED: also refresh gallery view videos tab after successful upload
-      if (Get.isRegistered<Mapcategorycontroller>()) {
-        Get.find<Mapcategorycontroller>().fetchMappedCategories();
+        // ✅ ADDED: also refresh gallery view videos tab after successful upload
+        if (Get.isRegistered<Mapcategorycontroller>()) {
+          Get.find<Mapcategorycontroller>().fetchMappedCategories();
+        }
+
+        videoUrlController.clear();
+        selectedClassIds.clear();
+        selectedSectionIds.clear();
+      } else {
+        debugPrint("❌ Response: ${response.body}");
+        AppSnackbar.apiError(
+          'Failed to upload video => ${response.body}',
+          statusCode: response.statusCode,
+        );
       }
-
-      videoUrlController.clear();
-      selectedClassIds.clear();
-      selectedSectionIds.clear();
-    } else {
-      debugPrint("❌ Response: ${response.body}");
-      _showError("Failed to upload video");
+    } catch (e, s) {
+      debugPrint("❌ uploadVideo error => $e");
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 }

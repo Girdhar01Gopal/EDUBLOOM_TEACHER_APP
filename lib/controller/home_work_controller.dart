@@ -18,6 +18,7 @@ import '../models/viewsectionmodel.dart';
 import '../models/home_work_model.dart' as homework_model;
 import '../models/new model teacher section attendance.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -167,10 +168,16 @@ class HomeworkController extends GetxController {
         homework_model.HomeworkModel.fromJson(jsonDecode(response.body)); // ✅ fixed
         homeworkList.value = homeworkModel.data ?? [];
       } else {
-        Get.snackbar('Error', 'Failed to fetch homework');
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar (user ko "Something went wrong",
+        // console me asli error)
+        AppSnackbar.apiError(
+          "GetHomeworkAsyncApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Exception: Failed to fetch homework');
+    } catch (e, stack) {
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -211,8 +218,10 @@ class HomeworkController extends GetxController {
         classTeacherList.value = model.data ?? [];
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -243,9 +252,11 @@ class HomeworkController extends GetxController {
             'sqno': e.sqno,
           });
         }).toList();
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       }
 
       // if (listDataa.isEmpty) {
@@ -291,10 +302,17 @@ class HomeworkController extends GetxController {
         }
       } else {
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetClassTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
       listDataa.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -318,9 +336,17 @@ class HomeworkController extends GetxController {
         listDataa.value = classItem.listData
             ?.where((e) => e.action == "1")
             .toList() ?? [];
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewClass failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -379,10 +405,17 @@ class HomeworkController extends GetxController {
           }).toList();
         } else {
           sectionList.value = [];
+          // 🆕 ADDED: user ko "Something went wrong", console me asli error
+          AppSnackbar.apiError(
+            "SectionTeacher failed: ${response.statusCode}",
+            statusCode: response.statusCode,
+          );
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         isLoading(false);
       }
@@ -425,10 +458,17 @@ class HomeworkController extends GetxController {
         sectionList.value = sectionModel.listData ?? [];
       } else {
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSectionTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
       sectionList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -451,9 +491,17 @@ class HomeworkController extends GetxController {
         sectionList.value = (jsonDecode(response.body)['listData'] as List)
             .map((e) => stListData.fromJson(e))
             .toList();
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSectionApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -495,10 +543,17 @@ class HomeworkController extends GetxController {
         subjectlist.value = subjectWrapper.listData ?? [];
       } else {
         subjectlist.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSubjectTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading teacher subjects: $e');
       subjectlist.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -528,9 +583,17 @@ class HomeworkController extends GetxController {
         final subjectWrapper = SubjectModel.fromJson(jsonDecode(response.body));
         subjectdata.value = subjectWrapper;
         subjectlist.value = subjectWrapper.listData ?? [];
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSubject failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading staff subjects: $e');
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -551,27 +614,32 @@ class HomeworkController extends GetxController {
 
   Future<void> registerHomework() async {
     if (pdfFile.value == null) {
-      ShortMessage.toast(title: "Please select a file.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select a file.");
       return;
     }
 
     if (description.value.isEmpty) {
-      ShortMessage.toast(title: "Please enter Description.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter Description.");
       return;
     }
 
     if (selectedClassIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one class.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one class.");
       return;
     }
 
     if (selectedSectionIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one section.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one section.");
       return;
     }
 
     if (selectedSubjectIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one subject.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one subject.");
       return;
     }
 
@@ -581,8 +649,6 @@ class HomeworkController extends GetxController {
       final ok = await _postHomework();
 
       if (ok) {
-        ShortMessage.toast(title: "Homework Added Successfully");
-
         // ✅ Reset selections after success
         selectedClassIds.clear();
         selectedSectionIds.clear();
@@ -593,10 +659,13 @@ class HomeworkController extends GetxController {
 
         await fetchHomework();
         Get.back();
-      } else {
-        ShortMessage.toast(
-            title: "Failed to add homework. Please try again.");
+
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.
+        // Get.back() ke BAAD dikhaya, taaki back karte waqt snackbar band na ho jaye.
+        AppSnackbar.success("Homework Added Successfully");
       }
+      // 🆕 NOTE: fail hone par "Something went wrong" snackbar
+      // _postHomework() khud dikha deta hai.
     } finally {
       isLoading(false);
     }
@@ -678,10 +747,17 @@ class HomeworkController extends GetxController {
       if (response.statusCode == 200) {
         return true;
       } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "Post homework failed: $responseBody",
+          statusCode: response.statusCode,
+        );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ Exception while posting homework: $e');
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
       return false;
     }
   }

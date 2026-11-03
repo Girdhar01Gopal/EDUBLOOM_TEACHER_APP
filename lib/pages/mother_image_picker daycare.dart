@@ -8,9 +8,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
-
 import '../controller/student_controller daycare.dart';
+import '../utils/app_snackbar.dart';
 import 'guardian_image_picker daycare.dart';
+
 
 // ─── Palette ───────────────────────────────────────────────
 const _teal      = Color(0xFF97144D);
@@ -29,12 +30,15 @@ class MotherImagePickerdaycare extends GetView<StudentControllerdaycare> {
     );
     if (source == null) return;
 
-    final XFile? picked = await controller.picker.pickImage(source: source);
-    if (picked != null) {
-      controller.motherPic.value = File(picked.path);
-    } else {
-      Get.snackbar('Notice', 'No image selected.',
-          backgroundColor: Colors.orange, colorText: Colors.white);
+    try {
+      final XFile? picked = await controller.picker.pickImage(source: source);
+      if (picked != null) {
+        controller.motherPic.value = File(picked.path);
+      } else {
+        AppSnackbar.error('No image selected.', title: 'Notice');
+      }
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 
@@ -161,8 +165,8 @@ class _ImagePreviewCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(16.r),
-                  border:
-                  Border.all(color: Colors.teal.shade100, width: 2),
+                  border: Border.all(
+                      color: Colors.teal.shade100, width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

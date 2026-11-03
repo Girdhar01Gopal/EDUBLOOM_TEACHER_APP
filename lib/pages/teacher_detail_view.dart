@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../controller/teacher_detail_controller.dart';
 import '../models/teacher_detail_model.dart';
+import '../utils/app_snackbar.dart';
 
 class TeacherDetailScreen extends GetView<TeacherDetailController> {
   const TeacherDetailScreen({super.key});
@@ -273,7 +274,7 @@ class _ProfilePic extends StatelessWidget {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _AvatarFallback(initials: initials),
           loadingBuilder: (_, child, progress) =>
-          progress == null ? child : _LoadingAvatar(),
+          progress == null ? child : const _LoadingAvatar(),
         )
             : _AvatarFallback(initials: initials),
       ),
@@ -315,6 +316,8 @@ class _AvatarFallback extends StatelessWidget {
 }
 
 class _LoadingAvatar extends StatelessWidget {
+  const _LoadingAvatar();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -452,15 +455,13 @@ class _DocumentsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final docs = <Map<String, String?>>[];
-    if (teacher.idproof?.trim().isNotEmpty ?? false)
-      docs.add({'label': 'ID Proof', 'url': ctrl.imageUrl(teacher.idproof)});
-    if (teacher.resume?.trim().isNotEmpty ?? false)
-      docs.add({'label': 'Resume', 'url': ctrl.imageUrl(teacher.resume)});
-    if (teacher.callLetter?.trim().isNotEmpty ?? false)
-      docs.add({'label': 'Call Letter', 'url': ctrl.imageUrl(teacher.callLetter)});
+    final entries = <MapEntry<String, String?>>[
+      MapEntry('ID Proof', teacher.idproof),
+      MapEntry('Resume', teacher.resume),
+      MapEntry('Call Letter', teacher.callLetter),
+    ].where((e) => e.value?.trim().isNotEmpty ?? false).toList();
 
-    if (docs.isEmpty) return const SizedBox.shrink();
+    if (entries.isEmpty) return const SizedBox.shrink();
 
     return Card(
       elevation: 0,
@@ -473,11 +474,11 @@ class _DocumentsRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.attach_file, size: 18, color: Color(0xFFA83262)),
-                const SizedBox(width: 6),
-                const Text(
+                Icon(Icons.attach_file, size: 18, color: Color(0xFFA83262)),
+                SizedBox(width: 6),
+                Text(
                   'Documents',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
@@ -491,7 +492,9 @@ class _DocumentsRow extends StatelessWidget {
             Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: docs.map((d) => _DocThumb(label: d['label']!, url: d['url'])).toList(),
+              children: entries
+                  .map((e) => _DocThumb(label: e.key, url: ctrl.imageUrl(e.value)))
+                  .toList(),
             ),
           ],
         ),
@@ -550,15 +553,16 @@ class _DocThumb extends StatelessWidget {
   Future<void> _onTap(BuildContext context, String url, String title, bool isPdf) async {
     if (isPdf) {
       // Open PDF in browser / external viewer
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not open PDF: $url')),
-          );
+      try {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          // URL / raw error user ko nahi dikhana.
+          AppSnackbar.error('Could not open the document. Please try again.');
         }
+      } catch (_) {
+        AppSnackbar.error('Could not open the document. Please try again.');
       }
       return;
     }

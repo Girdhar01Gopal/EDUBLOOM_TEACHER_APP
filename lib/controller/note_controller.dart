@@ -16,6 +16,7 @@ import '../models/subject_model.dart';
 import '../models/vnote_model.dart';
 import '../models/new model teacher section attendance.dart'; // 🆕 SectionForAttendanceModel
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse
 
@@ -196,10 +197,16 @@ class NoteController extends GetxController {
         debugPrint(
             "⚠️ fetchVNotes: unexpected response (status ${response.statusCode}, looksLikeJson=$looksLikeJson) — check API URL / session.");
         listData.assignAll([]);
-        // Get.snackbar("Error", "Failed to fetch data");
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "fetchVNotes failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Fetch Notes Error: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isNotesLoading(false);
@@ -208,22 +215,26 @@ class NoteController extends GetxController {
 
   Future<void> registerNote(String remarksText) async {
     if (selectedClassIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one class.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one class.");
       return;
     }
 
     if (selectedSectionIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one section.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one section.");
       return;
     }
 
     if (selectedSubjectIds.isEmpty) {
-      ShortMessage.toast(title: "Please select at least one subject.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please select at least one subject.");
       return;
     }
 
     if (remarksText.isEmpty) {
-      ShortMessage.toast(title: "Please enter remarks for the note.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.error("Please enter remarks for the note.");
       return;
     }
 
@@ -285,8 +296,6 @@ class NoteController extends GetxController {
       debugPrint("📥 Body: $responseBody");
 
       if (response.statusCode == 200) {
-        ShortMessage.toast(title: "Note Added Successfully");
-
         // ✅ Reset selections after success
         selectedClassIds.clear();
         selectedSectionIds.clear();
@@ -296,12 +305,22 @@ class NoteController extends GetxController {
 
         await fetchVNotes();
         Get.back();
+
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar.
+        // Get.back() ke BAAD dikhaya, taaki back karte waqt snackbar band na ho jaye.
+        AppSnackbar.success("Note Added Successfully");
       } else {
-        ShortMessage.toast(title: "Failed to add note(s). Please try again.");
+        // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar (user ko "Something went wrong",
+        // console me asli error)
+        AppSnackbar.apiError(
+          "Post note failed: $responseBody",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('⚠️ Post Note Exception: $e');
-      ShortMessage.toast(title: "Failed to add note(s). Please try again.");
+      // 🆕 CHANGED: ShortMessage.toast -> AppSnackbar
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -408,8 +427,10 @@ class NoteController extends GetxController {
         classTeacherList.value = model.data ?? [];
         isClassTeacherLogin.value = classTeacherList.isNotEmpty;
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("Error loading ClassTeacher filter: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -440,9 +461,11 @@ class NoteController extends GetxController {
             'sqno': e.sqno,
           });
         }).toList();
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error mapping ClassTeacher classes: $e");
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       }
 
       // if (listDataa.isEmpty) {
@@ -489,10 +512,17 @@ class NoteController extends GetxController {
         }
       } else {
         listDataa.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetClassTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetClassTeacher classes: $e");
       listDataa.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isClassLoading(false);
@@ -518,9 +548,17 @@ class NoteController extends GetxController {
         listDataa.value = classItem.listData
             ?.where((e) => e.action == "1")
             .toList() ?? [];
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewClass failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes: $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isClassLoading(false);
@@ -581,10 +619,17 @@ class NoteController extends GetxController {
           }).toList();
         } else {
           sectionList.value = [];
+          // 🆕 ADDED: user ko "Something went wrong", console me asli error
+          AppSnackbar.apiError(
+            "SectionTeacher failed: ${response.statusCode}",
+            statusCode: response.statusCode,
+          );
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(e, stackTrace: stack);
       } finally {
         isLoading(false);
         isSectionLoading(false);
@@ -627,10 +672,17 @@ class NoteController extends GetxController {
         sectionList.value = sectionItem.listData ?? [];
       } else {
         sectionList.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSectionTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching GetSectionTeacher sections: $e");
       sectionList.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isSectionLoading(false);
@@ -655,9 +707,17 @@ class NoteController extends GetxController {
         sectionList.value = (jsonDecode(response.body)['listData'] as List)
             .map((e) => stListData.fromJson(e))
             .toList();
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSectionApp failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isSectionLoading(false);
@@ -716,10 +776,17 @@ class NoteController extends GetxController {
         }
       } else {
         subjectlist.value = [];
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "GetSubjectTeacher failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading teacher subjects: $e');
       subjectlist.value = [];
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isSubjectLoading(false);
@@ -753,9 +820,17 @@ class NoteController extends GetxController {
         subjectdata.value = subjectWrapper;
         subjectlist.value = subjectWrapper.listData ?? [];
         debugPrint("📊 Staff subjectlist length -> ${subjectlist.length}");
+      } else {
+        // 🆕 ADDED: user ko "Something went wrong", console me asli error
+        AppSnackbar.apiError(
+          "ViewSubject failed: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading staff subjects: $e');
+      // 🆕 ADDED: user ko "Something went wrong", console me asli error
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
       isSubjectLoading(false);

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import '../models/viewfeesmodel.dart'; // ✅ FIXED: same model jo view use kar raha hai
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ NEW
 
 class Viewtransactioncontroller extends GetxController {
   var transactionItems = <fListData>[].obs;
@@ -63,14 +64,17 @@ class Viewtransactioncontroller extends GetxController {
             list.map<fListData>((e) => fListData.fromJson(e)).toList(),
           );
         } else {
-          Get.snackbar("Error", "Invalid data format: listData not found");
+          // ✅ CHANGED: user sees only "Something went wrong", real reason in console
+          AppSnackbar.apiError("Invalid data format: listData not found");
         }
       } else {
-        Get.snackbar("Error", "Failed to load transaction details");
+        // ✅ CHANGED
+        AppSnackbar.apiError(response.body, statusCode: response.statusCode);
       }
-    } catch (e) {
+    } catch (e, s) {
       print("Error: $e");
-      Get.snackbar("Error", "An error occurred while fetching data");
+      // ✅ CHANGED: no raw exception / url shown to user
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 }

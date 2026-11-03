@@ -17,6 +17,7 @@ import '../models/new model teacher section attendance.dart'; // 🆕 SectionFor
 import '../res/app_url.dart';
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class StationaryFeeStudentController extends GetxController {
   RxList<StudentListData> studentList = <StudentListData>[].obs;
@@ -78,8 +79,9 @@ class StationaryFeeStudentController extends GetxController {
           fetchSections(),
         ]);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to initialize data: $e");
+    } catch (e, s) {
+      // Koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -102,11 +104,7 @@ class StationaryFeeStudentController extends GetxController {
     if (selectedSession.value == null ||
         selectedClass.value == null ||
         selectedSection.value == null) {
-      Get.snackbar(
-        'Error',
-        'Please select session, class and section.',
-        backgroundColor: Colors.red.shade100,
-      );
+      AppSnackbar.error('Please select session, class and section.');
       return;
     }
 
@@ -137,27 +135,23 @@ class StationaryFeeStudentController extends GetxController {
         studentList.assignAll(model.listData ?? []);
 
         if (studentList.isEmpty) {
-          Get.snackbar(
-            "Info",
-            "No data found",
-            backgroundColor: Colors.orange.shade100,
-          );
+          AppSnackbar.error("No data found", title: "Info");
+        } else {
+          // ✅ Success snackbar
+          AppSnackbar.success("Data loaded successfully");
         }
       } else {
         studentList.clear();
-        Get.snackbar(
-          "Error",
-          "Failed to load student list. Status: ${response.statusCode}",
-          backgroundColor: Colors.red.shade100,
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Failed to load student list. Status: ${response.statusCode} : ${response.body}",
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, s) {
       studentList.clear();
-      Get.snackbar(
-        "Error",
-        "Error fetching student data: $e",
-        backgroundColor: Colors.red.shade100,
-      );
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading.value = false;
     }
@@ -288,8 +282,8 @@ class StationaryFeeStudentController extends GetxController {
       } else {
         sectionList.value = [];
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to load sections: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       sectionList.value = [];
     }
 
@@ -388,8 +382,8 @@ class StationaryFeeStudentController extends GetxController {
       } else {
         listDataa.value = [];
       }
-    } catch (e) {
-      Get.snackbar("Error", "Error fetching classes: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
       listDataa.value = [];
     }
 
@@ -458,8 +452,8 @@ class StationaryFeeStudentController extends GetxController {
           }
         }
       }
-    } catch (e) {
-      Get.snackbar("Error", "Failed to load sessions: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     }
   }
 }

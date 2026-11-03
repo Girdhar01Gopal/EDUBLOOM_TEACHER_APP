@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/grade_master_model.dart';
+import '../utils/app_snackbar.dart';
 
 class GradeMasterController extends GetxController {
   final TextEditingController gradeController = TextEditingController();
@@ -47,11 +48,11 @@ class GradeMasterController extends GetxController {
     final gradeValue = gradeController.text.trim();
 
     if (gradeValue.isEmpty) {
-      Get.snackbar("Validation", "Please enter Grade");
+      AppSnackbar.error("Please enter Grade", title: "Validation");
       return;
     }
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -84,17 +85,22 @@ class GradeMasterController extends GetxController {
         final ok = jsonRes["isSuccess"] == true;
 
         if (ok) {
-          Get.snackbar("Success", msg.isEmpty ? "Grade added" : msg);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Grade added successfully");
           gradeController.clear();
           await fetchGrades(showLoader: false);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Not saved" : msg);
+          // Short clean server message is shown; technical text becomes
+          // "Something went wrong" automatically.
+          AppSnackbar.error(msg.isEmpty ? "Not saved" : msg, title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "API failed: ${res.statusCode}");
+        AppSnackbar.apiError("API failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Save failed: $e");
+    } catch (e, s) {
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -107,11 +113,11 @@ class GradeMasterController extends GetxController {
     final gradeValue = grade.trim();
 
     if (gradeValue.isEmpty) {
-      Get.snackbar("Validation", "Grade cannot be empty");
+      AppSnackbar.error("Grade cannot be empty", title: "Validation");
       return;
     }
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -148,16 +154,19 @@ class GradeMasterController extends GetxController {
 
         if (ok) {
           Get.back();
-          Get.snackbar("Success", msg.isEmpty ? "Updated" : msg);
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Grade updated successfully");
           await fetchGrades(showLoader: false);
         } else {
-          Get.snackbar("Failed", msg.isEmpty ? "Update failed" : msg);
+          AppSnackbar.error(msg.isEmpty ? "Update failed" : msg,
+              title: "Failed");
         }
       } else {
-        Get.snackbar("Error", "Update API failed: ${res.statusCode}");
+        AppSnackbar.apiError("Update API failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -165,7 +174,7 @@ class GradeMasterController extends GetxController {
 
   Future<void> fetchGrades({bool showLoader = true}) async {
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -184,10 +193,11 @@ class GradeMasterController extends GetxController {
         final list = MasterGradeModel.fromJsonList(jsonRes as List<dynamic>);
         grades.assignAll(list);
       } else {
-        Get.snackbar("Error", "Fetch failed: ${res.statusCode}");
+        AppSnackbar.apiError("Fetch failed: ${res.statusCode}",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       if (showLoader) isLoading(false);
     }

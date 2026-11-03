@@ -8,6 +8,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/feetypemaster.dart';
 import '../models/session_model.dart';      // ✅ ADD
 import '../res/app_url.dart';               // ✅ ADD
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class FeeTypeController extends GetxController {
   final TextEditingController feeTypeController = TextEditingController();
@@ -35,7 +36,7 @@ class FeeTypeController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
 
     if (schoolId == null || schoolId!.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -72,9 +73,17 @@ class FeeTypeController extends GetxController {
         } else if (sessionList.isNotEmpty) {
           session.value = sessionList.first;
         }
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Session fetch failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("Session fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isSessionLoading(false);
     }
@@ -108,10 +117,13 @@ class FeeTypeController extends GetxController {
           session.value = apiSession;
         }
       } else {
-        Get.snackbar("Error", "View API failed: ${res.statusCode}");
+        AppSnackbar.apiError(
+          "View API failed: ${res.statusCode} | ${res.body}",
+          statusCode: res.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -120,7 +132,7 @@ class FeeTypeController extends GetxController {
   Future<void> addFeeType() async {
     final feeType = feeTypeController.text.trim();
     if (feeType.isEmpty) {
-      Get.snackbar("Validation", "Fee Type cannot be empty");
+      AppSnackbar.error("Fee Type cannot be empty", title: "Validation");
       return;
     }
 
@@ -149,14 +161,15 @@ class FeeTypeController extends GetxController {
       final apiRes = ApiResponseModel.fromJson(jsonMap);
 
       if (apiRes.isSuccess == true) {
-        Get.snackbar("Success", apiRes.messages);
+        AppSnackbar.success(apiRes.messages);
         feeTypeController.clear();
         await fetchFeeTypes();
       } else {
-        Get.snackbar("Failed", apiRes.messages);
+        // Server ka message technical hua to automatically "Something went wrong" ban jayega
+        AppSnackbar.error(apiRes.messages, title: "Failed");
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -187,7 +200,8 @@ class FeeTypeController extends GetxController {
                     : () async {
                   final newName = editCtrl.text.trim();
                   if (newName.isEmpty) {
-                    Get.snackbar("Validation", "Fee Type cannot be empty");
+                    AppSnackbar.error("Fee Type cannot be empty",
+                        title: "Validation");
                     return;
                   }
                   await updateFeeType(
@@ -215,7 +229,7 @@ class FeeTypeController extends GetxController {
     required String feeType,
   }) async {
     if (schoolId == null || schoolId!.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage");
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -245,13 +259,13 @@ class FeeTypeController extends GetxController {
 
       if (apiRes.isSuccess == true) {
         Get.back();
-        Get.snackbar("Success", apiRes.messages);
+        AppSnackbar.success(apiRes.messages);
         await fetchFeeTypes();
       } else {
-        Get.snackbar("Failed", apiRes.messages);
+        AppSnackbar.error(apiRes.messages, title: "Failed");
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -264,10 +278,7 @@ class FeeTypeController extends GetxController {
     await PrefManager().readValue(key: PrefConst.schollId);
 
     if (storedSchoolId == null || storedSchoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found in storage",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP);
+      AppSnackbar.error("SchoolId not found in storage");
       return;
     }
 
@@ -304,35 +315,25 @@ class FeeTypeController extends GetxController {
 
         if (isUpdated) {
           await fetchFeeTypes();
-          Get.snackbar(
-            "Success",
+          AppSnackbar.success(
             action == "1"
                 ? "Fee Type Activated Successfully"
                 : "Fee Type Inactivated Successfully",
-            backgroundColor: action == "1" ? Colors.green : Colors.red,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.TOP,
-            margin: const EdgeInsets.all(12),
-            borderRadius: 8,
-            duration: const Duration(seconds: 2),
           );
         } else {
-          Get.snackbar("Error", "Failed to toggle status",
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-              snackPosition: SnackPosition.TOP);
+          AppSnackbar.apiError(
+            "Failed to toggle status | ${response.body}",
+            statusCode: response.statusCode,
+          );
         }
       } else {
-        Get.snackbar("Error", "Failed to communicate with the server",
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.TOP);
+        AppSnackbar.apiError(
+          "Failed to communicate with the server | ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Status update failed: $e",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP);
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

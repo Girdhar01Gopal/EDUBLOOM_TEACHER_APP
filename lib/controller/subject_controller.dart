@@ -7,6 +7,7 @@ import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/subject_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class SubjectController extends GetxController {
   final TextEditingController subject = TextEditingController();
@@ -29,7 +30,7 @@ class SubjectController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId);
 
     if (schoolId == null || schoolId.toString().trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -48,7 +49,7 @@ class SubjectController extends GetxController {
   Future<void> postSubject(BuildContext context) async {
     final name = subject.text.trim();
     if (name.isEmpty) {
-      Get.snackbar("Validation", "Enter subject name");
+      AppSnackbar.error("Enter subject name", title: "Validation");
       return;
     }
 
@@ -75,28 +76,17 @@ class SubjectController extends GetxController {
         await fetchsubjectdata();
 
         // Snackbar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              "Subject added successfully!",
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppSnackbar.success("Subject added successfully!");
       } else {
-        Get.snackbar(
-          "Subject Add Failed",
-          "Status: ${response.statusCode}\n${response.body}",
-          snackPosition: SnackPosition.BOTTOM,
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Subject Add Failed | Status: ${response.statusCode}\n${response.body}",
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Post error: $e");
+    } catch (e, s) {
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -140,7 +130,7 @@ class SubjectController extends GetxController {
             onPressed: () async {
               final newName = editCtrl.text.trim();
               if (newName.isEmpty) {
-                Get.snackbar("Validation", "Subject name required");
+                AppSnackbar.error("Subject name required", title: "Validation");
                 return;
               }
 
@@ -186,25 +176,19 @@ class SubjectController extends GetxController {
         // Close dialog
         Get.back();
 
-        Get.snackbar(
-          "Success",
-          "Subject updated successfully",
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
+        AppSnackbar.success("Subject updated successfully");
 
         // Refresh list
         await fetchsubjectdata();
       } else {
-        Get.snackbar(
-          "Update Failed",
-          "Status: ${response.statusCode}\n${response.body}",
-          snackPosition: SnackPosition.BOTTOM,
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Update Failed | Status: ${response.statusCode}\n${response.body}",
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -228,14 +212,13 @@ class SubjectController extends GetxController {
         final Map<String, dynamic> data = json.decode(response.body);
         subjectdata.value = SubjectModel.fromJson(data);
       } else {
-        Get.snackbar(
-          "Fetch Failed",
-          "Status: ${response.statusCode}\n${response.body}",
-          snackPosition: SnackPosition.BOTTOM,
+        AppSnackbar.apiError(
+          "Fetch Failed | Status: ${response.statusCode}\n${response.body}",
+          statusCode: response.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Fetch error: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }

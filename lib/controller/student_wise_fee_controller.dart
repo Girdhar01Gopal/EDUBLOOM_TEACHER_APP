@@ -7,6 +7,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/paid fee model report.dart';
 import '../models/unpaid fee report model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class StudentWiseFeeController extends GetxController {
   final TextEditingController regNoController = TextEditingController();
@@ -32,6 +33,9 @@ class StudentWiseFeeController extends GetxController {
   // Paid list — PaidData from PaidFeeModel
   RxList<PaidData> paidFeeList = <PaidData>[].obs;
 
+  // ✅ Dono APIs me se kisi me error aaya ya nahi (success snackbar ke liye)
+  bool _hadError = false;
+
   @override
   void onInit() async {
     super.onInit();
@@ -52,9 +56,22 @@ class StudentWiseFeeController extends GetxController {
   }
 
   /// Dono APIs ek saath call karo
-  void _fetchBothApis() {
-    fetchUnpaidFee();
-    fetchPaidFee();
+  Future<void> _fetchBothApis() async {
+    _hadError = false;
+
+    await Future.wait([
+      fetchUnpaidFee(),
+      fetchPaidFee(),
+    ]);
+
+    // ✅ Error nahi aaya tabhi success / info snackbar
+    if (!_hadError) {
+      if (unpaidFeeList.isEmpty && paidFeeList.isEmpty) {
+        AppSnackbar.error('No data found', title: 'Info');
+      } else {
+        AppSnackbar.success('Data loaded successfully');
+      }
+    }
   }
 
   /// Search button press pe bhi dono call hogi
@@ -69,11 +86,8 @@ class StudentWiseFeeController extends GetxController {
   // ─────────────────────────────────────────────
   Future<void> fetchUnpaidFee() async {
     if (studentId.value == 0) {
-      Get.snackbar(
-        'Error',
-        'Student ID not found.',
-        backgroundColor: Colors.red.shade100,
-      );
+      _hadError = true;
+      AppSnackbar.error('Student ID not found.');
       return;
     }
 
@@ -112,19 +126,18 @@ class StudentWiseFeeController extends GetxController {
           studentSection.value = list.first.section ?? '';
         }
       } else {
-        Get.snackbar(
-          'Error',
-          'Unpaid fee load failed: ${response.statusCode}',
-          backgroundColor: Colors.red.shade100,
+        _hadError = true;
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Unpaid fee load failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
         );
         print("Unpaid API Error: ${response.statusCode} => ${response.body}");
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Unpaid fee error: $e',
-        backgroundColor: Colors.red.shade100,
-      );
+    } catch (e, s) {
+      _hadError = true;
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
       print("Unpaid Exception: $e");
     } finally {
       isUnpaidLoading(false);
@@ -174,19 +187,18 @@ class StudentWiseFeeController extends GetxController {
           studentSection.value = list.first.section ?? '';
         }
       } else {
-        Get.snackbar(
-          'Error',
-          'Paid fee load failed: ${response.statusCode}',
-          backgroundColor: Colors.red.shade100,
+        _hadError = true;
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          'Paid fee load failed: ${response.statusCode} : ${response.body}',
+          statusCode: response.statusCode,
         );
         print("Paid API Error: ${response.statusCode} => ${response.body}");
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Paid fee error: $e',
-        backgroundColor: Colors.red.shade100,
-      );
+    } catch (e, s) {
+      _hadError = true;
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
       print("Paid Exception: $e");
     } finally {
       isPaidLoading(false);

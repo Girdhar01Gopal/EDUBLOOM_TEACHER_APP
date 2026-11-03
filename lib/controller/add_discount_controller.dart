@@ -9,6 +9,7 @@ import '../models/fees_duration_model.dart';
 import 'package:http/http.dart'as http;
 import '../models/student_fee_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ NEW
 class AddDiscountController extends GetxController{
 
   TextEditingController remarkController = TextEditingController();
@@ -22,7 +23,7 @@ class AddDiscountController extends GetxController{
   var selectedFeesDurationName = "".obs;
   var selectedFeeType = 0.obs;
   var selectedFeeTypeName = "".obs;
-    RxList<Map<String, dynamic>> discountDetails = <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> discountDetails = <Map<String, dynamic>>[].obs;
 
   var schoolid;
   var studentId = 0;
@@ -44,30 +45,30 @@ class AddDiscountController extends GetxController{
     super.onInit();
   }
 
-  
+
   // Add this method to get the total amount for selected fee type and duration
   int getTotalAmount() {
     try {
       // Find the matching fee from filteredList based on selected fee type and duration
       final matchingFee = filteredList.firstWhere(
-        (fee) => fee.feeType == selectedFeeTypeName.value && 
-                 fee.feesDuration == selectedFeesDurationName.value,
+            (fee) => fee.feeType == selectedFeeTypeName.value &&
+            fee.feesDuration == selectedFeesDurationName.value,
         orElse: () => filteredList.first,
       );
-      
+
       return int.tryParse(matchingFee.amount ?? '0') ?? 0;
     } catch (e) {
       return 0;
     }
   }
-  
+
   Future<void> fetchFeesDuration() async {
 
     try {
       isLoading(true);
       var response = await http.get(Uri.parse('${AppUrl.base_url}api/FeeMasterApp/ViewFeesDurationApp/$schoolid'),
           headers : {
-           //// 'Authorization': 'Bearer $token',
+            //// 'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           }
       );
@@ -78,6 +79,9 @@ class AddDiscountController extends GetxController{
         FeesDurationModel feesDurationModel = FeesDurationModel.fromJson(jsonData);
         feesDurationList.assignAll(feesDurationModel.listData ?? []);
       }
+    } catch (e, s) {
+      // ✅ NEW: user sees only "Something went wrong", real error in console
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -87,12 +91,12 @@ class AddDiscountController extends GetxController{
     try {
       isLoading(true);
       var response = await http.get(Uri.parse('${AppUrl.base_url}api/FeeMasterApp/ViewFeeTypeApp/$schoolid'),
-      
+
           headers : {
             //'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           });
-          print('${AppUrl.base_url}api/Fee/ViewFeeType/$schoolid');
+      print('${AppUrl.base_url}api/Fee/ViewFeeType/$schoolid');
       if (response.statusCode == 200) {
         print(response);
         print(response.body);
@@ -100,25 +104,28 @@ class AddDiscountController extends GetxController{
         FeeTypeModel feeTypeModel = FeeTypeModel.fromJson(jsonData);
         feeTypeList.assignAll(feeTypeModel.listData ?? []);
       }
+    } catch (e, s) {
+      // ✅ NEW
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
   }
-  
-Future<void> submitDiscount(
-   
-    var feesDurationId,
-    var feeDuration,
-    var feeType,
-    var feeType1,
-    var discount,
-    var remark,
-    var registrationno,
-    var calssid,
-    var sectionid,
-    var session,  // Added session
-    var schoolId, // Added schoolId
-  ) async {
+
+  Future<void> submitDiscount(
+
+      var feesDurationId,
+      var feeDuration,
+      var feeType,
+      var feeType1,
+      var discount,
+      var remark,
+      var registrationno,
+      var calssid,
+      var sectionid,
+      var session,  // Added session
+      var schoolId, // Added schoolId
+      ) async {
     isLoading(true);
     final url = '${AppUrl.base_url}api/DiscountApp/InsertDiscountApp';
     try {
@@ -144,75 +151,72 @@ Future<void> submitDiscount(
           "schoolId": schoolId.toString(),
         }),
       );
-print(response.statusCode);
-print(response.body);
+      print(response.statusCode);
+      print(response.body);
       if (response.statusCode == 200) {
         print(url);
         print(response.body);
-       Get.offAllNamed(RouteName.dashboard_screen);
-        var data = json.decode(response.body);
-        if (response.statusCode == 409) {
-          Get.snackbar('Success', 'Discount already added once');
-        }
-        Discount();
+        // ✅ CHANGED
+        AppSnackbar.success('Discount added successfully');
+        await Discount();
+        Get.offAllNamed(RouteName.fees_screen);
+      } else if (response.statusCode == 409) {
+        // ✅ CHANGED
+        AppSnackbar.success('Discount already added once', title: 'Info');
       } else {
-        Get.snackbar('Error', 'Failed to add discount');
+        // ✅ CHANGED
+        AppSnackbar.apiError(response.body, statusCode: response.statusCode);
       }
-    } catch (e) {
-      Get.snackbar('Error', 'An error occurred');
+    } catch (e, s) {
+      // ✅ CHANGED
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
   }
-void Discount() async {
-  PrefManager().writeValue(key: PrefConst.feeType, value: selectedFeeTypeName.value);
-  PrefManager().writeValue(key: PrefConst.feeDuration, value: selectedFeesDurationName.value);
 
-  final url = Uri.parse(
-    "${AppUrl.base_url}api/FeePaymentApp/GetDiscountdetailsApp/${filteredList.first.session}/${filteredList.first.schoolId}?registrationNo=${filteredList.first.registrationNo}",
-  );
-  
-  var discount = 0;  // Default discount value
+  Future<int> Discount() async {
+    PrefManager().writeValue(key: PrefConst.feeType, value: selectedFeeTypeName.value);
+    PrefManager().writeValue(key: PrefConst.feeDuration, value: selectedFeesDurationName.value);
 
-  try {
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        // 'Authorization': 'Bearer $token', // Uncomment if needed
-      },
+    if (filteredList.isEmpty) return 0;
+
+    final first = filteredList.first;
+    final sid = studentId != 0 ? studentId : first.studentId;
+
+    final url = Uri.parse(
+      "${AppUrl.base_url}api/FeePaymentApp/GetDiscountdetailsApp/${first.session}/$sid",
     );
 
-    if (response.statusCode == 200) {
-      print(url);
-      print(response.body);
-      final data = jsonDecode(response.body);
+    int discount = 0;
 
-      // Assuming the response contains a 'discount' field. Safely parse it.
-      if (data['discount'] != null) {
-        // Ensure discount is a valid number (int or double)
-        discountDetails.assignAll(response.body.isNotEmpty
-          ? (data as List).map((e) => Map<String, dynamic>.from(e)).toList()
-          : []);
-          print(discountDetails);
-          discount = discountDetails.isNotEmpty
-          ? (discountDetails.first['discount']
-              ? discountDetails.first['discount'] 
-              : int.tryParse(discountDetails.first['discount'].toString()) ?? 0)
-          : 0;
-          print(discount);
-          Get.offAllNamed(RouteName.dashboard_screen);
+    try {
+      final response = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+      });
+
+      if (response.statusCode == 200) {
+        print(url);
+        print(response.body);
+        final data = jsonDecode(response.body);
+
+        if (data is List) {
+          discountDetails.assignAll(
+            data.map((e) => Map<String, dynamic>.from(e)).toList(),
+          );
+          if (discountDetails.isNotEmpty) {
+            discount = int.tryParse(
+                discountDetails.first['discount']?.toString() ?? '0') ??
+                0;
+          }
+        }
       } else {
-        discount = 0; // Default to 0 if discount field is missing
+        print('Failed to load discount: ${response.statusCode}');
       }
-
-      // Send the discount back to the parent page
-      Get.back(result: discount);
-    } else {
-      print('Failed to load discount');
+    } catch (error) {
+      print('Error: $error');
     }
-  } catch (error) {
-    print('Error: $error');
+
+    return discount;
   }
-}
 }

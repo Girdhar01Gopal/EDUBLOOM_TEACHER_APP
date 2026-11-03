@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/classmodel.dart';
+import '../utils/app_snackbar.dart'; // ✅ AppSnackbar
 
 class ClassController extends GetxController {
   final TextEditingController classID = TextEditingController();
@@ -57,9 +58,17 @@ class ClassController extends GetxController {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         classList.value = ClassItem.fromJson(jsonDecode(response.body));
+      } else {
+        // User ko sirf "Something went wrong", asli error console me
+        AppSnackbar.apiError(
+          "Fetch classes failed: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
+    } catch (e, s) {
       debugPrint("Fetch error: $e");
+      // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isLoading(false);
     }
@@ -79,8 +88,15 @@ class ClassController extends GetxController {
       if (response.statusCode == 200) {
         clas.clear();
         await fetchClasses();
-        Get.snackbar("Success", "Class added", backgroundColor: Colors.green, colorText: Colors.white);
+        AppSnackbar.success("Class added");
+      } else {
+        AppSnackbar.apiError(
+          "Add class failed: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -100,8 +116,15 @@ class ClassController extends GetxController {
       if (response.statusCode == 200) {
         Get.back();
         await fetchClasses();
-        Get.snackbar("Success", "Class updated", backgroundColor: Colors.green, colorText: Colors.white);
+        AppSnackbar.success("Class updated");
+      } else {
+        AppSnackbar.apiError(
+          "Update class failed: ${response.statusCode} | ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

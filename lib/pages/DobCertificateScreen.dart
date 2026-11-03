@@ -20,6 +20,7 @@ import '../controller/home_page_controller.dart'; // ← DashboardScreenControll
 import '../models/DOB print certificacte model.dart';
 import '../models/student_model.dart';
 import '../res/app_url.dart'; // ← AppUrl.dashurl
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
@@ -444,7 +445,8 @@ class _DobCertificateViewScreenState
       final bytes = await _captureBytes();
       Get.back();
       if (bytes == null) {
-        Get.snackbar('Error', 'Could not capture certificate.');
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+        AppSnackbar.error('Could not capture certificate.');
         return;
       }
       await Printing.layoutPdf(
@@ -454,9 +456,11 @@ class _DobCertificateViewScreenState
           return doc;
         },
       );
-    } catch (e) {
+    } catch (e, stack) {
       if (Get.isDialogOpen ?? false) Get.back();
-      Get.snackbar('Error', 'Print failed: $e');
+      // 🆕 CHANGED: raw error nahi dikhega, sirf "Something went wrong",
+      // asli error console me
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 
@@ -484,7 +488,8 @@ class _DobCertificateViewScreenState
       final bytes = await _captureBytes();
       Get.back();
       if (bytes == null) {
-        Get.snackbar('Error', 'Could not capture certificate.');
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.error
+        AppSnackbar.error('Could not capture certificate.');
         return;
       }
       final tempDir = await getTemporaryDirectory();
@@ -502,13 +507,7 @@ class _DobCertificateViewScreenState
     } catch (e) {
       if (Get.isDialogOpen ?? false) Get.back();
       debugPrint('Share error: $e');
-      Get.snackbar(
-        'Error',
-        'Certificate not shared. Please retry.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      AppSnackbar.error('Certificate not shared. Please retry.');
     }
   }
 

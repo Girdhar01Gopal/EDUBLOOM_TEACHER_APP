@@ -9,6 +9,7 @@ import '../models/detaildaycaremodel.dart';
 import '../models/paymentmodel.dart';
 import '../models/session_model.dart'; // ✅ ADD
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // 🆕 AppSnackbar
 import 'package:http/http.dart' as http;
 
 class PayDayCController extends GetxController {
@@ -221,10 +222,11 @@ class PayDayCController extends GetxController {
         final jsonResponse = jsonDecode(response.body);
         paymentModes.value = PaymentModel.fromJson(jsonResponse).listData ?? [];
       } else {
-        Get.snackbar('Error', 'Failed to load payment modes');
+        AppSnackbar.apiError('Failed to load payment modes',
+            statusCode: response.statusCode); // 🔄
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Error fetching payment modes: $e');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
   }
 
@@ -244,18 +246,13 @@ class PayDayCController extends GetxController {
 
   void toggleRowSelection(detailDaycareStudentModel data, bool isSelected) {
     if (isPaymentStatusPaid(data)) {
-      Get.snackbar('Warning', 'This payment is already marked as Paid',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2));
+      AppSnackbar.error('This payment is already marked as Paid',
+          title: 'Warning'); // 🔄
       return;
     }
 
     if (!isRowSelectable(data)) {
-      Get.snackbar('Warning', 'This row cannot be selected',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2));
+      AppSnackbar.error('This row cannot be selected', title: 'Warning'); // 🔄
       return;
     }
 
@@ -286,7 +283,7 @@ class PayDayCController extends GetxController {
   int getTotalDueAmount() {
     return selectedRows.fold(
       0,
-      (sum, item) => sum + (_parseInt(item.dueAmount?.toString() ?? '0') ?? 0),
+          (sum, item) => sum + (_parseInt(item.dueAmount?.toString() ?? '0') ?? 0),
     );
   }
 
@@ -320,7 +317,7 @@ class PayDayCController extends GetxController {
     final raw = timeStr.trim();
 
     final reg =
-        RegExp(r'^(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?\s*([aApP][mM])?$');
+    RegExp(r'^(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?\s*([aApP][mM])?$');
     final m = reg.firstMatch(raw);
 
     if (m == null) {
@@ -404,8 +401,7 @@ class PayDayCController extends GetxController {
 
     final int rowCount = selectedRows.length;
     if (rowCount == 0) {
-      Get.snackbar('Error', 'Please select at least one row',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.error('Please select at least one row'); // 🔄
       return;
     }
 
@@ -416,7 +412,7 @@ class PayDayCController extends GetxController {
     final int discRemainder = totalDiscount % rowCount;
 
     List<Map<String, dynamic>> requestBody =
-        selectedRows.asMap().entries.map((entry) {
+    selectedRows.asMap().entries.map((entry) {
       final idx = entry.key;
       final row = entry.value;
 
@@ -428,8 +424,8 @@ class PayDayCController extends GetxController {
       int apiDueAmount = getTotalDueAmount();
 
       final int totalAmount = dueandtotal.isNotEmpty &&
-              dueandtotal.first.listData != null &&
-              dueandtotal.first.listData!.isNotEmpty
+          dueandtotal.first.listData != null &&
+          dueandtotal.first.listData!.isNotEmpty
           ? apiDueAmount
           : hourlyAmount;
 
@@ -512,9 +508,8 @@ class PayDayCController extends GetxController {
       print("Add Fees Response: ${response.body}");
 
       if (response.statusCode == 200) {
-        Get.snackbar(
-            "Success", "Daycare fee installment submitted successfully!",
-            backgroundColor: Colors.green, colorText: Colors.white);
+        AppSnackbar.success(
+            "Daycare fee installment submitted successfully!"); // 🔄
 
         selectedRows.clear();
         discountAmountController.clear();
@@ -524,14 +519,12 @@ class PayDayCController extends GetxController {
         Get.offAllNamed(RouteName.dashboard_screen);
       } else {
         print("Error: ${response.body}");
-        Get.snackbar(
-            "Error", "Failed to submit. Status code: ${response.statusCode}",
-            backgroundColor: Colors.red, colorText: Colors.white);
+        AppSnackbar.apiError('Failed to submit',
+            statusCode: response.statusCode); // 🔄
       }
-    } catch (e) {
+    } catch (e, s) {
       print("Exception in addFees: $e");
-      Get.snackbar("Error", "An error occurred: $e",
-          backgroundColor: Colors.red, colorText: Colors.white);
+      AppSnackbar.apiError(e, stackTrace: s); // 🔄
     }
   }
 

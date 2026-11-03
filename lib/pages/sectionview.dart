@@ -68,13 +68,8 @@ class PostSessionTab extends GetView<Sectioncontroller> {
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
               onPressed: () async {
+                // ✅ Success / error snackbar ab controller (postSession) se aata hai
                 await controller.postSession();
-
-                Get.snackbar('Success', 'Section added successfully',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
               },
               icon: Icon(Icons.send,color: Colors.white,),
               label: Text('Submit', style: TextStyle(fontSize: 18.sp,color: Colors.white)),

@@ -10,9 +10,12 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import '../controller/home_page_controller.dart';
+import '../infrastructures/utils/local_storage/local_storage.dart';
+import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/feeprintalldetail.dart';
 import '../models/feeprintreceiptschname.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart'; // ✅ NEW
 
 String _fmtDt(DateTime? dt) {
   if (dt == null) return 'N/A';
@@ -41,16 +44,16 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
   // Parents Copy & School Copy always look identical in color.
   static const Color kAccentColor = Color(0xFF97144D);
 
-  String get _dynamicSchoolLogoUrl {
-    try {
-      final dashCtrl = Get.find<DashboardScreenController>();
-      final logoPath = dashCtrl.schoollogo.value;
-      if (logoPath.isNotEmpty) {
-        return '${AppUrl.dashurl}/$logoPath';
-      }
-    } catch (_) {}
-    return '';
+  String _logoUrl = '';
+  String get _dynamicSchoolLogoUrl => _logoUrl;
+
+  Future<void> _loadLogoUrl() async {
+    final path = (await PrefManager().readValue(key: PrefConst.schoollogo))?.toString() ?? '';
+    if (path.isNotEmpty && mounted) {
+      setState(() => _logoUrl = '${AppUrl.dashurl}/$path');
+    }
   }
+
 
   @override
   void initState() {
@@ -60,14 +63,18 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
     _session   = args['session']   ?? '';
     _receiptNo = args['receiptNo'] ?? '';
     _fetchAll();
+    _loadLogoUrl();
   }
 
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
     try {
       await Future.wait([_fetchFeeDetails(), _fetchStudentData()]);
-    } catch (e) {
-      setState(() => _error = e.toString());
+    } catch (e, s) {
+      // ✅ CHANGED: raw exception / api url is NEVER shown to the user.
+      // User sees a simple message, real error is printed in the console.
+      AppSnackbar.apiError(e, stackTrace: s);
+      setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       setState(() => _loading = false);
     }
@@ -449,11 +456,18 @@ class _FeeReceiptPrintScreenState extends State<FeeReceiptPrintScreen> {
 
   // Called by BOTH print buttons — always prints Parents Copy + School Copy together.
   void _printBoth() async {
-    final bytes = await _buildCombinedPdf();
-    await Printing.layoutPdf(
-      onLayout: (_) async => bytes,
-      name: "$_receiptNo-FeeReceipt",
-    );
+    try {
+      // ✅ NEW: make sure logo path is loaded before building the PDF
+      if (_logoUrl.isEmpty) await _loadLogoUrl();
+      final bytes = await _buildCombinedPdf();
+      await Printing.layoutPdf(
+        onLayout: (_) async => bytes,
+        name: "$_receiptNo-FeeReceipt",
+      );
+    } catch (e, s) {
+      // ✅ NEW: no raw error to the user, real error in console
+      AppSnackbar.apiError(e, stackTrace: s);
+    }
   }
 
   @override

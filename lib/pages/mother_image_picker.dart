@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controller/student_controller.dart';
+import '../utils/app_snackbar.dart';
 import 'guardian_image_picker.dart';
 
 // ─── Palette ───────────────────────────────────────────────
@@ -26,12 +27,16 @@ class MotherImagePicker extends GetView<StudentController> {
       builder: (_) => _ImageSourceSheet(title: "Mother's Photo"),
     );
     if (source == null) return;
-    final XFile? picked = await controller.picker.pickImage(source: source);
-    if (picked != null) {
-      controller.motherPic.value = File(picked.path);
-    } else {
-      Get.snackbar('Notice', 'No image selected.',
-          backgroundColor: Colors.orange, colorText: Colors.white);
+    try {
+      final XFile? picked = await controller.picker.pickImage(source: source);
+      if (picked != null) {
+        controller.motherPic.value = File(picked.path);
+      } else {
+        Get.snackbar('Notice', 'No image selected.',
+            backgroundColor: Colors.orange, colorText: Colors.white);
+      }
+    } catch (e, st) {
+      AppSnackbar.apiError(e, stackTrace: st);
     }
   }
 

@@ -9,6 +9,7 @@ import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/descriptors_model.dart';
 import '../models/session_model.dart';
 import '../res/app_url.dart';
+import '../utils/app_snackbar.dart';
 
 class DescriptorsController extends GetxController {
   final TextEditingController descriptorsController = TextEditingController();
@@ -34,7 +35,7 @@ class DescriptorsController extends GetxController {
     schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
 
     if (schoolId.trim().isEmpty) {
-      Get.snackbar("Error", "SchoolId not found");
+      AppSnackbar.error("SchoolId not found");
       return;
     }
 
@@ -95,11 +96,13 @@ class DescriptorsController extends GetxController {
         filteredList.assignAll(parsed.listData);
       } else {
         _clearLists();
-        Get.snackbar("Error", "Failed to load data (${res.statusCode})");
+        AppSnackbar.apiError("Failed to load data (${res.statusCode})",
+            statusCode: res.statusCode);
       }
-    } catch (e) {
+    } catch (e, s) {
       _clearLists();
-      Get.snackbar("Error", "Fetch error: $e");
+      // User sees "Something went wrong", real error prints in console.
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
     }
@@ -131,7 +134,7 @@ class DescriptorsController extends GetxController {
     final String text = descriptorsController.text.trim();
 
     if (text.isEmpty) {
-      Get.snackbar("Validation", "Descriptors cannot be empty");
+      AppSnackbar.error("Descriptors cannot be empty", title: "Validation");
       return;
     }
 
@@ -164,20 +167,23 @@ class DescriptorsController extends GetxController {
         if (decoded["isSuccess"] == true) {
           descriptorsController.clear();
           await fetchDescriptors();
-          Get.snackbar(
-              "Success", decoded["messages"] ?? "Descriptor saved successfully.");
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Descriptor saved successfully.");
         } else {
-          Get.snackbar(
-              "Error", decoded["messages"] ?? "Unable to save descriptor.");
+          // Short clean server message is shown; technical text becomes
+          // "Something went wrong" automatically.
+          AppSnackbar.error(
+              (decoded["messages"] ?? "Unable to save descriptor.")
+                  .toString());
         }
       } else {
-        Get.snackbar(
-          "Error",
+        AppSnackbar.apiError(
           decoded["messages"] ?? "Failed to save (${res.statusCode})",
+          statusCode: res.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Add failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }
@@ -213,8 +219,8 @@ class DescriptorsController extends GetxController {
                 final String updatedText =
                 editController.text.trim();
                 if (updatedText.isEmpty) {
-                  Get.snackbar(
-                      "Validation", "Descriptors cannot be empty");
+                  AppSnackbar.error("Descriptors cannot be empty",
+                      title: "Validation");
                   return;
                 }
                 await updateDescriptor(item, updatedText);
@@ -287,20 +293,21 @@ class DescriptorsController extends GetxController {
         if (decoded["isSuccess"] == true) {
           Get.back();
           await fetchDescriptors();
-          Get.snackbar("Success",
-              decoded["messages"] ?? "Descriptor updated successfully.");
+          // Fixed success text (server text is never shown directly)
+          AppSnackbar.success("Descriptor updated successfully.");
         } else {
-          Get.snackbar(
-              "Error", decoded["messages"] ?? "Unable to update descriptor.");
+          AppSnackbar.error(
+              (decoded["messages"] ?? "Unable to update descriptor.")
+                  .toString());
         }
       } else {
-        Get.snackbar(
-          "Error",
+        AppSnackbar.apiError(
           decoded["messages"] ?? "Failed to update (${res.statusCode})",
+          statusCode: res.statusCode,
         );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Update failed: $e");
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isPosting(false);
     }

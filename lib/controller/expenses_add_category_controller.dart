@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/expenses_add_category_model.dart';
+import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 class ExpensesCategoryController extends GetxController {
   final TextEditingController categoryController = TextEditingController();
@@ -25,7 +26,8 @@ class ExpensesCategoryController extends GetxController {
     schoolId.value = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
 
     if (schoolId.value.isEmpty) {
-      Get.snackbar("Error", "SchoolId is missing.");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("SchoolId is missing.");
       return;
     }
 
@@ -58,10 +60,16 @@ class ExpensesCategoryController extends GetxController {
         categories.sort((a, b) => b.createDate.compareTo(a.createDate));
         filteredStaticList.assignAll(categories);
       } else {
-        Get.snackbar("Error", "Failed to load categories.");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        AppSnackbar.apiError(
+          "Failed to load categories: ${response.statusCode}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Error fetching categories: $e");
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error (URL wagairah) user ko nahi dikhega,
+      // sirf "Something went wrong", asli error console me
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isLoading(false);
     }
@@ -71,7 +79,8 @@ class ExpensesCategoryController extends GetxController {
   Future<void> addCategory() async {
     final category = categoryController.text.trim();
     if (category.isEmpty) {
-      Get.snackbar("Validation", "Category name cannot be empty");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      AppSnackbar.error("Category name cannot be empty", title: "Validation");
       return;
     }
 
@@ -99,12 +108,18 @@ class ExpensesCategoryController extends GetxController {
         final newCategory = AddCategory.fromJson(data['data']);
         filteredStaticList.insert(0, newCategory);  // Insert new category at the top
         categoryController.clear();
-        Get.snackbar("Success", "Category added successfully");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.success
+        AppSnackbar.success("Category added successfully");
       } else {
-        Get.snackbar("Error", "Failed to add category.");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        AppSnackbar.apiError(
+          "Failed to add category: ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Error adding category: $e");
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     } finally {
       isPosting(false);
     }
@@ -162,7 +177,9 @@ class ExpensesCategoryController extends GetxController {
   Future<void> updateCategory(int categoryId) async {
     final updatedCategory = editController.text.trim();
     if (updatedCategory.isEmpty) {
-      Get.snackbar("Validation", "Category name cannot be empty");
+      // 🆕 CHANGED: Get.snackbar -> AppSnackbar
+      // (dialog khula rehta hai, snackbar uske upar top se aata hai)
+      AppSnackbar.error("Category name cannot be empty", title: "Validation");
       return;
     }
 
@@ -191,13 +208,25 @@ class ExpensesCategoryController extends GetxController {
         if (index != -1) {
           filteredStaticList[index] = updatedCategoryData;
         }
-        Get.snackbar("Success", "Category updated successfully");
-        Get.back();  // Close dialog
+
+        // 🆕 FIXED: pehle dialog band karo, uska animation poora hone do,
+        // phir snackbar dikhao. Warna snackbar dialog ke saath hi band ho jata tha.
+        if (Get.isDialogOpen ?? false) {
+          Get.back(); // Close dialog
+        }
+        await Future.delayed(const Duration(milliseconds: 350));
+        AppSnackbar.success("Category updated successfully");
       } else {
-        Get.snackbar("Error", "Failed to update category.");
+        // 🆕 CHANGED: Get.snackbar -> AppSnackbar.apiError
+        // (dialog khula rehta hai taaki user dobara try kar sake)
+        AppSnackbar.apiError(
+          "Failed to update category: ${response.body}",
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      Get.snackbar("Error", "Error updating category: $e");
+    } catch (e, stack) {
+      // 🆕 CHANGED: raw error nahi dikhega
+      AppSnackbar.apiError(e, stackTrace: stack);
     }
   }
 }
