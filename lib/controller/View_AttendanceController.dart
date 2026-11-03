@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
 import '../models/classmodel.dart';
+import '../models/holiday_model.dart'; // 🆕 Holiday calendar ka model
 import '../models/new model teacher section attendance.dart';
 import '../models/pre school student teach stu filter api model.dart';
 import '../models/sectionmodel.dart';
@@ -56,6 +57,9 @@ class ViewAttendanceController extends GetxController {
   var allowedClassNames = <String>[].obs;
   var isClassTeacherLogin = false.obs; // 🆕 true agar ClassTeacher API se data mile
 
+  // 🆕 Holiday calendar ka data (violet box dikhane ke liye)
+  final holidayList = <Holiday>[].obs;
+
   @override
   void onInit() async {
     super.onInit();
@@ -66,6 +70,8 @@ class ViewAttendanceController extends GetxController {
       AppSnackbar.apiError('SchoolId not found in storage');
       return;
     }
+
+    await fetchHolidays(); // 🆕 holiday calendar wale holidays
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff"
     final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
@@ -121,6 +127,30 @@ class ViewAttendanceController extends GetxController {
   void setSelectedSession(session_model.sListDdata session) {
     selectedSession.value = session;
   }
+
+  // 🆕 Holiday Calendar wali hi API se holidays lo
+  Future<void> fetchHolidays() async {
+    if (schoolId.trim().isEmpty) return;
+    try {
+      final url = Uri.parse('${AppUrl.base_url}${AppUrl.getHoliday}$schoolId');
+      final res =
+      await http.get(url, headers: {"Content-Type": "application/json"});
+      if (res.statusCode == 200) {
+        holidayList.assignAll(Holiday.listFromJson(jsonDecode(res.body)));
+      } else {
+        debugPrint('Holiday fetch failed: ${res.statusCode}');
+      }
+    } catch (e, st) {
+      debugPrint('Holiday fetch error: $e\n$st');
+    }
+  }
+
+  static bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  // 🆕 Kisi date par holiday ho to wo Holiday object do, nahi to null
+  Holiday? holidayOn(DateTime date) =>
+      holidayList.firstWhereOrNull((h) => _isSameDay(h.dateHoliday, date));
 
   // 🆕 Logged-in teacher ke assigned classes fetch karo (access filter ke liye)
   Future<void> fetchClassTeacherFilter() async {

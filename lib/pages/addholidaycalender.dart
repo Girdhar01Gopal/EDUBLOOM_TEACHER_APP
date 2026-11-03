@@ -230,14 +230,15 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
     );
   }
 
-  /// Empty date → add a holiday on it. Holiday date → edit it.
+  /// Date tap par ab Add / Edit sheet nahi khulegi (commented out).
   void _onDateTap(BuildContext context, DateTime date, List<Holiday> holidays) {
-    if (holidays.isEmpty) {
-      controller.resetForm(date: date);
-    } else {
-      controller.loadForEdit(holidays.first);
-    }
-    _openHolidaySheet(context);
+    // Add / Edit holiday sheet hidden (commented out)
+    // if (holidays.isEmpty) {
+    //   controller.resetForm(date: date);
+    // } else {
+    //   controller.loadForEdit(holidays.first);
+    // }
+    // _openHolidaySheet(context);
   }
 
   // ═══════════════════════════════ Holiday list ═══════════════════════════════

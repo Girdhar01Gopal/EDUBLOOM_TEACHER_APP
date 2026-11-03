@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart'; // 🆕 holiday dialog me date format ke liye
 import '../models/session_model.dart' as session_model;
 import '../controller/View_AttendanceController.dart';
 import '../models/classmodel.dart';
+import '../models/holiday_model.dart'; // 🆕
 import '../models/sectionmodel.dart';
 import '../utils/app_snackbar.dart';
 
@@ -11,6 +13,9 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
   final RxBool _isSearching = false.obs;
   final RxString _searchQuery = ''.obs;
   final TextEditingController _searchTextController = TextEditingController();
+
+  // 🆕 Holiday calendar wala violet color
+  static const _holidayColor = Color(0xFF7E57C2);
 
   ViewAttendancePage({super.key});
 
@@ -205,6 +210,8 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                     ),
                   );
                 }
+
+                controller.holidayList.length; // 🆕 holidays load hone par rebuild trigger
 
                 final query = _searchQuery.value.trim().toLowerCase();
                 final filtered = query.isEmpty
@@ -491,16 +498,26 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
             // ✅ API status khaali ho to auto Absent / auto Holiday
             final rawStatus = _effectiveStatus(student, day, year, monthId);
             final normalized = getNormalizedStatus(rawStatus);
-            final code = getStatusCode(normalized);
-            final color = getStatusColor(normalized);
+            // 🆕 API khaali ho ya "H"/"Holiday" bheje, dono me Holiday Calendar ka violet box dikhao
+            final bool apiIsEmptyOrHoliday = apiStatus.isEmpty ||
+                getNormalizedStatus(apiStatus) == "holiday";
+            final holiday =
+            apiIsEmptyOrHoliday ? _holidayFor(year, monthId, day) : null;
+            final code =
+            holiday != null ? holiday.occasion : getStatusCode(normalized);
+            final color =
+            holiday != null ? _holidayColor : getStatusColor(normalized);
             final hasAttendance = rawStatus.trim().isNotEmpty;
             // true => ye status DB me nahi hai, sirf display ke liye hai
             final isAuto = apiStatus.isEmpty && hasAttendance;
 
             return GestureDetector(
-              onTap: hasAttendance
-                  ? () => _showEditBottomSheet(
-                  context, student, day, normalized, isAuto, year, monthId)
+              onTap: holiday != null
+              // 🆕 Holiday par click => detail alert dialog
+                  ? () => _showHolidayDialog(context, holiday)
+                  : hasAttendance
+                  ? () => _showEditBottomSheet(context, student, day,
+                  normalized, isAuto, year, monthId)
                   : null,
               child: Container(
                 decoration: BoxDecoration(
@@ -529,9 +546,17 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
                           color: Colors.white),
                     ),
                     if (code.isNotEmpty)
-                      Text(code,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: Text(
+                          code,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 8, color: Colors.white)),
+                              fontSize: 8, color: Colors.white),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -539,6 +564,82 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
           },
         ),
       ],
+    );
+  }
+
+  // 🆕 Holiday ki detail dikhane wala alert dialog
+  void _showHolidayDialog(BuildContext context, Holiday holiday) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _holidayColor.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.celebration,
+                    color: _holidayColor, size: 22),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  "Holiday",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                DateFormat('EEEE, dd MMMM yyyy').format(holiday.dateHoliday),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _holidayColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _holidayColor.withOpacity(0.4)),
+                ),
+                child: Text(
+                  holiday.occasion,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _holidayColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "\"${holiday.occasion}\"",
+                style: const TextStyle(fontSize: 13, color: Colors.black87),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                "Close",
+                style: TextStyle(
+                    color: Color(0xFF97144D), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -660,9 +761,13 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
     return monthId <= 3 ? base + 1 : base;
   }
 
+  // 🆕 Holiday calendar me us date par holiday ho to Holiday object, warna null
+  Holiday? _holidayFor(int year, int monthId, int day) =>
+      controller.holidayOn(DateTime(year, monthId, day));
+
   // ✅ Effective status (teacher attendance jaisa logic)
   // 1) API ne status diya => wahi
-  // 2) khaali + Sunday => Holiday
+  // 2) khaali + Holiday Calendar / Sunday => Holiday
   // 3) khaali + beeta hua din (aaj nahi) => Absent
   // 4) baaki => khaali (N/A)
   String _effectiveStatus(student, int day, int year, int monthId) {
@@ -670,6 +775,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
     if (raw.isNotEmpty) return raw;
 
     final date = DateTime(year, monthId, day);
+    if (controller.holidayOn(date) != null) return "Holiday"; // 🆕
     if (date.weekday == DateTime.sunday) return "Holiday";
 
     final now = DateTime.now();
@@ -685,7 +791,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
     if (lower == "absent") return "absent";
     if (lower == "halfday" || lower == "half day") return "halfday";
     if (lower == "weekoff" || lower == "week off") return "weekoff";
-    if (lower == "holiday") return "holiday";
+    if (lower == "holiday" || lower == "h") return "holiday"; // 🆕 API "H" bhejta hai
     return lower;
   }
 
@@ -739,6 +845,7 @@ class ViewAttendancePage extends GetView<ViewAttendanceController> {
         _legendDot(Colors.purple.shade400, "Half Day"),
         _legendDot(Colors.blueGrey, "Week Off"),
         _legendDot(Colors.orange, "Holiday"),
+        _legendDot(_holidayColor, "Holiday Calendar"), // 🆕
         _legendDot(Colors.grey, "N/A"),
       ],
     );
