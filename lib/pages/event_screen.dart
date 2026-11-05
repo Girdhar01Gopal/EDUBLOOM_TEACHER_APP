@@ -590,6 +590,57 @@ class _ViewEventTabState extends State<ViewEventTab> {
     }
   }
 
+  // 🆕 ADDED: image par tap karne par full screen + zoom (pinch) view
+  void _showFullImage(String imageUrl) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.all(8.r),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 1,
+              maxScale: 5,
+              child: Center(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (ctx, child, progress) {
+                    if (progress == null) return child;
+                    return SizedBox(
+                      height: 200.h,
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  },
+                  errorBuilder: (ctx, err, stack) {
+                    debugPrint("Image load error: $err");
+                    return SizedBox(
+                      height: 200.h,
+                      child: const Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            color: Colors.white, size: 48),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Get.back(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ✅ flutter_file_downloader se download — Admin app jaisa same logic
   Future<void> _downloadAndShare({
     required String url,
@@ -787,28 +838,36 @@ class _ViewEventTabState extends State<ViewEventTab> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12.r),
-                                child: hasPic
-                                    ? Image.network(
-                                  AppUrl.eventFileUrlTest(pic),
-                                  width: 100.w,
-                                  height: 100.h,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                              // 🆕 CHANGED: image ko GestureDetector me wrap kiya —
+                              // tap karne par full screen + zoom khulega
+                              GestureDetector(
+                                onTap: hasPic
+                                    ? () => _showFullImage(
+                                    AppUrl.eventFileUrlTest(pic))
+                                    : null,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  child: hasPic
+                                      ? Image.network(
+                                    AppUrl.eventFileUrlTest(pic),
+                                    width: 100.w,
+                                    height: 100.h,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 100.w,
+                                      height: 100.h,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.broken_image,
+                                          color: Colors.white, size: 40),
+                                    ),
+                                  )
+                                      : Container(
                                     width: 100.w,
                                     height: 100.h,
                                     color: Colors.grey[300],
-                                    child: const Icon(Icons.broken_image,
+                                    child: const Icon(Icons.image,
                                         color: Colors.white, size: 40),
                                   ),
-                                )
-                                    : Container(
-                                  width: 100.w,
-                                  height: 100.h,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image,
-                                      color: Colors.white, size: 40),
                                 ),
                               ),
                               SizedBox(width: 16.w),

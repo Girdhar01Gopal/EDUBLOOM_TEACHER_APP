@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart'; // 🆕 ADDED: PDF viewer
 
 import '../controller/home_work_controller.dart';
 import '../models/classmodel.dart';
@@ -608,6 +609,46 @@ class AddHomeworkTab extends GetView<HomeworkController> {
   }
 }
 
+// ========================== PDF VIEWER SCREEN ==========================
+// 🆕 ADDED: PDF ko app ke andar kholne ke liye (network se load hoti hai)
+class HomeworkPdfViewerScreen extends StatelessWidget {
+  final String url;
+  final String title;
+
+  const HomeworkPdfViewerScreen({
+    super.key,
+    required this.url,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        backgroundColor: axisMaroonShade800,
+        title: Text(
+          title,
+          style: TextStyle(color: Colors.white, fontSize: 14.sp),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Get.back(),
+        ),
+      ),
+      body: SfPdfViewer.network(
+        url,
+        onDocumentLoadFailed: (details) {
+          debugPrint("PDF load error: ${details.error} | ${details.description}");
+          AppSnackbar.apiError(details.description);
+        },
+      ),
+    );
+  }
+}
+
 // ========================== VIEW HOMEWORK TAB ==========================
 class ViewHomeworkTab extends StatefulWidget {
   const ViewHomeworkTab({super.key});
@@ -641,6 +682,32 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // 🆕 ADDED: check karo ki file image hai ya nahi
+  bool _isImageFile(String path) {
+    final p = path.toLowerCase().split('?').first;
+    return p.endsWith('.jpg') ||
+        p.endsWith('.jpeg') ||
+        p.endsWith('.png') ||
+        p.endsWith('.webp') ||
+        p.endsWith('.gif') ||
+        p.endsWith('.bmp');
+  }
+
+  // 🆕 ADDED: check karo ki file pdf hai ya nahi
+  bool _isPdfFile(String path) {
+    final p = path.toLowerCase().split('?').first;
+    return p.endsWith('.pdf');
+  }
+
+  // 🆕 ADDED: homework file ka full URL (download wale logic jaisa hi:
+  // PDF -> Pdf folder, baaki sab -> Images folder)
+  String _homeworkFileUrl(String homeworkFile) {
+    final isPdf = homeworkFile.toLowerCase().endsWith('.pdf');
+    return isPdf
+        ? "https://playschool.edubloom.in/Upload/Homework/Pdf/$homeworkFile"
+        : "https://playschool.edubloom.in/Upload/Homework/Images/$homeworkFile";
   }
 
   Future<void> _downloadAndShare({
@@ -835,6 +902,7 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
                                 height: 34.r,
@@ -851,23 +919,27 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                               ),
                               SizedBox(width: 10.w),
                               Expanded(
-                                child: Text(
-                                  'Homework: $subjectName',
-                                  style: TextStyle(
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              SizedBox(width: 10.w),
-                              Text(
-                                "Date: $date",
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.grey.shade700,
-                                  fontWeight: FontWeight.w700,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Homework: $subjectName',
+                                      softWrap: true,
+                                      style: TextStyle(
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2.h),
+                                    Text(
+                                      "Date: $date",
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -906,6 +978,140 @@ class _ViewHomeworkTabState extends State<ViewHomeworkTab> {
                             SizedBox(height: 12.h),
                             Divider(color: Colors.grey.shade200, height: 1),
                             SizedBox(height: 10.h),
+
+                            // 🆕 ADDED: image direct card me dikhao
+                            if (_isImageFile(item.homeworkFile!)) ...[
+                              GestureDetector(
+                                onTap: () {
+                                  // tap karne par full screen zoom view
+                                  Get.dialog(
+                                    Dialog(
+                                      backgroundColor: Colors.black,
+                                      insetPadding: EdgeInsets.all(8.r),
+                                      child: Stack(
+                                        children: [
+                                          InteractiveViewer(
+                                            child: Image.network(
+                                              _homeworkFileUrl(
+                                                  item.homeworkFile!),
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.close,
+                                                  color: Colors.white),
+                                              onPressed: () => Get.back(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  child: Image.network(
+                                    _homeworkFileUrl(item.homeworkFile!),
+                                    width: double.infinity,
+                                    height: 180.h,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (ctx, child, progress) {
+                                      if (progress == null) return child;
+                                      return SizedBox(
+                                        height: 180.h,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (ctx, err, stack) {
+                                      debugPrint("Image load error: $err");
+                                      return Container(
+                                        height: 100.h,
+                                        color: Colors.grey.shade200,
+                                        alignment: Alignment.center,
+                                        child: Icon(
+                                          Icons.broken_image_outlined,
+                                          color: Colors.grey.shade400,
+                                          size: 36,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 10.h),
+                            ],
+
+                            // 🆕 ADDED: PDF ho to card me PDF tile dikhao (icon + file name)
+                            if (_isPdfFile(item.homeworkFile!)) ...[
+                              GestureDetector(
+                                // 🆕 ADDED: tap karne par PDF app ke andar khulegi
+                                onTap: () {
+                                  Get.to(() => HomeworkPdfViewerScreen(
+                                    url: _homeworkFileUrl(
+                                        item.homeworkFile!),
+                                    title:
+                                    item.homeworkFile!.split('/').last,
+                                  ));
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 14.w, vertical: 16.h),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(10.r),
+                                    border: Border.all(
+                                        color: Colors.red.shade100),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.picture_as_pdf,
+                                          size: 40.sp,
+                                          color: Colors.red.shade400),
+                                      SizedBox(width: 12.w),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.homeworkFile!
+                                                  .split('/')
+                                                  .last,
+                                              softWrap: true,
+                                              style: TextStyle(
+                                                fontSize: 13.sp,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.grey.shade800,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              "PDF attached • Tap to open",
+                                              style: TextStyle(
+                                                fontSize: 12.sp,
+                                                color: Colors.red.shade400,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.open_in_new_rounded,
+                                          size: 20.sp,
+                                          color: Colors.red.shade300),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 10.h),
+                            ],
+
                             if (downloading)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,

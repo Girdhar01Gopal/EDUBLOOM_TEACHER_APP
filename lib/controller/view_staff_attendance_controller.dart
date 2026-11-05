@@ -15,7 +15,8 @@ class ViewStaffAttendanceController extends GetxController {
   String schoolId = "";
   String token = "";
   String session = "";
-  String roleName = "";
+
+  String roleName = "SchoolStaff";
   int userId = 0;
 
   // ── UI ──────────────────────────────────────────────────────────────────────
@@ -51,10 +52,20 @@ class ViewStaffAttendanceController extends GetxController {
     schoolId = await pref.readValue(key: PrefConst.schollId) ?? "";
     token = await pref.readValue(key: PrefConst.token) ?? "";
     session = await pref.readValue(key: PrefConst.session) ?? "";
-    roleName = await pref.readValue(key: PrefConst.RName) ?? "";
 
-    final userIdRaw = await pref.readValue(key: PrefConst.Userid);
-    userId = int.tryParse(userIdRaw?.toString() ?? "") ?? 0;
+    // ✅ Sirf SchoolStaff login ho to uski apni id + role bhejo
+    final loginRole = (await pref.readValue(key: PrefConst.RName) ?? "")
+        .toString()
+        .trim();
+    if (loginRole.toLowerCase() == "schoolstaff") {
+      roleName = "SchoolStaff";
+      final userIdRaw = await pref.readValue(key: PrefConst.Userid);
+      userId = int.tryParse(userIdRaw?.toString() ?? "") ?? 0;
+    } else {
+      // Teacher etc. ki id staff API ko kabhi nahi jayegi
+      roleName = "SchoolStaff";
+      userId = 0;
+    }
 
     _validateContext();
   }
@@ -93,17 +104,22 @@ class ViewStaffAttendanceController extends GetxController {
         if (token.trim().isNotEmpty) "Authorization": "Bearer $token",
       };
 
+      final body = {
+        "month": monthIndex,
+        "schoolId": schoolId,
+        "session": session,
+        "roleName": roleName, // ✅ hamesha "SchoolStaff"
+        "userId": userId, // ✅ staff login = uski id, warna 0
+      };
+
+      // 🔍 Debug: check karo kya body ja rahi hai
+      print("STAFF BODY => ${jsonEncode(body)}");
+
       final res = await http
           .post(
         Uri.parse(detailsApi),
         headers: headers,
-        body: jsonEncode({
-          "month": monthIndex,
-          "schoolId": schoolId,
-          "session": session,
-          "roleName": roleName,
-          "userId": userId,
-        }),
+        body: jsonEncode(body),
       )
           .timeout(const Duration(seconds: 30));
 

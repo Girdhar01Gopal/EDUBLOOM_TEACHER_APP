@@ -77,9 +77,29 @@ class ViewTeacherAttendanceScreen
     return v == "leave" || v == "onleave" || v == "lv" || v == "ol";
   }
 
+  // ✅ UPDATED: Koi bhi custom text (Gandhi jayanti, Dusshera...) = Holiday
   bool _isHoliday(String? s) {
     final v = _norm(s);
-    return v == "holiday" || v == "hold" || v == "h";
+    if (v.isEmpty || v == "-") return false;
+
+    // Purane exact matches
+    if (v == "holiday" || v == "hold" || v == "h") return true;
+
+    // Jo text kisi known status se match nahi karta wo holiday ka naam hai
+    return !_isPresent(s) &&
+        !_isAbsent(s) &&
+        !_isHalfDay(s) &&
+        !_isLate(s) &&
+        !_isLeave(s);
+  }
+
+  // ✅ NEW: Holiday ka naam: agar custom text hai to wahi, warna "Holiday"
+  String _holidayName(String? raw) {
+    final v = (raw ?? "").trim();
+    if (!_isHoliday(v)) return "";
+    final n = _norm(v);
+    if (n == "holiday" || n == "hold" || n == "h") return "Holiday";
+    return v; // e.g. "Gandhi jayanti"
   }
 
   // ✅ Sunday check
@@ -104,10 +124,11 @@ class ViewTeacherAttendanceScreen
     return "";
   }
 
+  // ✅ UPDATED: Holiday ho to uska naam dikhata hai
   String _fullStatus(String? s) {
     if (_isPresent(s)) return "Present";
     if (_isAbsent(s)) return "Absent";
-    if (_isHoliday(s)) return "Holiday";
+    if (_isHoliday(s)) return _holidayName(s); // ✅ Gandhi jayanti
     if (_isHalfDay(s)) return "Half Day";
     if (_isLate(s)) return "Late";
     if (_isLeave(s)) return "Leave";
@@ -444,11 +465,18 @@ class ViewTeacherAttendanceScreen
                                   thickness: 1,
                                   color: Color(0xFFEEEEEE)),
 
-                              // ── Calendar ───────────────────────────────────
+                              // ── Calendar + Holiday list ────────────────────
                               Padding(
                                 padding: const EdgeInsets.all(12),
-                                child: _buildCalendarGrid(
-                                    context, t, days, startOffset, year, month),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildCalendarGrid(context, t, days,
+                                        startOffset, year, month),
+                                    // ✅ NEW: Holiday ke naam calendar ke neeche
+                                    _buildHolidayList(t, days, month),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -804,6 +832,70 @@ class ViewTeacherAttendanceScreen
         ],
       );
     });
+  }
+
+  // ── Holiday list (calendar ke neeche) ─────────────────────────────────────
+  // ✅ NEW: Custom holiday naam (Gandhi jayanti, Dusshera...) date ke saath
+  Widget _buildHolidayList(ViewTeacherAttendanceItem t, int days, int month) {
+    final List<Widget> rows = [];
+
+    for (int d = 1; d <= days; d++) {
+      final raw = t.dayStatus(d);
+      final name = _holidayName(raw);
+      // Sirf custom naam wale (Sunday wala default "Holiday" skip)
+      if (name.isEmpty || name == "Holiday") continue;
+
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.purple,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "$d ${_monthNameFromNumber(month)}",
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.purple.shade700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        const Divider(height: 1, color: Color(0xFFEEEEEE)),
+        const SizedBox(height: 6),
+        const Text(
+          "Holidays",
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF97144D)),
+        ),
+        ...rows,
+      ],
+    );
   }
 
   // ── Legend ────────────────────────────────────────────────────────────────

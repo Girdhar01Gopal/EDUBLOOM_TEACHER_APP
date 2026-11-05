@@ -27,10 +27,12 @@ class AddFeeHeadController extends GetxController {
 
   // ✅ CHANGED: Class now uses notification's ClassData model
   final classList = <ClassData>[].obs;
-  final selectedClass = Rx<ClassData?>(null);
+  // 🆕 MULTI-SELECT: Class
+  final selectedClasses = <ClassData>[].obs;
 
   final feeTypeList = <fData>[].obs;
-  final selectedFeeType = Rx<fData?>(null);
+  // 🆕 MULTI-SELECT: Fee Type
+  final selectedFeeTypes = <fData>[].obs;
 
   final feeDurationList = <FeeDurationItem>[].obs;
   // ✅ CHANGED: single -> multi select list
@@ -38,7 +40,8 @@ class AddFeeHeadController extends GetxController {
 
   // ✅ CHANGED: Section now uses notification's stListData model
   final sectionList = <stListData>[].obs;
-  final selectedSection = Rxn<stListData>();
+  // 🆕 MULTI-SELECT: Section
+  final selectedSections = <stListData>[].obs;
 
   // ================= INPUT =================
   final amountController = TextEditingController();
@@ -265,7 +268,7 @@ class AddFeeHeadController extends GetxController {
         classList.value = [];
       }
 
-      selectedClass.value = null;
+      selectedClasses.clear();
 
       // if (classList.isEmpty) {
       //   debugPrint("↩️ ClassTeacher classes empty — falling back to staff API");
@@ -303,7 +306,7 @@ class AddFeeHeadController extends GetxController {
         } else {
           classList.value = [];
         }
-        selectedClass.value = null;
+        selectedClasses.clear();
       } else {
         AppSnackbar.apiError(
           "Failed to fetch classes: ${response.statusCode} | ${response.body}",
@@ -337,7 +340,7 @@ class AddFeeHeadController extends GetxController {
 
         classList.value =
             (list as List).map((e) => ClassData.fromJson(e)).toList();
-        selectedClass.value = null;
+        selectedClasses.clear();
       }
     } catch (e) {
       debugPrint("⚠️ Error fetching classes (staff): $e");
@@ -357,7 +360,7 @@ class AddFeeHeadController extends GetxController {
 
       final parsed = FeeTypeModel.fromJson(jsonDecode(res.body));
       feeTypeList.assignAll(parsed.listData ?? []);
-      selectedFeeType.value = null;
+      selectedFeeTypes.clear();
     } catch (e, s) {
       AppSnackbar.apiError(e, stackTrace: s);
     }
@@ -435,7 +438,7 @@ class AddFeeHeadController extends GetxController {
         } else {
           sectionList.value = [];
         }
-        selectedSection.value = null;
+        selectedSections.clear();
       } catch (e) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
         sectionList.value = [];
@@ -473,7 +476,7 @@ class AddFeeHeadController extends GetxController {
         final sectionModel = sectionmodel.fromJson(jsonResponse);
 
         sectionList.assignAll(sectionModel.listData ?? []);
-        selectedSection.value = null;
+        selectedSections.clear();
       } else {
         AppSnackbar.apiError(
           'Failed to load sections: ${response.statusCode} | ${response.body}',
@@ -503,7 +506,7 @@ class AddFeeHeadController extends GetxController {
         sectionList.value = (jsonDecode(response.body)['listData'] as List)
             .map((e) => stListData.fromJson(e))
             .toList();
-        selectedSection.value = null;
+        selectedSections.clear();
       }
     } catch (e) {
       debugPrint("⚠️ Error fetching sections (staff): $e");
@@ -564,13 +567,14 @@ class AddFeeHeadController extends GetxController {
   }
 
   // ================= SAVE (POST) =================
-  // ✅ CHANGED: loops over every selected duration and posts one fee head per duration
+  // ✅ CHANGED: ab har (class x section x fee type x duration) combination ke
+  // liye ek POST jaata hai — body ka shape pehle jaisa hi (single-element lists)
   Future<void> saveFeeHead() async {
     if (selectedSession.value == null ||
-        selectedClass.value == null ||
-        selectedFeeType.value == null ||
+        selectedClasses.isEmpty ||
+        selectedFeeTypes.isEmpty ||
         selectedFeeDurations.isEmpty ||
-        selectedSection.value == null) {
+        selectedSections.isEmpty) {
       AppSnackbar.error("All fields are required", title: "Validation");
       return;
     }
@@ -581,11 +585,13 @@ class AddFeeHeadController extends GetxController {
       return;
     }
 
-    final int? classId = selectedClass.value!.classId;
-    final int? sectionId = selectedSection.value!.sectionId;
-    final int? feeTypeId = selectedFeeType.value!.feeTypeId;
+    final classIds = selectedClasses.map((c) => c.classId).toList();
+    final sectionIds = selectedSections.map((s) => s.sectionId).toList();
+    final feeTypeIds = selectedFeeTypes.map((f) => f.feeTypeId).toList();
 
-    if (classId == null || sectionId == null || feeTypeId == null) {
+    if (classIds.contains(null) ||
+        sectionIds.contains(null) ||
+        feeTypeIds.contains(null)) {
       AppSnackbar.error("Invalid selection (IDs missing)", title: "Validation");
       return;
     }
@@ -607,41 +613,47 @@ class AddFeeHeadController extends GetxController {
       int successCount = 0;
       int failCount = 0;
 
-      for (final durationId in durationIds) {
-        final body = {
-          "feeHeadId": 0,
-          "session": selectedSession.value!.session,
-          "classId": [classId],
-          "sectionId": [sectionId],
-          "feesDurationId": durationId,
-          "feeTypeID": feeTypeId,
-          "amount": amount, // ✅ STRING
-          "action": "1",
-          "schoolID": schoolId,
-          "createBy": "String",
-        };
+      for (final classId in classIds.whereType<int>()) {
+        for (final sectionId in sectionIds.whereType<int>()) {
+          for (final feeTypeId in feeTypeIds.whereType<int>()) {
+            for (final durationId in durationIds) {
+              final body = {
+                "feeHeadId": 0,
+                "session": selectedSession.value!.session,
+                "classId": [classId],
+                "sectionId": [sectionId],
+                "feesDurationId": durationId,
+                "feeTypeID": feeTypeId,
+                "amount": amount, // ✅ STRING
+                "action": "1",
+                "schoolID": schoolId,
+                "createBy": "String",
+              };
 
-        final ok = await _postFeeHeadOnce(body: body);
-        if (ok) {
-          successCount++;
-        } else {
-          failCount++;
+              final ok = await _postFeeHeadOnce(body: body);
+              if (ok) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            }
+          }
         }
       }
 
       if (successCount > 0) {
         amountController.clear();
-        selectedClass.value = null;
-        selectedFeeType.value = null;
+        selectedClasses.clear();
+        selectedFeeTypes.clear();
         selectedFeeDurations.clear();
-        selectedSection.value = null;
+        selectedSections.clear();
         await fetchFeeHeadList();
 
         // ✅ Success snackbar list refresh ke baad, taaki list wala snackbar ise replace na kare
         AppSnackbar.success(
           failCount == 0
-              ? "Fee Head saved for $successCount duration(s)"
-              : "Saved for $successCount duration(s), failed for $failCount",
+              ? "Fee Head saved for $successCount record(s)"
+              : "Saved for $successCount record(s), failed for $failCount",
         );
       } else {
         AppSnackbar.error("Could not save fee head", title: "Failed");

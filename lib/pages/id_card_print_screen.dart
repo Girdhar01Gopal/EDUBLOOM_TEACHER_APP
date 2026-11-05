@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -156,6 +159,14 @@ final List<IdCardTheme> kIdCardThemes = [
 const _textPrimary   = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
 
+// Captured card image + uska pixel size (print me same height nikalne ke liye)
+class _CapturedCard {
+  final Uint8List bytes;
+  final int       width;
+  final int       height;
+  const _CapturedCard(this.bytes, this.width, this.height);
+}
+
 class IdCardPrintScreen extends StatefulWidget {
   final int    studentId;
   final String schoolId;
@@ -179,6 +190,10 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
   bool   _isLoading = true;
   String? _error;
   IdCardStudentData? _student;
+
+  // Keys used to capture the exact on-screen cards for printing / sharing
+  final GlobalKey _frontKey = GlobalKey();
+  final GlobalKey _backKey  = GlobalKey();
 
   int _themeIndex = 0;
   IdCardTheme get _theme => kIdCardThemes[_themeIndex];
@@ -250,377 +265,122 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
     }
   }
 
-  Future<void> _printFront() async {
-    final s = _student;
-    if (s == null) return;
-    final t = _theme;
-
-    pw.ImageProvider? pdfLogo;
-    final logoUrl = _dynamicSchoolLogoUrl;
-    if (logoUrl.isNotEmpty) {
-      try {
-        final res = await http.get(Uri.parse(logoUrl));
-        if (res.statusCode == 200) pdfLogo = pw.MemoryImage(res.bodyBytes);
-      } catch (_) {}
-    }
-
-    if (pdfLogo == null && s.logoWithName != null) {
-      try {
-        final res = await http.get(Uri.parse('$_imgBase/Upload/school/${s.logoWithName}'));
-        if (res.statusCode == 200) pdfLogo = pw.MemoryImage(res.bodyBytes);
-      } catch (_) {}
-    }
-
-    pw.ImageProvider? pdfStudentImg;
-    if (s.studentPic != null) {
-      try {
-        final res = await http.get(Uri.parse('$_imgBase${s.studentPic}'));
-        if (res.statusCode == 200) pdfStudentImg = pw.MemoryImage(res.bodyBytes);
-      } catch (_) {}
-    }
-
-    final dob = s.dateOfBirth != null
-        ? DateFormat('dd MMM yyyy').format(s.dateOfBirth!)
-        : '-';
-
-    final pdf = pw.Document();
-    pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a6,
-      margin: const pw.EdgeInsets.all(14),
-      build: (ctx) => pw.ClipRRect(
-        horizontalRadius: 12,
-        verticalRadius: 12,
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            pw.Container(
-              decoration: pw.BoxDecoration(
-                gradient: pw.LinearGradient(
-                  colors: [t.pdfPrimary, t.pdfPrimaryLight],
-                ),
-              ),
-              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-              child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  if (pdfLogo != null)
-                    pw.Container(
-                      width: 48, height: 48,
-                      decoration: const pw.BoxDecoration(
-                        color: PdfColors.white,
-                        shape: pw.BoxShape.circle,
-                      ),
-                      child: pw.ClipOval(child: pw.Image(pdfLogo, fit: pw.BoxFit.contain)),
-                    ),
-                  if (pdfLogo != null) pw.SizedBox(height: 4),
-                  pw.Text(
-                    (s.schoolName ?? '').toUpperCase(),
-                    textAlign: pw.TextAlign.center,
-                    style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 11, letterSpacing: 0.6),
-                  ),
-                  if ((s.affiliated ?? '').isNotEmpty) ...[
-                    pw.SizedBox(height: 2),
-                    pw.Text(s.affiliated!, textAlign: pw.TextAlign.center,
-                        style: pw.TextStyle(color: PdfColors.white, fontSize: 7)),
-                  ],
-                  pw.SizedBox(height: 2),
-                  pw.Text(s.schoolAddress ?? '', textAlign: pw.TextAlign.center,
-                      style: pw.TextStyle(color: PdfColors.white, fontSize: 7)),
-                  pw.SizedBox(height: 2),
-                  // Fixed: use text "Ph:" instead of unicode phone icon that doesn't render
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
-                    children: [
-                      pw.Text('Ph: ',
-                          style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                      pw.Text(s.schoolPhone ?? '-',
-                          textAlign: pw.TextAlign.center,
-                          style: pw.TextStyle(color: PdfColors.white, fontSize: 7)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Ribbon
-            pw.Container(
-              color: t.pdfRibbonBg,
-              padding: const pw.EdgeInsets.symmetric(vertical: 3),
-              child: pw.Text('STUDENT IDENTITY CARD',
-                  textAlign: pw.TextAlign.center,
-                  style: pw.TextStyle(
-                      fontSize: 8, fontWeight: pw.FontWeight.bold,
-                      color: t.pdfRibbonText, letterSpacing: 2)),
-            ),
-            // Body
-            pw.Expanded(
-              child: pw.Container(
-                color: PdfColors.white,
-                padding: const pw.EdgeInsets.all(10),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Column(
-                      children: [
-                        pw.Container(
-                          width: 60, height: 68,
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(color: t.pdfPrimaryLight, width: 1.5),
-                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                            color: t.pdfRibbonBg,
-                          ),
-                          child: pdfStudentImg != null
-                              ? pw.ClipRRect(
-                            horizontalRadius: 6,
-                            verticalRadius: 6,
-                            child: pw.Image(pdfStudentImg, fit: pw.BoxFit.cover,
-                              alignment: pw.Alignment.topCenter,
-                            ),
-                          )
-                              : pw.Center(
-                            child: pw.Text(
-                              s.studentName?.substring(0, 1) ?? '?',
-                              style: pw.TextStyle(fontSize: 22, color: t.pdfPrimary, fontWeight: pw.FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: pw.BoxDecoration(
-                            color: t.pdfPrimary,
-                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                          ),
-                          child: pw.Text(s.className ?? '-',
-                              style: pw.TextStyle(color: PdfColors.white, fontSize: 7, fontWeight: pw.FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    pw.SizedBox(width: 10),
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(s.studentName ?? '-',
-                              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
-                          pw.SizedBox(height: 1),
-                          pw.Text('Reg: ${s.registrationNo ?? '-'}',
-                              style: pw.TextStyle(fontSize: 7, color: t.pdfPrimaryLight, fontWeight: pw.FontWeight.bold)),
-                          pw.SizedBox(height: 6),
-                          _pRow('Father',    s.fatherName  ?? '-', t),
-                          _pRow('Mother',    s.motherName  ?? '-', t),
-                          _pRow('DOB',       dob, t),
-                          _pRow('Blood Grp', s.bloodGroup  ?? '-', t),
-                          _pRow('Section',   '${s.sectionName ?? '-'}', t),
-                          if ((s.rollNo ?? '').isNotEmpty) _pRow('Roll No', s.rollNo!, t),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Footer
-            pw.Container(
-              color: t.pdfPrimary,
-              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text('Session: ${s.session ?? '-'}',
-                      style: pw.TextStyle(color: PdfColors.white, fontSize: 7)),
-                  pw.Text(s.schoolEmail ?? '',
-                      style: pw.TextStyle(color: PdfColors.white, fontSize: 7)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ));
-
-    final bytes = await pdf.save();
-    await Printing.layoutPdf(
-      onLayout: (_) async => bytes,
-      name: 'IDCard_Front_${s.studentName ?? widget.studentId}',
-    );
+  // Screen ke card ka exact snapshot (photo adjust/zoom ke saath)
+  Future<_CapturedCard?> _captureCard(GlobalKey key) async {
+    final boundary =
+    key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 3.0);
+    final data  = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) return null;
+    return _CapturedCard(data.buffer.asUint8List(), image.width, image.height);
   }
 
-  Future<void> _printBack() async {
-    final s = _student;
-    if (s == null) return;
+  // Front + Back dono ek hi page par
+  Future<Uint8List?> _buildCombinedPdf() async {
+    final frontBytes = await _captureCard(_frontKey);
+    final backBytes  = await _captureCard(_backKey);
+    if (frontBytes == null || backBytes == null) {
+      AppSnackbar.error(_genericError);
+      return null;
+    }
+
+    final frontImg = pw.MemoryImage(frontBytes.bytes);
+    final backImg  = pw.MemoryImage(backBytes.bytes);
     final t = _theme;
 
-    pw.ImageProvider? pdfFatherImg;
-    if (s.fatherPic != null) {
-      try {
-        final res = await http.get(Uri.parse('$_imgBase${s.fatherPic}'));
-        if (res.statusCode == 200) pdfFatherImg = pw.MemoryImage(res.bodyBytes);
-      } catch (_) {}
-    }
+    // Front aur Back dono cards ki height bilkul same rakhne ke liye
+    // ek common height nikalte hain (jo dono page me fit ho jaye)
+    final pageFormat = PdfPageFormat.a4.landscape;
+    const double pageMargin = 24;
+    const double sideGap    = 20;
+    final double sideW = (pageFormat.width - pageMargin * 2 - sideGap) / 2;
+    final double maxH  = pageFormat.height - pageMargin * 2 - 40; // label ke liye jagah
+    final double frontAsp = frontBytes.width / frontBytes.height;
+    final double backAsp  = backBytes.width  / backBytes.height;
+    double cardH = maxH;
+    if (sideW / frontAsp < cardH) cardH = sideW / frontAsp;
+    if (sideW / backAsp  < cardH) cardH = sideW / backAsp;
+    final double frontW = cardH * frontAsp;
+    final double backW  = cardH * backAsp;
 
-    pw.ImageProvider? pdfMotherImg;
-    if (s.motherPic != null) {
-      try {
-        final res = await http.get(Uri.parse('$_imgBase${s.motherPic}'));
-        if (res.statusCode == 200) pdfMotherImg = pw.MemoryImage(res.bodyBytes);
-      } catch (_) {}
-    }
+    pw.Widget side(String label, pw.ImageProvider img, double w) => pw.Expanded(
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                width: 4, height: 14,
+                decoration: pw.BoxDecoration(
+                  color: t.pdfPrimary,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2)),
+                ),
+              ),
+              pw.SizedBox(width: 6),
+              pw.Text(label,
+                  style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                      color: t.pdfPrimary,
+                      letterSpacing: 0.4)),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Align(
+            alignment: pw.Alignment.topCenter,
+            child: pw.SizedBox(
+              width: w,
+              height: cardH,
+              child: pw.Image(img, fit: pw.BoxFit.fill),
+            ),
+          ),
+        ],
+      ),
+    );
 
     final pdf = pw.Document();
     pdf.addPage(pw.Page(
-      pageFormat: PdfPageFormat.a6,
-      margin: const pw.EdgeInsets.all(14),
-      build: (ctx) => pw.ClipRRect(
-        horizontalRadius: 12,
-        verticalRadius: 12,
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            pw.Container(
-              decoration: pw.BoxDecoration(
-                gradient: pw.LinearGradient(
-                  colors: [t.pdfPrimary, t.pdfPrimaryLight],
-                ),
-              ),
-              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: pw.Text(
-                (s.schoolName ?? 'School').toUpperCase(),
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10, letterSpacing: 0.8),
-              ),
-            ),
-            pw.Expanded(
-              child: pw.Container(
-                color: PdfColors.white,
-                padding: const pw.EdgeInsets.all(10),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Row(
-                      children: [
-                        pw.Expanded(
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.center,
-                            children: [
-                              pw.Container(
-                                width: 45, height: 50,
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(color: t.pdfPrimaryLight, width: 1.5),
-                                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                                  color: t.pdfRibbonBg,
-                                ),
-                                child: pdfFatherImg != null
-                                    ? pw.ClipRRect(
-                                  horizontalRadius: 6, verticalRadius: 6,
-                                  child: pw.Image(pdfFatherImg, fit: pw.BoxFit.cover,
-                                    alignment: pw.Alignment.topCenter,
-                                  ),
-                                )
-                                    : pw.Center(child: pw.Text('F', style: pw.TextStyle(fontSize: 18, color: t.pdfPrimaryLight, fontWeight: pw.FontWeight.bold))),
-                              ),
-                              pw.SizedBox(height: 3),
-                              // pw.Text('Father',
-                              //     style: pw.TextStyle(fontSize: 7, color: t.pdfPrimaryLight, fontWeight: pw.FontWeight.bold)),
-                              // pw.SizedBox(height: 2),
-                              pw.Text(s.fatherName ?? '-',
-                                  textAlign: pw.TextAlign.center,
-                                  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        pw.Container(width: 1, height: 80, color: t.pdfRibbonBg),
-                        pw.Expanded(
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.center,
-                            children: [
-                              pw.Container(
-                                width: 45, height: 50,
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(color: t.pdfPrimaryLight, width: 1.5),
-                                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                                  color: t.pdfRibbonBg,
-                                ),
-                                child: pdfMotherImg != null
-                                    ? pw.ClipRRect(
-                                  horizontalRadius: 6, verticalRadius: 6,
-                                  child: pw.Image(pdfMotherImg, fit: pw.BoxFit.cover,
-                                    alignment: pw.Alignment.topCenter,
-                                  ),
-                                )
-                                    : pw.Center(child: pw.Text('M', style: pw.TextStyle(fontSize: 18, color: t.pdfPrimaryLight, fontWeight: pw.FontWeight.bold))),
-                              ),
-                              pw.SizedBox(height: 3),
-                              // pw.Text('Mother',
-                              //     style: pw.TextStyle(fontSize: 7, color: t.pdfPrimaryLight, fontWeight: pw.FontWeight.bold)),
-                              // pw.SizedBox(height: 2),
-                              pw.Text(s.motherName ?? '-',
-                                  textAlign: pw.TextAlign.center,
-                                  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    pw.SizedBox(height: 6),
-                    pw.Divider(color: t.pdfRibbonBg),
-                    pw.SizedBox(height: 6),
-                    _pRow('Phone',     s.phone       ?? '-', t),
-                    _pRow('WhatsApp',  s.whatsAppNo  ?? '-', t),
-                    _pRow('Emergency', s.emergencyNo ?? '-', t),
-                    _pRow('Email',     s.email       ?? '-', t),
-                    _pRow('Address',   s.address     ?? '-', t),
-                    if ((s.transportUser ?? '').toLowerCase() == 'yes') ...[
-                      pw.SizedBox(height: 4),
-                      pw.Divider(color: t.pdfRibbonBg),
-                      pw.Text('Transport Details',
-                          style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: t.pdfPrimary)),
-                      pw.SizedBox(height: 3),
-                      _pRow('Route No', s.routeNo     ?? '-', t),
-                      _pRow('Stop',     s.pickupPoint ?? '-', t),
-                    ],
-                    pw.SizedBox(height: 6),
-                    pw.Divider(color: t.pdfRibbonBg),
-                    pw.SizedBox(height: 4),
-                    pw.Container(
-                      width: double.infinity,
-                      padding: const pw.EdgeInsets.all(7),
-                      decoration: pw.BoxDecoration(
-                        color: t.pdfRibbonBg,
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-                      ),
-                      child: pw.Text(
-                        'If found, please return to the school.\n${s.schoolName ?? ''} | ${s.schoolAddress ?? ''}\nPh: ${s.schoolPhone ?? ''}',
-                        textAlign: pw.TextAlign.center,
-                        style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            pw.Container(
-              color: t.pdfPrimary,
-              padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.end,
-                children: [
-                  pw.Text('Authorised Signature _______________',
-                      style: pw.TextStyle(color: PdfColors.white, fontSize: 7)),
-                ],
-              ),
-            ),
-          ],
-        ),
+      pageFormat: PdfPageFormat.a4.landscape,
+      margin: const pw.EdgeInsets.all(24),
+      build: (ctx) => pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          side('Front Side', frontImg, frontW),
+          pw.SizedBox(width: 20),
+          side('Back Side', backImg, backW),
+        ],
       ),
     ));
+    return pdf.save();
+  }
 
-    final bytes = await pdf.save();
-    await Printing.layoutPdf(
-      onLayout: (_) async => bytes,
-      name: 'IDCard_Back_${s.studentName ?? widget.studentId}',
-    );
+  String get _fileName =>
+      'IDCard_${_student?.studentName ?? widget.studentId}';
+
+  Future<void> _printCards() async {
+    if (_student == null) return;
+    try {
+      final bytes = await _buildCombinedPdf();
+      if (bytes == null) return;
+      await Printing.layoutPdf(
+        onLayout: (_) async => bytes,
+        name: _fileName,
+      );
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
+    }
+  }
+
+  Future<void> _shareCards() async {
+    if (_student == null) return;
+    try {
+      final bytes = await _buildCombinedPdf();
+      if (bytes == null) return;
+      await Printing.sharePdf(bytes: bytes, filename: '$_fileName.pdf');
+    } catch (e, s) {
+      AppSnackbar.apiError(e, stackTrace: s);
+    }
   }
 
   pw.Widget _pRow(String label, String value, IdCardTheme t) => pw.Padding(
@@ -659,13 +419,13 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.print, color: Colors.white),
-            tooltip: 'Print Front',
-            onPressed: _student != null ? _printFront : null,
+            tooltip: 'Print Front & Back',
+            onPressed: _student != null ? _printCards : null,
           ),
           IconButton(
-            icon: const Icon(Icons.print_outlined, color: Colors.white),
-            tooltip: 'Print Back',
-            onPressed: _student != null ? _printBack : null,
+            icon: const Icon(Icons.share, color: Colors.white),
+            tooltip: 'Share PDF',
+            onPressed: _student != null ? _shareCards : null,
           ),
         ],
       ),
@@ -713,35 +473,49 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
                 children: [
                   _buildSectionLabel('Front Side'),
                   SizedBox(height: 8.h),
-                  _FrontCard(
-                    student:           s,
-                    dynamicLogoUrl:    _dynamicSchoolLogoUrl,
-                    theme:             _theme,
-                    imgOffset:         _studentImgOffset,
-                    imgScale:          _studentImgScale,
-                    onAdjust:          (o, scale) => setState(() {
-                      _studentImgOffset = o;
-                      _studentImgScale  = scale;
-                    }),
+                  RepaintBoundary(
+                    key: _frontKey,
+                    child: Container(
+                      color: const Color(0xFFF0F4F8),
+                      padding: const EdgeInsets.all(12),
+                      child: _FrontCard(
+                        student:           s,
+                        dynamicLogoUrl:    _dynamicSchoolLogoUrl,
+                        theme:             _theme,
+                        imgOffset:         _studentImgOffset,
+                        imgScale:          _studentImgScale,
+                        onAdjust:          (o, scale) => setState(() {
+                          _studentImgOffset = o;
+                          _studentImgScale  = scale;
+                        }),
+                      ),
+                    ),
                   ),
                   SizedBox(height: 20.h),
                   _buildSectionLabel('Back Side'),
                   SizedBox(height: 8.h),
-                  _BackCard(
-                    student:          s,
-                    theme:            _theme,
-                    fatherOffset:     _fatherImgOffset,
-                    fatherScale:      _fatherImgScale,
-                    motherOffset:     _motherImgOffset,
-                    motherScale:      _motherImgScale,
-                    onFatherAdjust:   (o, scale) => setState(() {
-                      _fatherImgOffset = o;
-                      _fatherImgScale  = scale;
-                    }),
-                    onMotherAdjust:   (o, scale) => setState(() {
-                      _motherImgOffset = o;
-                      _motherImgScale  = scale;
-                    }),
+                  RepaintBoundary(
+                    key: _backKey,
+                    child: Container(
+                      color: const Color(0xFFF0F4F8),
+                      padding: const EdgeInsets.all(12),
+                      child: _BackCard(
+                        student:          s,
+                        theme:            _theme,
+                        fatherOffset:     _fatherImgOffset,
+                        fatherScale:      _fatherImgScale,
+                        motherOffset:     _motherImgOffset,
+                        motherScale:      _motherImgScale,
+                        onFatherAdjust:   (o, scale) => setState(() {
+                          _fatherImgOffset = o;
+                          _fatherImgScale  = scale;
+                        }),
+                        onMotherAdjust:   (o, scale) => setState(() {
+                          _motherImgOffset = o;
+                          _motherImgScale  = scale;
+                        }),
+                      ),
+                    ),
                   ),
                   SizedBox(height: 30.h),
                 ],

@@ -622,6 +622,17 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
     super.dispose();
   }
 
+  // 🆕 ADDED: check karo ki file image hai ya nahi (pdf/doc ho to preview nahi dikhayenge)
+  bool _isImageFile(String path) {
+    final p = path.toLowerCase().split('?').first;
+    return p.endsWith('.jpg') ||
+        p.endsWith('.jpeg') ||
+        p.endsWith('.png') ||
+        p.endsWith('.webp') ||
+        p.endsWith('.gif') ||
+        p.endsWith('.bmp');
+  }
+
   String _formatDate(String? date) {
     if (date == null || date.isEmpty) return "N/A";
     try {
@@ -833,6 +844,7 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
                                 height: 34.r,
@@ -849,23 +861,27 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                               ),
                               SizedBox(width: 10.w),
                               Expanded(
-                                child: Text(
-                                  ' $titleText',
-                                  style: TextStyle(
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              SizedBox(width: 10.w),
-                              Text(
-                                "Date: $date",
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: Colors.grey.shade700,
-                                  fontWeight: FontWeight.w700,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      titleText,
+                                      softWrap: true,
+                                      style: TextStyle(
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2.h),
+                                    Text(
+                                      "Date: $date",
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -904,6 +920,75 @@ class _AllNotificationTabState extends State<AllNotificationTab> {
                             SizedBox(height: 12.h),
                             Divider(color: Colors.grey.shade200, height: 1),
                             SizedBox(height: 10.h),
+
+                            // 🆕 ADDED: image direct card me dikhao
+                            if (_isImageFile(item.notificationfile!)) ...[
+                              GestureDetector(
+                                onTap: () {
+                                  // tap karne par full screen zoom view
+                                  Get.dialog(
+                                    Dialog(
+                                      backgroundColor: Colors.black,
+                                      insetPadding: EdgeInsets.all(8.r),
+                                      child: Stack(
+                                        children: [
+                                          InteractiveViewer(
+                                            child: Image.network(
+                                              AppUrl.notificationFileUrl(
+                                                  item.notificationfile!),
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.close,
+                                                  color: Colors.white),
+                                              onPressed: () => Get.back(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  child: Image.network(
+                                    AppUrl.notificationFileUrl(
+                                        item.notificationfile!),
+                                    width: double.infinity,
+                                    height: 180.h,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (ctx, child, progress) {
+                                      if (progress == null) return child;
+                                      return SizedBox(
+                                        height: 180.h,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (ctx, err, stack) {
+                                      debugPrint("Image load error: $err");
+                                      return Container(
+                                        height: 100.h,
+                                        color: Colors.grey.shade200,
+                                        alignment: Alignment.center,
+                                        child: Icon(
+                                          Icons.broken_image_outlined,
+                                          color: Colors.grey.shade400,
+                                          size: 36,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 10.h),
+                            ],
+
                             if (downloading)
                               Column(
                                 crossAxisAlignment:

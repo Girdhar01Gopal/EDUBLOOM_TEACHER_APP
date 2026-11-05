@@ -48,7 +48,7 @@ class AddFeeHeadScreen extends GetView<AddFeeHeadController> {
 }
 
 /// =======================
-/// TAB 1 (ADD) - Fee Duration is now multi-select
+/// TAB 1 (ADD) - Class, Section, Fee Type, Fee Duration are multi-select
 /// =======================
 class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
   const _AddFeeHeadTab();
@@ -93,7 +93,7 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
                     children: [
                       Expanded(child: _feeType()),
                       SizedBox(width: 8.w),
-                      Expanded(child: _feeDuration(context)), // ✅ CHANGED: needs context now
+                      Expanded(child: _feeDuration()),
                     ],
                   ),
                   SizedBox(height: 14.h),
@@ -174,6 +174,133 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
     );
   }
 
+  // ============================================================
+  // 🆕 MULTI-SELECT inside the SAME dropdown UI
+  // (menu niche hi khulta hai, har item par checkbox, "Select All" upar,
+  //  tap karne par menu band nahi hota)
+  // ============================================================
+  Widget _checkRow({
+    required bool checked,
+    required String text,
+    required VoidCallback onTap,
+    bool bold = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: double.infinity,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                value: checked,
+                activeColor: const Color(0xFF97144D),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                onChanged: (_) => onTap(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 14,
+                  fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _multiSelectField<T>({
+    required String label,
+    required String hint,
+    required RxList<T> items,
+    required RxList<T> selected,
+    required String Function(T) labelOf,
+  }) {
+    const Object selectAllKey = '__select_all__';
+
+    return Obx(() {
+      final List<T> sel = selected.toList();
+      final List<T> all = items.toList();
+
+      String text;
+      if (sel.isEmpty) {
+        text = hint;
+      } else if (all.isNotEmpty && sel.length == all.length) {
+        text = "All selected (${sel.length})";
+      } else {
+        text = sel.map(labelOf).join(", ");
+      }
+
+      // items: [Select All] + saare items (enabled:false => tap par menu band nahi hota)
+      final List<DropdownMenuItem<Object>> menuItems = [
+        DropdownMenuItem<Object>(
+          value: selectAllKey,
+          enabled: false,
+          child: Obx(() => _checkRow(
+            checked: items.isNotEmpty && selected.length == items.length,
+            text: "Select All",
+            bold: true,
+            onTap: () {
+              if (items.isNotEmpty && selected.length == items.length) {
+                selected.clear();
+              } else {
+                selected.assignAll(items);
+              }
+            },
+          )),
+        ),
+        ...all.map(
+              (it) => DropdownMenuItem<Object>(
+            value: it as Object,
+            enabled: false,
+            child: Obx(() => _checkRow(
+              checked: selected.contains(it),
+              text: labelOf(it),
+              onTap: () {
+                if (selected.contains(it)) {
+                  selected.remove(it);
+                } else {
+                  selected.add(it);
+                }
+              },
+            )),
+          ),
+        ),
+      ];
+
+      return DropdownButtonFormField<Object>(
+        // value sirf display ke liye (selectedItemBuilder joined text dikhata hai)
+        value: sel.isEmpty ? null : sel.first as Object,
+        isExpanded: true,
+        menuMaxHeight: 300,
+        hint: _ellipsis(hint),
+        items: menuItems,
+        selectedItemBuilder: (_) => List<Widget>.generate(
+          menuItems.length,
+              (_) => Align(
+            alignment: Alignment.centerLeft,
+            child: _ellipsis(text),
+          ),
+        ),
+        onChanged: (_) {},
+        decoration: _decoration(label),
+      );
+    });
+  }
+
   Widget _session() {
     return Obx(() {
       final items = controller.sessionList;
@@ -205,183 +332,48 @@ class _AddFeeHeadTab extends GetView<AddFeeHeadController> {
     });
   }
 
-  // ✅ CHANGED: Class dropdown now uses notification's ClassData model
+  // ✅ Class dropdown (multi-select) — notification's ClassData model
   Widget _class() {
-    return Obx(() {
-      final items = controller.classList;
-      return DropdownButtonFormField<ClassData>(
-        value: controller.selectedClass.value,
-        isExpanded: true,
-        menuMaxHeight: 300,
-        hint: _ellipsis("Select Class"),
-        items: items
-            .map((c) => DropdownMenuItem(
-          value: c,
-          child: _ellipsis(c.className),
-        ))
-            .toList(),
-        selectedItemBuilder: (_) {
-          return items
-              .map((c) => Align(
-            alignment: Alignment.centerLeft,
-            child: _ellipsis(c.className),
-          ))
-              .toList();
-        },
-        onChanged: (v) => controller.selectedClass.value = v,
-        decoration: _decoration("Class"),
-      );
-    });
-  }
-
-  Widget _feeType() {
-    return Obx(() {
-      final items = controller.feeTypeList;
-      return DropdownButtonFormField<fData>(
-        value: controller.selectedFeeType.value,
-        isExpanded: true,
-        menuMaxHeight: 300,
-        hint: _ellipsis("Select Fee Type"),
-        items: items
-            .map((f) => DropdownMenuItem(
-          value: f,
-          child: _ellipsis(f.feeType ?? ""),
-        ))
-            .toList(),
-        selectedItemBuilder: (_) {
-          return items
-              .map((f) => Align(
-            alignment: Alignment.centerLeft,
-            child: _ellipsis(f.feeType ?? ""),
-          ))
-              .toList();
-        },
-        onChanged: (v) => controller.selectedFeeType.value = v,
-        decoration: _decoration("Fee Type"),
-      );
-    });
-  }
-
-  /// ✅ CHANGED: Fee Duration is now a multi-select field.
-  /// Tapping it opens a checkbox picker dialog; selected items show as
-  /// a comma separated ellipsis text, same visual style as before.
-  Widget _feeDuration(BuildContext context) {
-    return Obx(() {
-      final items = controller.feeDurationList;
-      final selected = controller.selectedFeeDurations;
-
-      final displayText = selected.isEmpty
-          ? "Select Fee Duration"
-          : selected.map((e) => e.feesDuration).join(", ");
-
-      return InkWell(
-        onTap: () => _openFeeDurationPicker(context, items),
-        child: InputDecorator(
-          decoration: _decoration("Fee Duration"),
-          child: Row(
-            children: [
-              Expanded(child: _ellipsis(displayText)),
-              const Icon(Icons.arrow_drop_down),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  /// ✅ NEW: multi-select checkbox dialog for Fee Duration.
-  /// Works whether the user wants to pick just one or several durations.
-  void _openFeeDurationPicker(BuildContext context, List<FeeDurationItem> items) {
-    // work on a local copy so Cancel doesn't affect existing selection
-    final tempSelected = <FeeDurationItem>[...controller.selectedFeeDurations];
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContext, setState) {
-            return AlertDialog(
-              title: const Text("Select Fee Duration"),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: items.isEmpty
-                    ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text("No fee duration found"),
-                )
-                    : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  itemBuilder: (_, i) {
-                    final item = items[i];
-                    final isChecked = tempSelected
-                        .any((e) => e.feesDurationId == item.feesDurationId);
-
-                    return CheckboxListTile(
-                      value: isChecked,
-                      title: Text(item.feesDuration),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (checked) {
-                        setState(() {
-                          if (checked == true) {
-                            tempSelected.add(item);
-                          } else {
-                            tempSelected.removeWhere(
-                                    (e) => e.feesDurationId == item.feesDurationId);
-                          }
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text("Cancel"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    controller.selectedFeeDurations.assignAll(tempSelected);
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: const Text("Done"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    return _multiSelectField<ClassData>(
+      label: "Class",
+      hint: "Select Class",
+      items: controller.classList,
+      selected: controller.selectedClasses,
+      labelOf: (c) => c.className,
     );
   }
 
-  // ✅ CHANGED: Section dropdown now uses notification's stListData model
+  // 🆕 Fee Type dropdown (multi-select)
+  Widget _feeType() {
+    return _multiSelectField<fData>(
+      label: "Fee Type",
+      hint: "Select Fee Type",
+      items: controller.feeTypeList,
+      selected: controller.selectedFeeTypes,
+      labelOf: (f) => f.feeType ?? "",
+    );
+  }
+
+  /// ✅ Fee Duration dropdown (multi-select)
+  Widget _feeDuration() {
+    return _multiSelectField<FeeDurationItem>(
+      label: "Fee Duration",
+      hint: "Select Fee Duration",
+      items: controller.feeDurationList,
+      selected: controller.selectedFeeDurations,
+      labelOf: (d) => d.feesDuration,
+    );
+  }
+
+  // ✅ Section dropdown (multi-select) — notification's stListData model
   Widget _section() {
-    return Obx(() {
-      final items = controller.sectionList;
-      return DropdownButtonFormField<stListData>(
-        value: controller.selectedSection.value,
-        isExpanded: true,
-        menuMaxHeight: 300,
-        hint: _ellipsis("Select Section"),
-        items: items
-            .map((s) => DropdownMenuItem(
-          value: s,
-          child: _ellipsis(s.section ?? ""),
-        ))
-            .toList(),
-        selectedItemBuilder: (_) {
-          return items
-              .map((s) => Align(
-            alignment: Alignment.centerLeft,
-            child: _ellipsis(s.section ?? ""),
-          ))
-              .toList();
-        },
-        onChanged: (v) => controller.selectedSection.value = v,
-        decoration: _decoration("Section"),
-      );
-    });
+    return _multiSelectField<stListData>(
+      label: "Section",
+      hint: "Select Section",
+      items: controller.sectionList,
+      selected: controller.selectedSections,
+      labelOf: (s) => s.section ?? "",
+    );
   }
 
   Widget _amount() {

@@ -49,6 +49,7 @@ dependencies:
   firebase_analytics:
   lottie:
   pdf:
+  syncfusion_flutter_pdfviewer:
   fetch_mobile_numbers:
   geolocator:
   geocoding:

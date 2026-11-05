@@ -9,6 +9,8 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
   const AddHolidayCalendarScreen({super.key});
 
   static const _holidayColor = Color(0xFF7E57C2); // deep purple 400
+  static const _eventColor = Color(0xFFEF6C00); // orange 800
+  static const _noteColor = Color(0xFF00897B); // teal 600
   static const _primaryColor = Color(0xFF97144D);
 
   @override
@@ -16,7 +18,7 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text("Holiday Calendar", style: TextStyle(color: Colors.white)),
+        title: const Text("Holiday/Event/Notes Calendar", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         backgroundColor: _primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -36,7 +38,7 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
         return Stack(
           children: [
             RefreshIndicator(
-              onRefresh: controller.fetchHolidays,
+              onRefresh: controller.fetchAll,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 90),
                 children: [
@@ -57,8 +59,10 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
   // ═══════════════════════════════ Calendar ═══════════════════════════════
   Widget _calendarCard(BuildContext context) {
     final month = controller.focusedMonth.value;
-    // Touch the list so Obx rebuilds the grid when holidays load.
+    // Touch the lists so Obx rebuilds the grid when data loads.
     controller.holidayList.length;
+    controller.notesList.length;
+    controller.eventsList.length;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -109,11 +113,14 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
           const SizedBox(height: 6),
           _monthGrid(context, month),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
             children: [
               _legend(Colors.amber.shade100, "Today"),
-              const SizedBox(width: 16),
               _legend(_holidayColor.withValues(alpha: 0.18), "Holiday"),
+              _legend(_eventColor.withValues(alpha: 0.18), "Event"),
+              _legend(_noteColor.withValues(alpha: 0.18), "Note"),
             ],
           ),
         ],
@@ -149,23 +156,48 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
           children: List.generate(7, (c) {
             final dayNum = r * 7 + c - leading + 1;
             if (dayNum < 1 || dayNum > daysInMonth) {
-              return const Expanded(child: SizedBox(height: 52));
+              return const Expanded(child: SizedBox(height: 60));
             }
             final date = DateTime(month.year, month.month, dayNum);
             final holidays = controller.holidaysOn(date);
+            final events = controller.eventsOn(date);
+            final notes = controller.notesOn(date);
+
             final isHoliday = holidays.isNotEmpty;
+            final isEvent = events.isNotEmpty;
+            final isNote = notes.isNotEmpty;
+            final hasAny = isHoliday || isEvent || isNote;
             final isToday = AddHolidayCalendarController.isSameDay(date, today);
+
+            // Cell background / number color: Holiday > Event > Note
+            final Color? accent = isHoliday
+                ? _holidayColor
+                : isEvent
+                ? _eventColor
+                : isNote
+                ? _noteColor
+                : null;
+
+            // Cell ke andar dikhne wale labels (Holiday, Event, Note order)
+            final labels = <_CellLabel>[
+              ...holidays.map((h) => _CellLabel(h.occasion, _holidayColor)),
+              ...events.map((e) => _CellLabel(e.title, _eventColor)),
+              ...notes.map((n) => _CellLabel(n.title, _noteColor)),
+            ];
+            final visible = labels.length > 2
+                ? [labels.first, _CellLabel("+${labels.length - 1} more", Colors.grey.shade700)]
+                : labels;
 
             return Expanded(
               child: GestureDetector(
                 onTap: () => _onDateTap(context, date, holidays),
                 child: Container(
-                  height: 52,
+                  height: 60,
                   margin: const EdgeInsets.all(1.5),
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    color: isHoliday
-                        ? _holidayColor.withValues(alpha: 0.18)
+                    color: accent != null
+                        ? accent.withValues(alpha: 0.18)
                         : isToday
                         ? Colors.amber.shade100
                         : Colors.white,
@@ -182,26 +214,30 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
                         "$dayNum",
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: isHoliday || isToday ? FontWeight.w800 : FontWeight.w500,
-                          color: isHoliday
-                              ? _holidayColor
-                              : c == 0
-                              ? Colors.red
-                              : Colors.black87,
+                          fontWeight: hasAny || isToday ? FontWeight.w800 : FontWeight.w500,
+                          color: accent ??
+                              (c == 0 ? Colors.red : Colors.black87),
                         ),
                       ),
-                      if (isHoliday)
+                      if (hasAny)
                         Expanded(
                           child: Align(
                             alignment: Alignment.bottomLeft,
-                            child: Text(
-                              holidays.first.occasion,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 8.5,
-                                  color: _holidayColor,
-                                  fontWeight: FontWeight.w600),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: visible
+                                  .map((l) => Text(
+                                l.text,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 8.5,
+                                    height: 1.15,
+                                    color: l.color,
+                                    fontWeight: FontWeight.w600),
+                              ))
+                                  .toList(),
                             ),
                           ),
                         ),
@@ -218,6 +254,7 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
 
   Widget _legend(Color color, String label) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 14,
@@ -230,7 +267,8 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
     );
   }
 
-  /// Date tap par ab Add / Edit sheet nahi khulegi (commented out).
+  /// Date tap par us din ke Holiday / Event / Note ki detail alert dialog me dikhti hai.
+  /// (Add / Edit holiday sheet abhi bhi hidden/commented hai.)
   void _onDateTap(BuildContext context, DateTime date, List<Holiday> holidays) {
     // Add / Edit holiday sheet hidden (commented out)
     // if (holidays.isEmpty) {
@@ -239,6 +277,132 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
     //   controller.loadForEdit(holidays.first);
     // }
     // _openHolidaySheet(context);
+
+    final events = controller.eventsOn(date);
+    final notes = controller.notesOn(date);
+
+    // Us din kuch bhi nahi hai to dialog nahi kholna
+    if (holidays.isEmpty && events.isEmpty && notes.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+          contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          title: Row(
+            children: [
+              const Icon(Icons.event_note_rounded, color: _primaryColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  DateFormat('EEEE, dd MMM yyyy').format(date),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (holidays.isNotEmpty) ...[
+                    _dialogSectionTitle("Holiday", Icons.celebration, _holidayColor),
+                    ...holidays.map((h) => _dialogItem(
+                      color: _holidayColor,
+                      title: h.occasion,
+                      lines: const [],
+                    )),
+                  ],
+                  if (events.isNotEmpty) ...[
+                    _dialogSectionTitle("Event", Icons.event, _eventColor),
+                    ...events.map((e) => _dialogItem(
+                      color: _eventColor,
+                      title: e.title,
+                      lines: [
+                        if ((e.place ?? '').isNotEmpty) "Place: ${e.place}",
+                        if (e.classSections.isNotEmpty)
+                          "Class: ${e.classSections.join(', ')}",
+                        if ((e.description ?? '').isNotEmpty)
+                          "Description: ${e.description}",
+                        if ((e.createdBy ?? '').isNotEmpty)
+                          "Created By: ${e.createdBy}",
+                      ],
+                    )),
+                  ],
+                  if (notes.isNotEmpty) ...[
+                    _dialogSectionTitle("Note", Icons.menu_book, _noteColor),
+                    ...notes.map((n) => _dialogItem(
+                      color: _noteColor,
+                      title: n.title,
+                      lines: [
+                        if (n.classSections.isNotEmpty)
+                          "Class: ${n.classSections.join(', ')}",
+                      ],
+                    )),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text("Close", style: TextStyle(color: _primaryColor)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _dialogSectionTitle(String text, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(text,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialogItem({
+    required Color color,
+    required String title,
+    required List<String> lines,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(left: BorderSide(color: color, width: 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+          ...lines.map((l) => Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(l,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade800)),
+          )),
+        ],
+      ),
+    );
   }
 
   // ═══════════════════════════════ Holiday list ═══════════════════════════════
@@ -461,4 +625,11 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
       },
     );
   }
+}
+
+/// Calendar cell ke andar ek chhota label (text + color).
+class _CellLabel {
+  final String text;
+  final Color color;
+  const _CellLabel(this.text, this.color);
 }
