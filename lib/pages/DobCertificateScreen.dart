@@ -25,6 +25,14 @@ import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 // ✅ Axis Bank brand color
 const Color kAxisMaroon = Color(0xFF97144D);
 
+// Precomputed colors (har rebuild me withOpacity dobara nahi chalega)
+final Color _maroon08 = kAxisMaroon.withOpacity(0.08);
+final Color _maroon15 = kAxisMaroon.withOpacity(0.15);
+
+// Common text style (certificate ke school info lines)
+const TextStyle _certInfoStyle =
+TextStyle(fontSize: 13, color: Colors.black87);
+
 // ═══════════════════════════════════════════════════════════════
 //  Certificate Theme Model
 // ═══════════════════════════════════════════════════════════════
@@ -40,6 +48,12 @@ class _CertTheme {
     required this.veryLightColor,
     required this.label,
   });
+
+  /// Black & White theme check (pehle har jagah string compare hota tha)
+  bool get isBW => label == 'Black & White';
+
+  /// BW me black, baaki themes me primaryColor
+  Color get accentColor => isBW ? Colors.black : primaryColor;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -47,6 +61,17 @@ class _CertTheme {
 // ═══════════════════════════════════════════════════════════════
 class StudentListScreen extends StatelessWidget {
   const StudentListScreen({super.key});
+
+  static const List<DataColumn> _columns = [
+    DataColumn(label: Text('S.No')),
+    DataColumn(label: Text('Reg No')),
+    DataColumn(label: Text('Name')),
+    DataColumn(label: Text('Father Name')),
+    DataColumn(label: Text('Class')),
+    DataColumn(label: Text('Section')),
+    DataColumn(label: Text('Mobile')),
+    DataColumn(label: Text('Action')),
+  ];
 
   StudentListController get ctrl {
     if (!Get.isRegistered<StudentListController>()) {
@@ -57,7 +82,8 @@ class StudentListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ctrl;
+    // controller ek hi baar resolve hota hai (har row me getter call nahi)
+    final ctrl = this.ctrl;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -92,12 +118,10 @@ class StudentListScreen extends StatelessWidget {
               child: TextField(
                 onChanged: ctrl.searchStudents,
                 decoration: InputDecoration(
-                  hintText:
-                  'Search by Name / Reg No / Mobile / Class',
-                  hintStyle: const TextStyle(
-                      fontSize: 13, color: Colors.grey),
-                  prefixIcon:
-                  const Icon(Icons.search, color: kAxisMaroon),
+                  hintText: 'Search by Name / Reg No / Mobile / Class',
+                  hintStyle:
+                  const TextStyle(fontSize: 13, color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: kAxisMaroon),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                   filled: true,
@@ -112,15 +136,16 @@ class StudentListScreen extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 if (ctrl.isLoading.value) {
-                  return const Center(
-                      child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
 
-                if (ctrl.students.isEmpty) {
+                final students = ctrl.students;
+
+                if (students.isEmpty) {
                   return const Center(
                     child: Text('No students found.',
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: 15)),
+                        style:
+                        TextStyle(color: Colors.grey, fontSize: 15)),
                   );
                 }
 
@@ -132,36 +157,21 @@ class StudentListScreen extends StatelessWidget {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          headingRowColor:
-                          WidgetStateProperty.all(
-                              kAxisMaroon.withOpacity(0.08)),
+                          headingRowColor: WidgetStateProperty.all(_maroon08),
                           headingTextStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: kAxisMaroon,
                             fontSize: 13,
                           ),
                           dataTextStyle: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87),
+                              fontSize: 12, color: Colors.black87),
                           dividerThickness: 0.5,
                           columnSpacing: 14,
-                          columns: const [
-                            DataColumn(label: Text('S.No')),
-                            DataColumn(label: Text('Reg No')),
-                            DataColumn(label: Text('Name')),
-                            DataColumn(
-                                label: Text('Father Name')),
-                            DataColumn(label: Text('Class')),
-                            DataColumn(label: Text('Section')),
-                            DataColumn(label: Text('Mobile')),
-                            DataColumn(label: Text('Action')),
-                          ],
-                          rows: List.generate(
-                              ctrl.students.length, (i) {
-                            final s = ctrl.students[i];
+                          columns: _columns,
+                          rows: List.generate(students.length, (i) {
+                            final s = students[i];
                             return DataRow(
-                              color:
-                              WidgetStateProperty.resolveWith(
+                              color: WidgetStateProperty.resolveWith(
                                     (states) => i % 2 == 0
                                     ? Colors.white
                                     : Colors.grey.shade50,
@@ -170,66 +180,42 @@ class StudentListScreen extends StatelessWidget {
                                 DataCell(Text('${i + 1}')),
                                 DataCell(Text(
                                   s.registrationNo ?? '-',
-                                  style: const TextStyle(
-                                      fontSize: 11),
+                                  style: const TextStyle(fontSize: 11),
                                 )),
-                                DataCell(Text(
-                                    s.studentName ?? '-')),
-                                DataCell(Text(
-                                    s.fatherName ?? '-')),
-                                DataCell(
-                                    Text(s.className ?? '-')),
-                                DataCell(
-                                    Text(s.sectionName ?? '-')),
+                                DataCell(Text(s.studentName ?? '-')),
+                                DataCell(Text(s.fatherName ?? '-')),
+                                DataCell(Text(s.className ?? '-')),
+                                DataCell(Text(s.sectionName ?? '-')),
                                 DataCell(Text(s.phone ?? '-')),
                                 DataCell(
-                                  Obx(() =>
-                                  ctrl.isCertLoading.value
+                                  Obx(() => ctrl.isCertLoading.value
                                       ? const SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child:
-                                    CircularProgressIndicator(
-                                        strokeWidth:
-                                        2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                       : ElevatedButton.icon(
-                                    onPressed: () =>
-                                        _onPrint(s),
-                                    icon: const Icon(
-                                        Icons.print,
+                                    onPressed: () => _onPrint(s),
+                                    icon: const Icon(Icons.print,
                                         size: 14,
-                                        color: Colors
-                                            .white),
-                                    label: const Text(
-                                        'Print',
+                                        color: Colors.white),
+                                    label: const Text('Print',
                                         style: TextStyle(
-                                            color: Colors
-                                                .white,
-                                            fontSize:
-                                            12)),
-                                    style: ElevatedButton
-                                        .styleFrom(
+                                            color: Colors.white,
+                                            fontSize: 12)),
+                                    style: ElevatedButton.styleFrom(
                                       backgroundColor:
-                                      Colors.orange
-                                          .shade600,
+                                      Colors.orange.shade600,
                                       padding:
-                                      const EdgeInsets
-                                          .symmetric(
-                                          horizontal:
-                                          10,
-                                          vertical:
-                                          6),
-                                      shape:
-                                      RoundedRectangleBorder(
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6),
+                                      shape: RoundedRectangleBorder(
                                         borderRadius:
-                                        BorderRadius
-                                            .circular(
-                                            6),
+                                        BorderRadius.circular(6),
                                       ),
-                                      minimumSize:
-                                      const Size(
-                                          70, 32),
+                                      minimumSize: const Size(70, 32),
                                     ),
                                   )),
                                 ),
@@ -248,24 +234,20 @@ class StudentListScreen extends StatelessWidget {
                         child: Card(
                           elevation: 8,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(
-                                Radius.circular(12)),
+                            borderRadius:
+                            BorderRadius.all(Radius.circular(12)),
                           ),
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 24),
+                                horizontal: 32, vertical: 24),
                             child: Column(
-                              mainAxisSize:
-                              MainAxisSize.min,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 CircularProgressIndicator(
                                     color: kAxisMaroon),
                                 SizedBox(height: 14),
-                                Text(
-                                    'Fetching Certificate…',
-                                    style: TextStyle(
-                                        fontSize: 14)),
+                                Text('Fetching Certificate…',
+                                    style: TextStyle(fontSize: 14)),
                               ],
                             ),
                           ),
@@ -304,16 +286,15 @@ class _StudentAvatar extends StatelessWidget {
     if (url.isNotEmpty) {
       return CircleAvatar(
         radius: 18,
-        backgroundColor: kAxisMaroon.withOpacity(0.15),
+        backgroundColor: _maroon15,
         backgroundImage: NetworkImage(url),
         onBackgroundImageError: (_, __) {},
       );
     }
     return CircleAvatar(
       radius: 18,
-      backgroundColor: kAxisMaroon.withOpacity(0.15),
-      child: const Icon(Icons.person,
-          size: 18, color: kAxisMaroon),
+      backgroundColor: _maroon15,
+      child: const Icon(Icons.person, size: 18, color: kAxisMaroon),
     );
   }
 }
@@ -323,16 +304,14 @@ class _StudentAvatar extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 class DobCertificateViewScreen extends StatefulWidget {
   final PrintCertificateData certData;
-  const DobCertificateViewScreen(
-      {super.key, required this.certData});
+  const DobCertificateViewScreen({super.key, required this.certData});
 
   @override
   State<DobCertificateViewScreen> createState() =>
       _DobCertificateViewScreenState();
 }
 
-class _DobCertificateViewScreenState
-    extends State<DobCertificateViewScreen> {
+class _DobCertificateViewScreenState extends State<DobCertificateViewScreen> {
   // ── Themes ───────────────────────────────────────────────────
   static const List<_CertTheme> _themes = [
     _CertTheme(
@@ -392,7 +371,7 @@ class _DobCertificateViewScreenState
 
   // One RepaintBoundary key per theme page — 8 themes
   final List<GlobalKey> _repaintKeys =
-  List.generate(8, (_) => GlobalKey());
+  List.generate(_themes.length, (_) => GlobalKey());
 
   @override
   void initState() {
@@ -424,10 +403,9 @@ class _DobCertificateViewScreenState
       final boundary = _repaintKeys[_selectedThemeIndex]
           .currentContext!
           .findRenderObject() as RenderRepaintBoundary;
-      final ui.Image image =
-      await boundary.toImage(pixelRatio: 2.5);
-      final byteData = await image.toByteData(
-          format: ui.ImageByteFormat.png);
+      final ui.Image image = await boundary.toImage(pixelRatio: 2.5);
+      final byteData =
+      await image.toByteData(format: ui.ImageByteFormat.png);
       return byteData!.buffer.asUint8List();
     } catch (e) {
       debugPrint('Capture error: $e');
@@ -435,13 +413,18 @@ class _DobCertificateViewScreenState
     }
   }
 
+  // ── Loading dialog (print / share dono me same tha) ──────────
+  void _showLoadingDialog() {
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+  }
+
   // ── Print ────────────────────────────────────────────────────
   Future<void> _printCertificate() async {
     try {
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+      _showLoadingDialog();
       final bytes = await _captureBytes();
       Get.back();
       if (bytes == null) {
@@ -450,11 +433,7 @@ class _DobCertificateViewScreenState
         return;
       }
       await Printing.layoutPdf(
-        onLayout: (_) async {
-          final doc =
-          await _pngBytesToPdf(Uint8List.fromList(bytes));
-          return doc;
-        },
+        onLayout: (_) => _pngBytesToPdf(Uint8List.fromList(bytes)),
       );
     } catch (e, stack) {
       if (Get.isDialogOpen ?? false) Get.back();
@@ -475,16 +454,13 @@ class _DobCertificateViewScreenState
         build: (_) => pw.Image(image, fit: pw.BoxFit.contain),
       ),
     );
-    return Uint8List.fromList(await pdf.save());
+    return pdf.save();
   }
 
   // ── Share ────────────────────────────────────────────────────
   Future<void> _shareCertificate() async {
     try {
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+      _showLoadingDialog();
       final bytes = await _captureBytes();
       Get.back();
       if (bytes == null) {
@@ -494,15 +470,12 @@ class _DobCertificateViewScreenState
       }
       final tempDir = await getTemporaryDirectory();
       final safeName =
-      (widget.certData.studentName ?? 'student')
-          .replaceAll(' ', '_');
-      final file =
-      File('${tempDir.path}/dob_cert_$safeName.png');
+      (widget.certData.studentName ?? 'student').replaceAll(' ', '_');
+      final file = File('${tempDir.path}/dob_cert_$safeName.png');
       await file.writeAsBytes(bytes);
       await Share.shareXFiles(
         [XFile(file.path)],
-        text:
-        'DOB Certificate – ${widget.certData.studentName ?? ''}',
+        text: 'DOB Certificate – ${widget.certData.studentName ?? ''}',
       );
     } catch (e) {
       if (Get.isDialogOpen ?? false) Get.back();
@@ -517,7 +490,7 @@ class _DobCertificateViewScreenState
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(_themes.length, (i) {
         final isSelected = i == _selectedThemeIndex;
-        final isBW = _themes[i].label == 'Black & White';
+        final accent = _themes[i].accentColor;
         return GestureDetector(
           onTap: () => _pageController.animateToPage(
             i,
@@ -530,16 +503,10 @@ class _DobCertificateViewScreenState
             width: isSelected ? 28 : 12,
             height: 10,
             decoration: BoxDecoration(
-              color: isSelected
-                  ? (isBW ? Colors.black : _themes[i].primaryColor)
-                  : Colors.grey.shade300,
+              color: isSelected ? accent : Colors.grey.shade300,
               borderRadius: BorderRadius.circular(6),
               border: isSelected
-                  ? Border.all(
-                  color: isBW
-                      ? Colors.black
-                      : _themes[i].primaryColor,
-                  width: 1.5)
+                  ? Border.all(color: accent, width: 1.5)
                   : null,
             ),
           ),
@@ -550,7 +517,7 @@ class _DobCertificateViewScreenState
 
   // ── Logo Widget (not circle, just rounded rect) ──────────────
   Widget _buildLogo(_CertTheme theme) {
-    final isBW = theme.label == 'Black & White';
+    final isBW = theme.isBW;
     final dynamicUrl = _dynamicSchoolLogoUrl;
 
     if (dynamicUrl.isNotEmpty) {
@@ -561,8 +528,7 @@ class _DobCertificateViewScreenState
           height: 80,
           width: 80,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) =>
-              _buildCertDataLogo(theme, isBW),
+          errorBuilder: (_, __, ___) => _buildCertDataLogo(theme, isBW),
         ),
       );
     }
@@ -570,9 +536,7 @@ class _DobCertificateViewScreenState
   }
 
   Widget _buildCertDataLogo(_CertTheme theme, bool isBW) {
-    final path = widget.certData.logoWithName ??
-        widget.certData.logo ??
-        '';
+    final path = widget.certData.logoWithName ?? widget.certData.logo ?? '';
     final logoUrl = StudentListController.buildImageUrl(path);
     if (logoUrl.isNotEmpty) {
       return ClipRRect(
@@ -597,10 +561,21 @@ class _DobCertificateViewScreenState
     );
   }
 
+  // ── Centered info line (school header) ───────────────────────
+  Widget _centerInfo(String text) {
+    return Center(
+      child: Text(
+        text,
+        style: _certInfoStyle,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   // ── Certificate Card ─────────────────────────────────────────
   Widget _buildCertCard(_CertTheme theme) {
     final c = widget.certData;
-    final isBW = theme.label == 'Black & White';
+    final isBW = theme.isBW;
 
     return Container(
       color: Colors.white,
@@ -617,50 +592,22 @@ class _DobCertificateViewScreenState
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isBW ? Colors.black : theme.primaryColor,
+                color: theme.accentColor,
               ),
               textAlign: TextAlign.center,
             ),
           ),
           if ((c.schoolAddress ?? '').isNotEmpty) ...[
             const SizedBox(height: 4),
-            Center(
-              child: Text(
-                c.schoolAddress!.trim(),
-                style: const TextStyle(
-                    fontSize: 13, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            _centerInfo(c.schoolAddress!.trim()),
           ],
           const SizedBox(height: 3),
-          Center(
-            child: Text(
-              'Contact: ${c.schoolPhone ?? '-'}',
-              style: const TextStyle(
-                  fontSize: 13, color: Colors.black87),
-              textAlign: TextAlign.center,
-            ),
-          ),
+          _centerInfo('Contact: ${c.schoolPhone ?? '-'}'),
           const SizedBox(height: 3),
-          Center(
-            child: Text(
-              'Email: ${c.schoolEmail ?? '-'}',
-              style: const TextStyle(
-                  fontSize: 13, color: Colors.black87),
-              textAlign: TextAlign.center,
-            ),
-          ),
+          _centerInfo('Email: ${c.schoolEmail ?? '-'}'),
           if ((c.schoolWebsite ?? '').isNotEmpty) ...[
             const SizedBox(height: 3),
-            Center(
-              child: Text(
-                'Web: ${c.schoolWebsite}',
-                style: const TextStyle(
-                    fontSize: 13, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            _centerInfo('Web: ${c.schoolWebsite}'),
           ],
 
           const SizedBox(height: 5),
@@ -677,7 +624,7 @@ class _DobCertificateViewScreenState
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
-                color: isBW ? Colors.black : theme.primaryColor,
+                color: theme.accentColor,
                 letterSpacing: 1.5,
               ),
             ),
@@ -688,13 +635,10 @@ class _DobCertificateViewScreenState
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _richLabel(
-                  'Certificate No: ', c.certificateNo ?? '-', theme),
+              _richLabel('Certificate No: ', c.certificateNo ?? '-', theme),
               const SizedBox(height: 6),
-              _richLabel(
-                  'Issued On: ',
-                  PrintCertificateData.formatDate(c.issuedOndate),
-                  theme),
+              _richLabel('Issued On: ',
+                  PrintCertificateData.formatDate(c.issuedOndate), theme),
             ],
           ),
           const SizedBox(height: 16),
@@ -719,8 +663,7 @@ class _DobCertificateViewScreenState
           const SizedBox(height: 6),
           Text(
             'Authorized by: ${c.schoolName ?? ''}',
-            style: const TextStyle(
-                fontSize: 14, color: Colors.black),
+            style: const TextStyle(fontSize: 14, color: Colors.black),
           ),
         ],
       ),
@@ -728,23 +671,20 @@ class _DobCertificateViewScreenState
   }
 
   // ── Rich Label ───────────────────────────────────────────────
-  Widget _richLabel(
-      String label, String value, _CertTheme theme) {
-    final isBW = theme.label == 'Black & White';
+  Widget _richLabel(String label, String value, _CertTheme theme) {
     return RichText(
       text: TextSpan(children: [
         TextSpan(
           text: label,
           style: TextStyle(
-            color: isBW ? Colors.black : theme.primaryColor,
+            color: theme.accentColor,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
         ),
         TextSpan(
           text: value,
-          style: const TextStyle(
-              color: Colors.black87, fontSize: 13),
+          style: const TextStyle(color: Colors.black87, fontSize: 13),
         ),
       ]),
     );
@@ -753,14 +693,11 @@ class _DobCertificateViewScreenState
   // ── Info Table ───────────────────────────────────────────────
   Widget _buildInfoTable(_CertTheme theme) {
     final c = widget.certData;
-    final isBW = theme.label == 'Black & White';
+    final isBW = theme.isBW;
 
     final rows = [
       ["Student Name", c.studentName ?? '-'],
-      [
-        "Date of Birth",
-        PrintCertificateData.formatDate(c.dateOfBirth)
-      ],
+      ["Date of Birth", PrintCertificateData.formatDate(c.dateOfBirth)],
       ["Place of Birth", c.address ?? '-'],
       ["Father Name", c.fatherName ?? '-'],
       ["Mother Name", c.motherName ?? '-'],
@@ -795,8 +732,8 @@ class _DobCertificateViewScreenState
             ),
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 9),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 child: Text(
                   row[0],
                   style: TextStyle(
@@ -807,8 +744,8 @@ class _DobCertificateViewScreenState
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 9),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 child: Text(
                   row[1],
                   style: const TextStyle(
@@ -842,14 +779,12 @@ class _DobCertificateViewScreenState
         ),
         centerTitle: true,
         leading: IconButton(
-          icon:
-          const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: Get.back,
         ),
         actions: [
           IconButton(
-            icon:
-            const Icon(Icons.share, color: Colors.white),
+            icon: const Icon(Icons.share, color: Colors.white),
             tooltip: 'Share',
             onPressed: _shareCertificate,
           ),
@@ -863,14 +798,12 @@ class _DobCertificateViewScreenState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.swipe,
-                    size: 16, color: Colors.grey.shade500),
+                Icon(Icons.swipe, size: 16, color: Colors.grey.shade500),
                 const SizedBox(width: 4),
                 Text(
                   'Swipe to change theme  •  ${activeTheme.label}',
                   style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500),
+                      fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -887,8 +820,7 @@ class _DobCertificateViewScreenState
             child: RefreshIndicator(
               color: kAxisMaroon,
               onRefresh: () async {
-                await Future.delayed(
-                    const Duration(milliseconds: 400));
+                await Future.delayed(const Duration(milliseconds: 400));
               },
               child: PageView.builder(
                 controller: _pageController,
@@ -898,26 +830,19 @@ class _DobCertificateViewScreenState
                 },
                 itemBuilder: (context, index) {
                   final theme = _themes[index];
-                  final isSelected =
-                      index == _selectedThemeIndex;
-                  final isBW = theme.label == 'Black & White';
+                  final isSelected = index == _selectedThemeIndex;
+                  final isBW = theme.isBW;
                   return SingleChildScrollView(
-                    physics:
-                    const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(
-                        16, 8, 16, 16),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     child: AnimatedContainer(
-                      duration:
-                      const Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 300),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius:
-                        BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
-                              ? (isBW
-                              ? Colors.black
-                              : theme.primaryColor)
+                              ? theme.accentColor
                               : Colors.transparent,
                           width: 2.5,
                         ),
@@ -925,14 +850,10 @@ class _DobCertificateViewScreenState
                           BoxShadow(
                             color: isSelected
                                 ? (isBW
-                                ? Colors.black
-                                .withOpacity(0.20)
-                                : theme.primaryColor
-                                .withOpacity(0.25))
-                                : Colors.black
-                                .withOpacity(0.06),
-                            blurRadius:
-                            isSelected ? 18 : 10,
+                                ? Colors.black.withOpacity(0.20)
+                                : theme.primaryColor.withOpacity(0.25))
+                                : Colors.black.withOpacity(0.06),
+                            blurRadius: isSelected ? 18 : 10,
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -951,8 +872,7 @@ class _DobCertificateViewScreenState
           // ── Bottom Buttons ──────────────────────────────────
           Container(
             color: Colors.white,
-            padding:
-            const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             child: Column(
               children: [
                 // Print
@@ -970,14 +890,11 @@ class _DobCertificateViewScreenState
                           fontWeight: FontWeight.w500),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      activeTheme.primaryColor,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14),
+                      backgroundColor: activeTheme.primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
@@ -988,22 +905,17 @@ class _DobCertificateViewScreenState
                   child: OutlinedButton.icon(
                     onPressed: _shareCertificate,
                     icon: Icon(Icons.share,
-                        color: activeTheme.primaryColor,
-                        size: 20),
+                        color: activeTheme.primaryColor, size: 20),
                     label: Text(
                       'Share Certificate',
                       style: TextStyle(
-                          color: activeTheme.primaryColor,
-                          fontSize: 15),
+                          color: activeTheme.primaryColor, fontSize: 15),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: activeTheme.primaryColor),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14),
+                      side: BorderSide(color: activeTheme.primaryColor),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),

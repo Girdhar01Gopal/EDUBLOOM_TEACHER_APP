@@ -7,6 +7,63 @@ import '../controller/product_quantity_controller.dart';
 import '../models/product_quantity_model.dart';
 import '../wigets/active_inactive_chip.dart';
 
+/// ---------------- Common helpers (repeat hone wala code) ----------------
+
+EdgeInsets get _pagePadding =>
+    EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h);
+
+BoxDecoration get _cardDecoration => BoxDecoration(
+  color: const Color(0xFFF8F8F8),
+  borderRadius: BorderRadius.circular(4.r),
+);
+
+TextStyle get _titleStyle => TextStyle(
+  fontSize: 18.sp,
+  fontWeight: FontWeight.w700,
+  color: Colors.black,
+);
+
+Widget _fieldLabel(String text) {
+  return Text(
+    text,
+    style: TextStyle(
+      fontSize: 14.sp,
+      color: Colors.black87,
+      fontWeight: FontWeight.w500,
+    ),
+  );
+}
+
+InputDecoration _fieldDecoration({
+  required String hint,
+  bool withFocusBorder = true,
+}) {
+  final OutlineInputBorder border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(3.r),
+    borderSide: BorderSide.none,
+  );
+
+  return InputDecoration(
+    hintText: hint,
+    filled: true,
+    fillColor: const Color(0xFFEDEDED),
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: 14.w,
+      vertical: 14.h,
+    ),
+    border: border,
+    enabledBorder: border,
+    focusedBorder: withFocusBorder
+        ? OutlineInputBorder(
+      borderRadius: BorderRadius.circular(3.r),
+      borderSide: BorderSide(
+        color: Colors.orange.shade400,
+      ),
+    )
+        : null,
+  );
+}
+
 class ProductQuantityScreen extends StatelessWidget {
   const ProductQuantityScreen({super.key});
 
@@ -54,28 +111,18 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+      padding: _pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(22.r),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.circular(4.r),
-            ),
+            decoration: _cardDecoration,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Add Product Quantity",
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
+                Text("Add Product Quantity", style: _titleStyle),
                 SizedBox(height: 18.h),
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -104,13 +151,13 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
                 ),
                 SizedBox(height: 30.h),
                 Obx(() {
+                  final bool posting = controller.isPosting.value;
+
                   return SizedBox(
                     width: 115.w,
                     height: 44.h,
                     child: ElevatedButton(
-                      onPressed: controller.isPosting.value
-                          ? null
-                          : controller.addProductQuantity,
+                      onPressed: posting ? null : controller.addProductQuantity,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF5AC00),
                         shape: RoundedRectangleBorder(
@@ -118,7 +165,7 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
                         ),
                         elevation: 0,
                       ),
-                      child: controller.isPosting.value
+                      child: posting
                           ? SizedBox(
                         height: 18.sp,
                         width: 18.sp,
@@ -150,35 +197,15 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Select Product Name *",
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        _fieldLabel("Select Product Name *"),
         SizedBox(height: 10.h),
         Obx(() {
           if (controller.isDropdownLoading.value) {
             return TextFormField(
               enabled: false,
-              decoration: InputDecoration(
-                hintText: "Loading products...",
-                filled: true,
-                fillColor: const Color(0xFFEDEDED),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 14.w,
-                  vertical: 14.h,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(3.r),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(3.r),
-                  borderSide: BorderSide.none,
-                ),
+              decoration: _fieldDecoration(
+                hint: "Loading products...",
+                withFocusBorder: false,
               ),
             );
           }
@@ -217,29 +244,7 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
                 controller.selectedProduct.value = value;
               }
             },
-            decoration: InputDecoration(
-              hintText: "Select Product",
-              filled: true,
-              fillColor: const Color(0xFFEDEDED),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 14.h,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(3.r),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(3.r),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(3.r),
-                borderSide: BorderSide(
-                  color: Colors.orange.shade400,
-                ),
-              ),
-            ),
+            decoration: _fieldDecoration(hint: "Select Product"),
             icon: const Icon(Icons.keyboard_arrow_down),
           );
         }),
@@ -251,41 +256,12 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Quantity",
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        _fieldLabel("Quantity"),
         SizedBox(height: 10.h),
         TextField(
           controller: controller.quantityController,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: "Enter quantity",
-            filled: true,
-            fillColor: const Color(0xFFEDEDED),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 14.w,
-              vertical: 14.h,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3.r),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3.r),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3.r),
-              borderSide: BorderSide(
-                color: Colors.orange.shade400,
-              ),
-            ),
-          ),
+          decoration: _fieldDecoration(hint: "Enter quantity"),
         ),
       ],
     );
@@ -295,13 +271,26 @@ class _AddProductQuantityTab extends GetView<ProductQuantityController> {
 class _ViewProductQuantityTab extends GetView<ProductQuantityController> {
   const _ViewProductQuantityTab();
 
+  static const List<DataColumn> _columns = [
+    DataColumn(label: Text("S.no")),
+    DataColumn(label: Text("Product Name")),
+    DataColumn(label: Text("Quantity")),
+    DataColumn(label: Text("Create Date")),
+    DataColumn(label: Text("Update Date")),
+    DataColumn(label: Text("Status")),
+    DataColumn(label: Text("Action")),
+  ];
+
+  /// DateFormat ek hi baar banta hai (har row/har call pe nahi)
+  static final DateFormat _dateFormat = DateFormat("dd-MMM-yyyy");
+
   String formatDate(String? date) {
     if (date == null || date.isEmpty) {
       return "";
     }
     try {
       final DateTime parsed = DateTime.parse(date).toLocal();
-      return DateFormat("dd-MMM-yyyy").format(parsed);
+      return _dateFormat.format(parsed);
     } catch (_) {
       return date;
     }
@@ -315,25 +304,15 @@ class _ViewProductQuantityTab extends GetView<ProductQuantityController> {
         builder: (context, constraints) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+            padding: _pagePadding,
             child: Container(
               width: double.infinity,
               padding: EdgeInsets.all(22.r),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F8F8),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
+              decoration: _cardDecoration,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Product Quantity List",
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
-                    ),
-                  ),
+                  Text("Product Quantity List", style: _titleStyle),
                   SizedBox(height: 18.h),
                   Align(
                     alignment: Alignment.centerRight,
@@ -367,7 +346,9 @@ class _ViewProductQuantityTab extends GetView<ProductQuantityController> {
                       );
                     }
 
-                    if (controller.filteredList.isEmpty) {
+                    final list = controller.filteredList;
+
+                    if (list.isEmpty) {
                       return Padding(
                         padding: EdgeInsets.symmetric(vertical: 20.h),
                         child: Center(
@@ -403,20 +384,12 @@ class _ViewProductQuantityTab extends GetView<ProductQuantityController> {
                                 fontSize: 14.sp,
                                 color: Colors.black87,
                               ),
-                              columns: const [
-                                DataColumn(label: Text("S.no")),
-                                DataColumn(label: Text("Product Name")),
-                                DataColumn(label: Text("Quantity")),
-                                DataColumn(label: Text("Create Date")),
-                                DataColumn(label: Text("Update Date")),
-                                DataColumn(label: Text("Status")),
-                                DataColumn(label: Text("Action")),
-                              ],
+                              columns: _columns,
                               rows: List.generate(
-                                controller.filteredList.length,
+                                list.length,
                                     (index) {
-                                  final ProductQuantityData item =
-                                  controller.filteredList[index];
+                                  final ProductQuantityData item = list[index];
+                                  final bool isActive = (item.action ?? 0) == 1;
 
                                   return DataRow(
                                     cells: [
@@ -444,21 +417,20 @@ class _ViewProductQuantityTab extends GetView<ProductQuantityController> {
                                               showActiveInactiveApiPending(
                                                   "Product Quantity"),
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(
+                                            padding:
+                                            const EdgeInsets.symmetric(
                                               horizontal: 10,
                                               vertical: 5,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: (item.action ?? 0) == 1
+                                              color: isActive
                                                   ? Colors.green
                                                   : Colors.red,
                                               borderRadius:
                                               BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              (item.action ?? 0) == 1
-                                                  ? "Active"
-                                                  : "Inactive",
+                                              isActive ? "Active" : "Inactive",
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w600,

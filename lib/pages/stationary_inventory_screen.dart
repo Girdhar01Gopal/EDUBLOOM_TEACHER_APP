@@ -4,17 +4,22 @@ import 'package:get/get.dart';
 
 import '../controller/stationary_inventory_controller.dart';
 
+/// ---------------- Common colors (ek hi baar bante hain) ----------------
+const Color _teal = Color(0xFF6E0F38);
+final Color _tealBorder15 = _teal.withOpacity(0.15);
+final Color _tealBorder20 = _teal.withOpacity(0.20);
+final Color _tealBorder25 = _teal.withOpacity(0.25);
+
 class StationaryInventoryScreen extends StatelessWidget {
   const StationaryInventoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final teal = const Color(0xFF6E0F38);
     final controller = Get.put(StationaryInventoryController());
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: teal,
+        backgroundColor: _teal,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
         title: Text(
@@ -40,7 +45,7 @@ class StationaryInventoryScreen extends StatelessWidget {
         padding: EdgeInsets.all(12.w),
         child: Column(
           children: [
-            _searchBar(teal, controller),
+            _searchBar(controller),
             SizedBox(height: 10.h),
             Expanded(
               child: Obx(() {
@@ -69,7 +74,7 @@ class StationaryInventoryScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: teal.withOpacity(0.15)),
+                        border: Border.all(color: _tealBorder15),
                       ),
                       child: Column(
                         children: [
@@ -79,7 +84,7 @@ class StationaryInventoryScreen extends StatelessWidget {
                               vertical: 14.h,
                             ),
                             decoration: BoxDecoration(
-                              color: teal,
+                              color: _teal,
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(12.r),
                                 topRight: Radius.circular(12.r),
@@ -143,38 +148,51 @@ class StationaryInventoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _searchBar(
-      Color teal,
-      StationaryInventoryController controller,
-      ) {
+  Widget _searchBar(StationaryInventoryController controller) {
     return TextField(
       controller: controller.searchController,
       onChanged: controller.onSearchChanged,
       decoration: InputDecoration(
         hintText: "Search product / quantity",
-        prefixIcon: Icon(Icons.search, color: teal),
+        prefixIcon: const Icon(Icons.search, color: _teal),
         suffixIcon: Obx(() {
           return controller.searchText.value.isEmpty
               ? const SizedBox.shrink()
               : IconButton(
             onPressed: controller.clearSearch,
-            icon: Icon(Icons.close, color: teal),
+            icon: const Icon(Icons.close, color: _teal),
           );
         }),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: teal.withOpacity(0.25)),
+          borderSide: BorderSide(color: _tealBorder25),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: teal.withOpacity(0.20)),
+          borderSide: BorderSide(color: _tealBorder20),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: teal),
+          borderSide: const BorderSide(color: _teal),
         ),
+      ),
+    );
+  }
+
+  Widget _tableCell(
+      String text,
+      int flex,
+      TextAlign textAlign,
+      TextStyle style,
+      ) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        text,
+        textAlign: textAlign,
+        style: style,
       ),
     );
   }
@@ -184,16 +202,14 @@ class StationaryInventoryScreen extends StatelessWidget {
       int flex, {
         TextAlign textAlign = TextAlign.left,
       }) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        textAlign: textAlign,
-        style: TextStyle(
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-        ),
+    return _tableCell(
+      text,
+      flex,
+      textAlign,
+      TextStyle(
+        fontSize: 13.sp,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
       ),
     );
   }
@@ -203,16 +219,14 @@ class StationaryInventoryScreen extends StatelessWidget {
       int flex, {
         TextAlign textAlign = TextAlign.left,
       }) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        textAlign: textAlign,
-        style: TextStyle(
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
+    return _tableCell(
+      text,
+      flex,
+      textAlign,
+      TextStyle(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
       ),
     );
   }

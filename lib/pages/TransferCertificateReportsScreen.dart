@@ -12,9 +12,35 @@ import '../models/classmodel.dart'; // ✅ now contains ClassListModel / ClassDa
 import '../models/sectionmodel.dart';
 import 'TcCertificateDownloadScreen.dart';
 
+// ---------------- Common constants (repeat hone wala code) ----------------
+const Color _maroon = Color(0xFF97144D);
+const Color _lightPink = Color(0xFFF3E0E8);
+
+/// Session / Class / Section dropdown ka common decoration
+InputDecoration _dropdownDecoration(String label) {
+  return InputDecoration(
+    labelText: label,
+    labelStyle: const TextStyle(color: _maroon),
+    border: const OutlineInputBorder(),
+    filled: true,
+    fillColor: Colors.white,
+  );
+}
+
 class TransferCertificateReportsScreen
     extends GetView<TransferCertificateReportsController> {
   const TransferCertificateReportsScreen({Key? key}) : super(key: key);
+
+  static const List<DataColumn> _columns = [
+    DataColumn(label: Text("S.No")),
+    DataColumn(label: Text("Registration No")),
+    DataColumn(label: Text("Student Name")),
+    DataColumn(label: Text("Father Name")),
+    DataColumn(label: Text("Class")),
+    DataColumn(label: Text("Section")),
+    DataColumn(label: Text("Father Phone")),
+    DataColumn(label: Text("Action")),
+  ];
 
   void _showSearchSheet(BuildContext context) {
     final TextEditingController searchCtrl = TextEditingController(
@@ -42,14 +68,14 @@ class TransferCertificateReportsScreen
             children: [
               Row(
                 children: [
-                  Icon(Icons.search, color: const Color(0xFF97144D)),
+                  const Icon(Icons.search, color: _maroon),
                   SizedBox(width: 8.w),
                   Text(
                     "Search Student",
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF97144D),
+                      color: _maroon,
                     ),
                   ),
                 ],
@@ -74,8 +100,7 @@ class TransferCertificateReportsScreen
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                    BorderSide(color: const Color(0xFF97144D), width: 2),
+                    borderSide: const BorderSide(color: _maroon, width: 2),
                   ),
                   filled: true,
                   fillColor: Colors.grey.shade50,
@@ -93,14 +118,14 @@ class TransferCertificateReportsScreen
                         Navigator.pop(context);
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: const Color(0xFF97144D)),
+                        side: const BorderSide(color: _maroon),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Clear',
-                        style: TextStyle(color: const Color(0xFF97144D)),
+                        style: TextStyle(color: _maroon),
                       ),
                     ),
                   ),
@@ -109,7 +134,7 @@ class TransferCertificateReportsScreen
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF97144D),
+                        backgroundColor: _maroon,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -126,6 +151,35 @@ class TransferCertificateReportsScreen
           ),
         );
       },
+    );
+  }
+
+  /// Action column ke dono icon buttons ka common widget
+  Widget _actionButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+    EdgeInsets? margin,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          margin: margin,
+          decoration: BoxDecoration(
+            color: Colors.amber.shade600,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+      ),
     );
   }
 
@@ -146,7 +200,7 @@ class TransferCertificateReportsScreen
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF97144D),
+        backgroundColor: _maroon,
         elevation: 4,
         actions: [
           IconButton(
@@ -195,13 +249,7 @@ class TransferCertificateReportsScreen
                           ),
                         );
                       }).toList(),
-                      decoration: const InputDecoration(
-                        labelText: 'Session',
-                        labelStyle: TextStyle(color: Color(0xFF97144D)),
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
+                      decoration: _dropdownDecoration('Session'),
                     );
                   }),
                 ),
@@ -219,13 +267,7 @@ class TransferCertificateReportsScreen
                         );
                       }).toList(),
                       onChanged: (val) => controller.setSelectedClass(val),
-                      decoration: const InputDecoration(
-                        labelText: 'Class',
-                        labelStyle: TextStyle(color: Color(0xFF97144D)),
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
+                      decoration: _dropdownDecoration('Class'),
                     );
                   }),
                 ),
@@ -251,13 +293,7 @@ class TransferCertificateReportsScreen
                         controller.selectedSection.value = newValue;
                         controller.section = newValue?.sectionId ?? 0;
                       },
-                      decoration: const InputDecoration(
-                        labelText: "Section",
-                        labelStyle: TextStyle(color: Color(0xFF97144D)),
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
+                      decoration: _dropdownDecoration("Section"),
                     );
                   }),
                 ),
@@ -302,8 +338,8 @@ class TransferCertificateReportsScreen
                   label: Text('🔍 "$q"'),
                   deleteIcon: const Icon(Icons.close, size: 16),
                   onDeleted: () => controller.searchQuery.value = '',
-                  backgroundColor: const Color(0xFFF3E0E8),
-                  side: BorderSide(color: const Color(0xFF97144D)),
+                  backgroundColor: _lightPink,
+                  side: const BorderSide(color: _maroon),
                 ),
               );
             }),
@@ -350,8 +386,7 @@ class TransferCertificateReportsScreen
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      headingRowColor: MaterialStateProperty.all(
-                          const Color(0xFF97144D)),
+                      headingRowColor: MaterialStateProperty.all(_maroon),
                       headingTextStyle: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -360,24 +395,14 @@ class TransferCertificateReportsScreen
                         color: Colors.grey.shade300,
                         width: 1,
                       ),
-                      columns: const [
-                        DataColumn(label: Text("S.No")),
-                        DataColumn(label: Text("Registration No")),
-                        DataColumn(label: Text("Student Name")),
-                        DataColumn(label: Text("Father Name")),
-                        DataColumn(label: Text("Class")),
-                        DataColumn(label: Text("Section")),
-                        DataColumn(label: Text("Father Phone")),
-                        DataColumn(label: Text("Action")),
-                      ],
+                      columns: _columns,
                       rows: List<DataRow>.generate(filtered.length, (index) {
                         final tc_model.TCStudentData student = filtered[index];
 
                         return DataRow(
                           color: MaterialStateProperty.resolveWith<Color?>(
-                                (states) => index % 2 == 0
-                                ? Colors.white
-                                : const Color(0xFFF3E0E8),
+                                (states) =>
+                            index % 2 == 0 ? Colors.white : _lightPink,
                           ),
                           cells: [
                             DataCell(Text('${index + 1}')),
@@ -392,68 +417,36 @@ class TransferCertificateReportsScreen
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Tooltip(
-                                    message: "Save TC",
-                                    child: InkWell(
-                                      onTap: () {
-                                        Get.toNamed(
-                                          RouteName.tccertificatedownload,
-                                          arguments: {
-                                            'studentId': student.studentID,
-                                            'schoolId': controller.schoolId,
-                                            'currentSession':
-                                            student.session ??
-                                                controller.session.value,
-                                          },
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        margin:
-                                        const EdgeInsets.only(right: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.shade600,
-                                          borderRadius:
-                                          BorderRadius.circular(8),
-                                        ),
-                                        child: const Icon(
-                                          Icons.workspace_premium,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
+                                  _actionButton(
+                                    tooltip: "Save TC",
+                                    icon: Icons.workspace_premium,
+                                    margin: const EdgeInsets.only(right: 8),
+                                    onTap: () {
+                                      Get.toNamed(
+                                        RouteName.tccertificatedownload,
+                                        arguments: {
+                                          'studentId': student.studentID,
+                                          'schoolId': controller.schoolId,
+                                          'currentSession':
+                                          student.session ??
+                                              controller.session.value,
+                                        },
+                                      );
+                                    },
                                   ),
-                                  Tooltip(
-                                    message: "Download TC",
-                                    child: InkWell(
-                                      onTap: () {
-                                        Get.to(
-                                              () => TcCertificateDownloadScreen(
-                                            studentId:
-                                            student.studentID ?? 0,
-                                            schoolId: controller.schoolId,
-                                            session: student.session ??
-                                                controller.session.value,
-                                          ),
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.shade600,
-                                          borderRadius:
-                                          BorderRadius.circular(8),
+                                  _actionButton(
+                                    tooltip: "Download TC",
+                                    icon: Icons.download,
+                                    onTap: () {
+                                      Get.to(
+                                            () => TcCertificateDownloadScreen(
+                                          studentId: student.studentID ?? 0,
+                                          schoolId: controller.schoolId,
+                                          session: student.session ??
+                                              controller.session.value,
                                         ),
-                                        child: const Icon(
-                                          Icons.download,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),

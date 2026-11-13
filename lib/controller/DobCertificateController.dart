@@ -16,6 +16,10 @@ import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 
 const String kDobImageBaseUrl = 'https://playschool.edubloom.in/StudentImages/';
 
+const Map<String, String> _jsonHeaders = <String, String>{
+  'Content-Type': 'application/json',
+};
+
 class StudentListController extends GetxController {
 
   var isLoading     = false.obs;
@@ -36,8 +40,9 @@ class StudentListController extends GetxController {
 
   Future<void> _loadPrefsAndFetch() async {
     // Exact same keys as StudentController
-    schoolId   = await PrefManager().readValue(key: PrefConst.schollId);
-    session    = await PrefManager().readValue(key: PrefConst.session);
+    final pref = PrefManager();
+    schoolId   = await pref.readValue(key: PrefConst.schollId);
+    session    = await pref.readValue(key: PrefConst.session);
     schoolCode = schoolId;
 
     debugPrint(
@@ -57,7 +62,7 @@ class StudentListController extends GetxController {
 
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
         body: jsonEncode(body),
       );
 
@@ -75,11 +80,7 @@ class StudentListController extends GetxController {
           _showError(model.messages ?? 'Failed to fetch students');
         }
       } else {
-        // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
-        AppSnackbar.apiError(
-          'Server error: ${response.statusCode}',
-          statusCode: response.statusCode,
-        );
+        _showServerError(response.statusCode);
       }
     } catch (e, stack) {
       debugPrint('⚠️ [DOB] fetchStudents: $e');
@@ -106,7 +107,7 @@ class StudentListController extends GetxController {
 
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
       );
 
       debugPrint('📥 [DOB] Cert Status => ${response.statusCode}');
@@ -121,11 +122,7 @@ class StudentListController extends GetxController {
           _showError(model.messages ?? 'Certificate not found');
         }
       } else {
-        // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
-        AppSnackbar.apiError(
-          'Server error: ${response.statusCode}',
-          statusCode: response.statusCode,
-        );
+        _showServerError(response.statusCode);
       }
     } catch (e, stack) {
       debugPrint('⚠️ [DOB] fetchDobCertificate: $e');
@@ -149,7 +146,7 @@ class StudentListController extends GetxController {
           (s.studentName       ?? '').toLowerCase().contains(q) ||
           (s.className         ?? '').toLowerCase().contains(q) ||
           (s.phone             ?? '').contains(q);
-    }).toList());
+    }));
   }
 
   static String buildImageUrl(String? path) {
@@ -161,5 +158,14 @@ class StudentListController extends GetxController {
   // (API ka "messages" text; technical / lamba ho to apne aap hide ho jata hai)
   void _showError(String msg) {
     AppSnackbar.error(msg);
+  }
+
+  // 🆕 CHANGED: status code user ko nahi dikhega, sirf console me
+  // (dono API ke liye same code tha, ab ek jagah)
+  void _showServerError(int statusCode) {
+    AppSnackbar.apiError(
+      'Server error: $statusCode',
+      statusCode: statusCode,
+    );
   }
 }

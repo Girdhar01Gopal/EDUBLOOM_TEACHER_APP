@@ -13,6 +13,13 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
   static const _noteColor = Color(0xFF00897B); // teal 600
   static const _primaryColor = Color(0xFF97144D);
 
+  static const _weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  // Legend colors ek baar hi bante hain (har rebuild par nahi).
+  static final _holidayLegend = _holidayColor.withValues(alpha: 0.18);
+  static final _eventLegend = _eventColor.withValues(alpha: 0.18);
+  static final _noteLegend = _noteColor.withValues(alpha: 0.18);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,7 +105,7 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
           ),
           const SizedBox(height: 12),
           Row(
-            children: const ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            children: _weekDays
                 .map((d) => Expanded(
               child: Center(
                 child: Text(d,
@@ -118,9 +125,9 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
             runSpacing: 6,
             children: [
               _legend(Colors.amber.shade100, "Today"),
-              _legend(_holidayColor.withValues(alpha: 0.18), "Holiday"),
-              _legend(_eventColor.withValues(alpha: 0.18), "Event"),
-              _legend(_noteColor.withValues(alpha: 0.18), "Note"),
+              _legend(_holidayLegend, "Holiday"),
+              _legend(_eventLegend, "Event"),
+              _legend(_noteLegend, "Note"),
             ],
           ),
         ],
@@ -158,97 +165,106 @@ class AddHolidayCalendarScreen extends GetView<AddHolidayCalendarController> {
             if (dayNum < 1 || dayNum > daysInMonth) {
               return const Expanded(child: SizedBox(height: 60));
             }
-            final date = DateTime(month.year, month.month, dayNum);
-            final holidays = controller.holidaysOn(date);
-            final events = controller.eventsOn(date);
-            final notes = controller.notesOn(date);
-
-            final isHoliday = holidays.isNotEmpty;
-            final isEvent = events.isNotEmpty;
-            final isNote = notes.isNotEmpty;
-            final hasAny = isHoliday || isEvent || isNote;
-            final isToday = AddHolidayCalendarController.isSameDay(date, today);
-
-            // Cell background / number color: Holiday > Event > Note
-            final Color? accent = isHoliday
-                ? _holidayColor
-                : isEvent
-                ? _eventColor
-                : isNote
-                ? _noteColor
-                : null;
-
-            // Cell ke andar dikhne wale labels (Holiday, Event, Note order)
-            final labels = <_CellLabel>[
-              ...holidays.map((h) => _CellLabel(h.occasion, _holidayColor)),
-              ...events.map((e) => _CellLabel(e.title, _eventColor)),
-              ...notes.map((n) => _CellLabel(n.title, _noteColor)),
-            ];
-            final visible = labels.length > 2
-                ? [labels.first, _CellLabel("+${labels.length - 1} more", Colors.grey.shade700)]
-                : labels;
-
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => _onDateTap(context, date, holidays),
-                child: Container(
-                  height: 60,
-                  margin: const EdgeInsets.all(1.5),
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: accent != null
-                        ? accent.withValues(alpha: 0.18)
-                        : isToday
-                        ? Colors.amber.shade100
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isToday ? Colors.amber.shade700 : Colors.grey.shade300,
-                      width: isToday ? 1.4 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        "$dayNum",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: hasAny || isToday ? FontWeight.w800 : FontWeight.w500,
-                          color: accent ??
-                              (c == 0 ? Colors.red : Colors.black87),
-                        ),
-                      ),
-                      if (hasAny)
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomLeft,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: visible
-                                  .map((l) => Text(
-                                l.text,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 8.5,
-                                    height: 1.15,
-                                    color: l.color,
-                                    fontWeight: FontWeight.w600),
-                              ))
-                                  .toList(),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            return _dayCell(context, month, dayNum, c, today);
           }),
         );
       }),
+    );
+  }
+
+  Widget _dayCell(
+      BuildContext context,
+      DateTime month,
+      int dayNum,
+      int c,
+      DateTime today,
+      ) {
+    final date = DateTime(month.year, month.month, dayNum);
+    final holidays = controller.holidaysOn(date);
+    final events = controller.eventsOn(date);
+    final notes = controller.notesOn(date);
+
+    final isHoliday = holidays.isNotEmpty;
+    final isEvent = events.isNotEmpty;
+    final isNote = notes.isNotEmpty;
+    final hasAny = isHoliday || isEvent || isNote;
+    final isToday = AddHolidayCalendarController.isSameDay(date, today);
+
+    // Cell background / number color: Holiday > Event > Note
+    final Color? accent = isHoliday
+        ? _holidayColor
+        : isEvent
+        ? _eventColor
+        : isNote
+        ? _noteColor
+        : null;
+
+    // Cell ke andar dikhne wale labels (Holiday, Event, Note order)
+    final labels = <_CellLabel>[
+      ...holidays.map((h) => _CellLabel(h.occasion, _holidayColor)),
+      ...events.map((e) => _CellLabel(e.title, _eventColor)),
+      ...notes.map((n) => _CellLabel(n.title, _noteColor)),
+    ];
+    final visible = labels.length > 2
+        ? [labels.first, _CellLabel("+${labels.length - 1} more", Colors.grey.shade700)]
+        : labels;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onDateTap(context, date, holidays),
+        child: Container(
+          height: 60,
+          margin: const EdgeInsets.all(1.5),
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: accent != null
+                ? accent.withValues(alpha: 0.18)
+                : isToday
+                ? Colors.amber.shade100
+                : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isToday ? Colors.amber.shade700 : Colors.grey.shade300,
+              width: isToday ? 1.4 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "$dayNum",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: hasAny || isToday ? FontWeight.w800 : FontWeight.w500,
+                  color: accent ?? (c == 0 ? Colors.red : Colors.black87),
+                ),
+              ),
+              if (hasAny)
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: visible
+                          .map((l) => Text(
+                        l.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 8.5,
+                            height: 1.15,
+                            color: l.color,
+                            fontWeight: FontWeight.w600),
+                      ))
+                          .toList(),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

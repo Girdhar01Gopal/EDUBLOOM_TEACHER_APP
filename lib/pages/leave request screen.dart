@@ -20,6 +20,39 @@ const MaterialColor axisMaroon = MaterialColor(0xFF97144D, <int, Color>{
   900: Color(0xFF3D061E),
 });
 
+// ---------------- Common helpers (repeat hone wala code) ----------------
+
+// Shades ek hi baar resolve hote hain (har jagah axisMaroon.shadeXX nahi)
+final Color _maroon50 = axisMaroon.shade50;
+final Color _maroon200 = axisMaroon.shade200;
+final Color _maroon300 = axisMaroon.shade300;
+final Color _maroon400 = axisMaroon.shade400;
+final Color _maroon600 = axisMaroon.shade600;
+final Color _maroon700 = axisMaroon.shade700;
+
+// DateFormat ek hi baar banta hai (har call pe nahi)
+final DateFormat _ddMMyyyyFormat = DateFormat('dd-MM-yyyy');
+
+// Balance / requests loading ka common inline loader
+const Widget _inlineLoader = Padding(
+  padding: EdgeInsets.symmetric(vertical: 8),
+  child: Center(child: CircularProgressIndicator()),
+);
+
+/// Date field aur Leave Type field ka common decoration
+InputDecoration _boxDecoration({
+  required String label,
+  Widget? suffixIcon,
+}) {
+  return InputDecoration(
+    labelText: label,
+    border: const OutlineInputBorder(),
+    filled: true,
+    fillColor: Colors.white,
+    suffixIcon: suffixIcon,
+  );
+}
+
 class LeaveRequestScreen extends GetView<LeaveRequestController> {
   const LeaveRequestScreen({super.key});
 
@@ -73,7 +106,26 @@ class AddLeaveRequestTab extends StatefulWidget {
 
 class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
   final controller = Get.find<LeaveRequestController>();
-  final dateFmt = DateFormat('dd-MM-yyyy');
+  final dateFmt = _ddMMyyyyFormat;
+
+  // Reason field ka controller ek hi baar banta hai
+  // (pehle har build pe naya TextEditingController ban raha tha)
+  late final TextEditingController _reasonCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _reasonCtrl = TextEditingController(text: controller.reason.value)
+      ..selection = TextSelection.collapsed(
+        offset: controller.reason.value.length,
+      );
+  }
+
+  @override
+  void dispose() {
+    _reasonCtrl.dispose();
+    super.dispose();
+  }
 
   Widget _dateField({
     required String label,
@@ -83,14 +135,11 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
     return GestureDetector(
       onTap: onTap,
       child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          filled: true,
-          fillColor: Colors.white,
+        decoration: _boxDecoration(
+          label: label,
           suffixIcon: Icon(
             Icons.calendar_today,
-            color: axisMaroon.shade400,
+            color: _maroon400,
             size: 18.sp,
           ),
         ),
@@ -143,10 +192,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
             Obx(() {
               if (controller.isBalanceLoading.value &&
                   controller.myLeaveSummary.value == null) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(child: CircularProgressIndicator()),
-                );
+                return _inlineLoader;
               }
               if (controller.myLeaveSummary.value == null) {
                 return const SizedBox();
@@ -160,7 +206,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
-                    color: axisMaroon.shade700,
+                    color: _maroon700,
                   ),
                 ),
               );
@@ -169,14 +215,11 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
             // Remaining leave days — one chip per leave type (parsed from
             // the logged-in user's GetAllLeveApp summary).
             Obx(() {
-              if (controller.isBalanceLoading.value &&
-                  controller.leaveBalanceRows.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(child: CircularProgressIndicator()),
-                );
+              final rows = controller.leaveBalanceRows;
+              if (controller.isBalanceLoading.value && rows.isEmpty) {
+                return _inlineLoader;
               }
-              if (controller.leaveBalanceRows.isEmpty) return const SizedBox();
+              if (rows.isEmpty) return const SizedBox();
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -192,10 +235,10 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                     height: 74.h,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      itemCount: controller.leaveBalanceRows.length,
+                      itemCount: rows.length,
                       separatorBuilder: (_, __) => SizedBox(width: 10.w),
                       itemBuilder: (context, i) {
-                        final row = controller.leaveBalanceRows[i];
+                        final row = rows[i];
                         return Container(
                           width: 120.w,
                           padding: EdgeInsets.symmetric(
@@ -203,9 +246,9 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                             vertical: 8.h,
                           ),
                           decoration: BoxDecoration(
-                            color: axisMaroon.shade50,
+                            color: _maroon50,
                             borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: axisMaroon.shade200),
+                            border: Border.all(color: _maroon200),
                           ),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
@@ -230,7 +273,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 12.sp,
-                                    color: axisMaroon.shade700,
+                                    color: _maroon700,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -281,7 +324,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                   "Balance available: $balance / $total   •   Taken: $taken",
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: axisMaroon.shade600,
+                    color: _maroon600,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -316,7 +359,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
               return Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                 decoration: BoxDecoration(
-                  color: axisMaroon.shade50,
+                  color: _maroon50,
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Row(
@@ -325,7 +368,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                     Icon(
                       Icons.date_range,
                       size: 16.sp,
-                      color: axisMaroon.shade600,
+                      color: _maroon600,
                     ),
                     SizedBox(width: 6.w),
                     Text(
@@ -333,7 +376,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w700,
-                        color: axisMaroon.shade700,
+                        color: _maroon700,
                       ),
                     ),
                   ],
@@ -344,10 +387,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
 
             // Reason
             TextField(
-              controller: TextEditingController(text: controller.reason.value)
-                ..selection = TextSelection.collapsed(
-                  offset: controller.reason.value.length,
-                ),
+              controller: _reasonCtrl,
               maxLines: 4,
               decoration: const InputDecoration(
                 labelText: 'Reason',
@@ -372,16 +412,16 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                 child: Container(
                   padding: EdgeInsets.all(14.r),
                   decoration: BoxDecoration(
-                    border: Border.all(color: axisMaroon.shade300, width: 1.5),
+                    border: Border.all(color: _maroon300, width: 1.5),
                     borderRadius: BorderRadius.circular(12.r),
-                    color: axisMaroon.shade50,
+                    color: _maroon50,
                   ),
                   child: file != null
                       ? Row(
                     children: [
                       Icon(
                         Icons.insert_drive_file,
-                        color: axisMaroon.shade600,
+                        color: _maroon600,
                       ),
                       SizedBox(width: 8.w),
                       Expanded(
@@ -407,7 +447,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                   )
                       : Row(
                     children: [
-                      Icon(Icons.attach_file, color: axisMaroon.shade400),
+                      Icon(Icons.attach_file, color: _maroon400),
                       SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
@@ -416,7 +456,7 @@ class _AddLeaveRequestTabState extends State<AddLeaveRequestTab> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 13.sp,
-                            color: axisMaroon.shade600,
+                            color: _maroon600,
                           ),
                         ),
                       ),
@@ -687,12 +727,12 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
                                         height: 34.r,
                                         width: 34.r,
                                         decoration: BoxDecoration(
-                                          color: axisMaroon.shade50,
+                                          color: _maroon50,
                                           borderRadius: BorderRadius.circular(10.r),
                                         ),
                                         child: Icon(
                                           Icons.event_note,
-                                          color: axisMaroon[700],
+                                          color: _maroon700,
                                           size: 18.sp,
                                         ),
                                       ),
@@ -784,10 +824,10 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
                                             vertical: 3.h,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: axisMaroon.shade50,
+                                            color: _maroon50,
                                             borderRadius: BorderRadius.circular(8.r),
                                             border: Border.all(
-                                              color: axisMaroon.shade200,
+                                              color: _maroon200,
                                             ),
                                           ),
                                           child: Text(
@@ -797,7 +837,7 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
                                             style: TextStyle(
                                               fontSize: 11.sp,
                                               fontWeight: FontWeight.w700,
-                                              color: axisMaroon.shade700,
+                                              color: _maroon700,
                                             ),
                                           ),
                                         ),
@@ -862,7 +902,7 @@ class _ViewLeaveRequestTabState extends State<ViewLeaveRequestTab> {
 
 String formatDate(DateTime? date) {
   if (date == null) return '-';
-  return DateFormat('dd-MM-yyyy').format(date);
+  return _ddMMyyyyFormat.format(date);
 }
 
 // ================= LEAVE TYPE — SEARCHABLE FIELD (tap target) =================
@@ -882,11 +922,8 @@ class _LeaveTypeSearchField extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Leave Type',
-          border: const OutlineInputBorder(),
-          filled: true,
-          fillColor: Colors.white,
+        decoration: _boxDecoration(
+          label: 'Leave Type',
           suffixIcon: isLoading
               ? Padding(
             padding: EdgeInsets.all(12.r),
@@ -896,7 +933,7 @@ class _LeaveTypeSearchField extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           )
-              : Icon(Icons.search, color: axisMaroon.shade400, size: 20.sp),
+              : Icon(Icons.search, color: _maroon400, size: 20.sp),
         ),
         child: Text(
           selected?.leave ?? "Search & select leave type",
@@ -959,11 +996,12 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final maxSheetHeight = MediaQuery.of(context).size.height * 0.7;
+    final mediaQuery = MediaQuery.of(context);
+    final maxSheetHeight = mediaQuery.size.height * 0.7;
 
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: mediaQuery.viewInsets.bottom,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxSheetHeight),
@@ -1016,7 +1054,7 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
                           : null,
                       isDense: true,
                       filled: true,
-                      fillColor: axisMaroon.shade50,
+                      fillColor: _maroon50,
                       contentPadding: EdgeInsets.symmetric(
                         vertical: 12.h,
                         horizontal: 12.w,
@@ -1073,7 +1111,7 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
                                 ? FontWeight.w700
                                 : FontWeight.w500,
                             color: isSelected
-                                ? axisMaroon.shade700
+                                ? _maroon700
                                 : Colors.black87,
                           ),
                         ),
@@ -1087,7 +1125,7 @@ class _LeaveTypeSearchSheetState extends State<_LeaveTypeSearchSheet> {
                         trailing: isSelected
                             ? Icon(
                           Icons.check_circle,
-                          color: axisMaroon.shade600,
+                          color: _maroon600,
                           size: 20.sp,
                         )
                             : null,
