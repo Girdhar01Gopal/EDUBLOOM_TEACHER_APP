@@ -93,6 +93,23 @@ class StudentData {
 
   String? address;
 
+  /// 🆕 Transport
+  String? transportUser;
+  String? routeNo;
+  String? pickupPoint;
+
+  /// 🆕 Extra fields (update ke time purana record wapas bhejne ke liye)
+  String? remark;
+  String? fromTime;
+  String? toTime;
+  String? addDaycare;
+  String? isDaycare;
+  String? daycareDurations;
+  String? transportType;
+
+  /// 🆕 API ka poora raw record (update ke time kuch bhi null na ho)
+  Map<String, dynamic>? raw;
+
   StudentData({
     this.studentID,
     this.studentName,
@@ -135,9 +152,23 @@ class StudentData {
     this.logoWithName,
     this.address,
     this.aAdharNo,
+    this.transportUser,
+    this.routeNo,
+    this.pickupPoint,
+    this.remark,
+    this.fromTime,
+    this.toTime,
+    this.addDaycare,
+    this.isDaycare,
+    this.daycareDurations,
+    this.transportType,
+    this.raw,
   });
 
   StudentData.fromJson(Map<String, dynamic> json) {
+    // 🆕 poora raw record save karo (update me kuch null na ho)
+    raw = Map<String, dynamic>.from(json);
+
     studentID = json['studentID'];
     studentName = json['studentName'];
     gender = json['gender'];
@@ -159,7 +190,9 @@ class StudentData {
     religion = json['religion'];
 
     admissionDate = json['admissionDate'];
-    parentId = json['parentId'];
+    // 🔧 toString() taaki int aaye to bhi crash na ho
+    parentId = (json['parentId'] ?? json['parentID'] ?? json['ParentID'])
+        ?.toString();
 
     phone = json['phone'];
     whatsAppNo = json['whatsAppNo'];
@@ -198,6 +231,46 @@ class StudentData {
     logoWithName = json['logoWithName'];
 
     address = json['address'];
+
+    // 🆕 Transport (multi-key, kyunki API ka exact key pata nahi)
+    transportUser = (json['transportUser'] ??
+        json['TransportUser'] ??
+        json['transport'] ??
+        json['isTransport'])
+        ?.toString()
+        .trim();
+    routeNo = (json['routeNo'] ??
+        json['RouteNo'] ??
+        json['route'] ??
+        json['routeNumber'])
+        ?.toString()
+        .trim();
+    pickupPoint = (json['pickupPoint'] ??
+        json['PickupPoint'] ??
+        json['pickUpPoint'] ??
+        json['stoppage'] ??
+        json['Stoppage'])
+        ?.toString()
+        .trim();
+
+    // 🆕 Extra fields (multi-key)
+    remark = (json['remark'] ?? json['Remark'])?.toString().trim();
+    fromTime = (json['fromTime'] ?? json['FromTime'])?.toString().trim();
+    toTime = (json['toTime'] ?? json['ToTime'])?.toString().trim();
+    addDaycare = (json['addDaycare'] ?? json['AddDaycare'])?.toString().trim();
+    isDaycare = (json['isDaycare'] ??
+        json['isDayCare'] ??
+        json['IsDayCare'] ??
+        json['IsDaycare'])
+        ?.toString()
+        .trim();
+    daycareDurations = (json['daycareDurations'] ??
+        json['DaycareDurations'] ??
+        json['daycareDuration'])
+        ?.toString()
+        .trim();
+    transportType =
+        (json['transportType'] ?? json['TransportType'])?.toString().trim();
   }
 
   Map<String, dynamic> toJson() => {
@@ -242,5 +315,15 @@ class StudentData {
     "logoWithName": logoWithName,
     "address": address,
     "aAdharNo": aAdharNo,
+    "transportUser": transportUser,
+    "routeNo": routeNo,
+    "pickupPoint": pickupPoint,
+    "remark": remark,
+    "fromTime": fromTime,
+    "toTime": toTime,
+    "addDaycare": addDaycare,
+    "isDaycare": isDaycare,
+    "daycareDurations": daycareDurations,
+    "transportType": transportType,
   };
 }
