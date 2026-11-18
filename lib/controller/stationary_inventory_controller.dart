@@ -39,11 +39,15 @@ class StationaryInventoryController extends GetxController {
   final String baseUrl =
       "https://playschool.edubloom.in/api/ProductApp/GetAllQuantityAsynsApp";
 
+  static const String _genericError = "Something went wrong. Please try again.";
+
   @override
   void onInit() async {
     super.onInit();
 
-    schoolCode.value = (await PrefManager().readValue(key: PrefConst.schollId))?.toString() ?? '';
+    schoolCode.value =
+        (await PrefManager().readValue(key: PrefConst.schollId))?.toString() ??
+            '';
 
     if (schoolCode.value.trim().isEmpty) {
       errorMsg.value =
@@ -105,16 +109,19 @@ class StationaryInventoryController extends GetxController {
   // BAAKI SAB EXACT SAME — EK LINE NAHI BADI
   // ══════════════════════════════════════════
 
+  /// Search match logic (visibleList aur onSearchChanged dono me same tha)
+  bool _matches(StationaryInventoryItem item, String q) {
+    return item.productName.toLowerCase().contains(q) ||
+        item.totalQuantity.toString().contains(q) ||
+        item.balanceQuantity.toString().contains(q) ||
+        item.id.toString().contains(q);
+  }
+
   List<StationaryInventoryItem> get visibleList {
     final q = searchText.value.trim().toLowerCase();
     if (q.isEmpty) return filteredList;
 
-    return filteredList.where((item) {
-      return item.productName.toLowerCase().contains(q) ||
-          item.totalQuantity.toString().contains(q) ||
-          item.balanceQuantity.toString().contains(q) ||
-          item.id.toString().contains(q);
-    }).toList();
+    return filteredList.where((item) => _matches(item, q)).toList();
   }
 
   Future<void> fetchInventoryData() async {
@@ -134,7 +141,7 @@ class StationaryInventoryController extends GetxController {
       ).timeout(const Duration(seconds: 25));
 
       if (res.statusCode != 200) {
-        errorMsg.value = "Something went wrong. Please try again.";
+        errorMsg.value = _genericError;
         // User ko sirf "Something went wrong", asli error console me
         AppSnackbar.apiError(
           "Failed (${res.statusCode}) : ${res.body}",
@@ -173,7 +180,7 @@ class StationaryInventoryController extends GetxController {
       }
     } catch (e, s) {
       // ✅ Screen ke _errorBox me bhi raw error / URL na dikhe
-      errorMsg.value = "Something went wrong. Please try again.";
+      errorMsg.value = _genericError;
 
       // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
       AppSnackbar.apiError(e, stackTrace: s);
@@ -192,13 +199,7 @@ class StationaryInventoryController extends GetxController {
     }
 
     filteredList.assignAll(
-      inventoryList.where(
-            (item) =>
-        item.productName.toLowerCase().contains(query) ||
-            item.totalQuantity.toString().contains(query) ||
-            item.balanceQuantity.toString().contains(query) ||
-            item.id.toString().contains(query),
-      ),
+      inventoryList.where((item) => _matches(item, query)),
     );
   }
 
@@ -249,12 +250,15 @@ class StationaryInventoryController extends GetxController {
               ],
               data: List.generate(
                 list.length,
-                    (index) => [
-                  '${index + 1}',
-                  list[index].productName,
-                  '${list[index].totalQuantity}',
-                  '${list[index].balanceQuantity}',
-                ],
+                    (index) {
+                  final item = list[index];
+                  return [
+                    '${index + 1}',
+                    item.productName,
+                    '${item.totalQuantity}',
+                    '${item.balanceQuantity}',
+                  ];
+                },
               ),
             ),
           ],

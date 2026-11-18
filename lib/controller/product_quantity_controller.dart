@@ -33,13 +33,50 @@ class ProductQuantityController extends GetxController {
   String session = "";
   String userName = "Admin";
 
+  // ---------------- Common helpers (repeat hone wala code) ----------------
+
+  static const Map<String, String> _headers = <String, String>{
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  Uri get _postQuantityUri => Uri.parse(
+    '${AppUrl.base_url}api/ProductApp/PostProductQuantityApp',
+  );
+
+  Future<http.Response> _post(Uri url, Map<String, dynamic> body) {
+    return http.post(
+      url,
+      headers: _headers,
+      body: jsonEncode(body),
+    );
+  }
+
+  Map<String, dynamic> _decodeBody(http.Response res) {
+    return res.body.isNotEmpty
+        ? jsonDecode(res.body) as Map<String, dynamic>
+        : <String, dynamic>{};
+  }
+
+  void _clearDropdown() {
+    productDropdownList.clear();
+    productMasterMap.clear();
+    selectedProduct.value = "";
+  }
+
+  void _clearLists() {
+    productQuantityList.clear();
+    filteredList.clear();
+  }
+
   @override
   void onInit() async {
     super.onInit();
 
-    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
-    session = await PrefManager().readValue(key: PrefConst.session) ?? "";
-    userName = await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
+    final PrefManager pref = PrefManager();
+    schoolId = await pref.readValue(key: PrefConst.schollId) ?? "";
+    session = await pref.readValue(key: PrefConst.session) ?? "";
+    userName = await pref.readValue(key: PrefConst.UserName) ?? "Admin";
 
     await fetchProductDropdown();
     await fetchProductQuantityList();
@@ -54,9 +91,7 @@ class ProductQuantityController extends GetxController {
 
   Future<void> fetchProductDropdown() async {
     if (schoolId.trim().isEmpty) {
-      productDropdownList.clear();
-      productMasterMap.clear();
-      selectedProduct.value = "";
+      _clearDropdown();
       return;
     }
 
@@ -67,13 +102,7 @@ class ProductQuantityController extends GetxController {
         '${AppUrl.base_url}api/ProductApp/ViewProductApp/$schoolId',
       );
 
-      final http.Response res = await http.get(
-        url,
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final http.Response res = await http.get(url, headers: _headers);
 
       if (res.statusCode == 200) {
         final Map<String, dynamic> decoded =
@@ -90,23 +119,17 @@ class ProductQuantityController extends GetxController {
           final String productName = (map['product'] ?? '').toString().trim();
           final int pmasterId = map['pmasterId'] ?? 0;
 
-          if (productName.isNotEmpty) {
-            if (!productMasterMap.containsKey(productName)) {
-              productMasterMap[productName] = pmasterId;
-              productDropdownList.add(productName);
-            }
+          if (productName.isNotEmpty &&
+              !productMasterMap.containsKey(productName)) {
+            productMasterMap[productName] = pmasterId;
+            productDropdownList.add(productName);
           }
         }
 
-        if (productDropdownList.isNotEmpty) {
-          selectedProduct.value = productDropdownList.first;
-        } else {
-          selectedProduct.value = "";
-        }
+        selectedProduct.value =
+        productDropdownList.isNotEmpty ? productDropdownList.first : "";
       } else {
-        productDropdownList.clear();
-        productMasterMap.clear();
-        selectedProduct.value = "";
+        _clearDropdown();
         // User ko sirf "Something went wrong", asli error console me
         AppSnackbar.apiError(
           "Product dropdown fetch failed: ${res.statusCode} : ${res.body}",
@@ -114,9 +137,7 @@ class ProductQuantityController extends GetxController {
         );
       }
     } catch (e, s) {
-      productDropdownList.clear();
-      productMasterMap.clear();
-      selectedProduct.value = "";
+      _clearDropdown();
       // Net band / timeout / koi bhi exception: URL ya error user ko nahi dikhega
       AppSnackbar.apiError(e, stackTrace: s);
     } finally {
@@ -126,8 +147,7 @@ class ProductQuantityController extends GetxController {
 
   Future<void> fetchProductQuantityList() async {
     if (schoolId.trim().isEmpty || session.trim().isEmpty) {
-      productQuantityList.clear();
-      filteredList.clear();
+      _clearLists();
       return;
     }
 
@@ -144,14 +164,7 @@ class ProductQuantityController extends GetxController {
         "pmasterId": 0,
       };
 
-      final http.Response res = await http.post(
-        url,
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
-      );
+      final http.Response res = await _post(url, body);
 
       if (res.statusCode == 200) {
         final Map<String, dynamic> decoded =
@@ -160,25 +173,24 @@ class ProductQuantityController extends GetxController {
         final ProductQuantity parsed = ProductQuantity.fromJson(decoded);
 
         if (parsed.isSuccess == true) {
-          productQuantityList.assignAll(parsed.data ?? <ProductQuantityData>[]);
-          filteredList.assignAll(parsed.data ?? <ProductQuantityData>[]);
+          final List<ProductQuantityData> data =
+              parsed.data ?? <ProductQuantityData>[];
+          productQuantityList.assignAll(data);
+          filteredList.assignAll(data);
         } else {
-          productQuantityList.clear();
-          filteredList.clear();
+          _clearLists();
           // Server ka message technical hua to automatically "Something went wrong" ban jayega
           AppSnackbar.error(parsed.messages ?? "Failed to load list");
         }
       } else {
-        productQuantityList.clear();
-        filteredList.clear();
+        _clearLists();
         AppSnackbar.apiError(
           "List fetch failed: ${res.statusCode} : ${res.body}",
           statusCode: res.statusCode,
         );
       }
     } catch (e, s) {
-      productQuantityList.clear();
-      filteredList.clear();
+      _clearLists();
       AppSnackbar.apiError(e, stackTrace: s);
     } finally {
       isListLoading(false);
@@ -214,10 +226,6 @@ class ProductQuantityController extends GetxController {
     try {
       isPosting(true);
 
-      final Uri url = Uri.parse(
-        '${AppUrl.base_url}api/ProductApp/PostProductQuantityApp',
-      );
-
       final String now = DateTime.now().toUtc().toIso8601String();
 
       final Map<String, dynamic> body = <String, dynamic>{
@@ -233,17 +241,11 @@ class ProductQuantityController extends GetxController {
         "session": session,
       };
 
-      final http.Response res = await http.post(
-        url,
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
-      );
+      final http.Response res = await _post(_postQuantityUri, body);
 
-      final Map<String, dynamic> decoded =
-      res.body.isNotEmpty ? jsonDecode(res.body) as Map<String, dynamic> : {};
+      final Map<String, dynamic> decoded = _decodeBody(res);
+      final bool hasMessage =
+          decoded["messages"]?.toString().trim().isNotEmpty == true;
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (decoded["isSuccess"] == true) {
@@ -254,13 +256,13 @@ class ProductQuantityController extends GetxController {
           );
         } else {
           AppSnackbar.error(
-            decoded["messages"]?.toString().trim().isNotEmpty == true
+            hasMessage
                 ? decoded["messages"].toString()
                 : "Failed to add product quantity",
           );
         }
       } else {
-        if (decoded["messages"]?.toString().trim().isNotEmpty == true) {
+        if (hasMessage) {
           AppSnackbar.error(decoded["messages"].toString());
         } else {
           AppSnackbar.apiError(
@@ -412,10 +414,6 @@ class ProductQuantityController extends GetxController {
     try {
       isPosting(true);
 
-      final Uri url = Uri.parse(
-        '${AppUrl.base_url}api/ProductApp/PostProductQuantityApp',
-      );
-
       final Map<String, dynamic> body = <String, dynamic>{
         "productId": item.productId ?? 0,
         "pmasterId": pmasterId,
@@ -423,23 +421,16 @@ class ProductQuantityController extends GetxController {
         "updateBy": userName,
         "schoolId": item.schoolId ?? schoolId,
         "updateDate": DateTime.now().toUtc().toIso8601String(),
-        "createDate": item.createDate ?? DateTime.now().toUtc().toIso8601String(),
+        "createDate":
+        item.createDate ?? DateTime.now().toUtc().toIso8601String(),
         "action": item.action ?? 1,
         "quantity": qty,
         "session": session,
       };
 
-      final http.Response res = await http.post(
-        url,
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
-      );
+      final http.Response res = await _post(_postQuantityUri, body);
 
-      final Map<String, dynamic> decoded =
-      res.body.isNotEmpty ? jsonDecode(res.body) as Map<String, dynamic> : {};
+      final Map<String, dynamic> decoded = _decodeBody(res);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (decoded["isSuccess"] == true) {
@@ -485,9 +476,9 @@ class ProductQuantityController extends GetxController {
     filteredList.assignAll(
       productQuantityList.where((ProductQuantityData item) {
         final String productName = (item.productName ?? '').toLowerCase();
-        final String quantity = (item.quantity ?? 0).toString().toLowerCase();
+        final String quantity = (item.quantity ?? 0).toString();
         return productName.contains(search) || quantity.contains(search);
-      }).toList(),
+      }),
     );
   }
 

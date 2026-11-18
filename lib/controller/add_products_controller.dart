@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 
 import '../infrastructures/utils/local_storage/local_storage.dart';
 import '../infrastructures/utils/local_storage/pref_const.dart';
@@ -29,14 +27,16 @@ class AddProductsController extends GetxController {
   String session = "";
   String userName = "Admin";
 
+  String get _postUrl => '${AppUrl.base_url}${AppUrl.postProductApp}';
+
   @override
   void onInit() async {
     super.onInit();
 
-    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
-    session = await PrefManager().readValue(key: PrefConst.session) ?? "";
-    userName =
-        await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
+    final pref = PrefManager();
+    schoolId = await pref.readValue(key: PrefConst.schollId) ?? "";
+    session = await pref.readValue(key: PrefConst.session) ?? "";
+    userName = await pref.readValue(key: PrefConst.UserName) ?? "Admin";
 
     if (schoolId.trim().isEmpty) {
       AppSnackbar.error("SchoolId not found");
@@ -90,10 +90,9 @@ class AddProductsController extends GetxController {
       return;
     }
 
+    final query = value.toLowerCase();
     filteredList.assignAll(
-      productsList.where((item) {
-        return item.product.toLowerCase().contains(value.toLowerCase());
-      }).toList(),
+      productsList.where((item) => item.product.toLowerCase().contains(query)),
     );
   }
 
@@ -105,8 +104,9 @@ class AddProductsController extends GetxController {
       return;
     }
 
+    final lowerText = text.toLowerCase();
     final alreadyExists = productsList.any(
-          (item) => item.product.trim().toLowerCase() == text.toLowerCase(),
+          (item) => item.product.trim().toLowerCase() == lowerText,
     );
     if (alreadyExists) {
       AppSnackbar.error("This product already exists", title: "Duplicate");
@@ -139,8 +139,7 @@ class AddProductsController extends GetxController {
         "session": session,
       };
 
-      final result = await _api.postJson(
-          '${AppUrl.base_url}${AppUrl.postProductApp}', body);
+      final result = await _api.postJson(_postUrl, body);
 
       if (result.isSuccess) {
         productController.clear();
@@ -254,8 +253,7 @@ class AddProductsController extends GetxController {
         "session": session,
       };
 
-      final result = await _api.postJson(
-          '${AppUrl.base_url}${AppUrl.postProductApp}', body);
+      final result = await _api.postJson(_postUrl, body);
 
       if (result.isSuccess) {
         Get.back();

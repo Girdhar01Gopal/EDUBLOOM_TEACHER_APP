@@ -61,16 +61,12 @@ class AddHolidayCalendarController extends GetxController {
   @override
   void onInit() async {
     super.onInit();
-    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
-    session = await PrefManager().readValue(key: PrefConst.session) ?? "";
-    userName =
-        await PrefManager().readValue(key: PrefConst.UserName) ?? "Admin";
-    userId =
-        (await PrefManager().readValue(key: PrefConst.Userid))?.toString() ??
-            "";
-    roleName =
-        (await PrefManager().readValue(key: PrefConst.RName))?.toString() ??
-            "";
+    final pref = PrefManager();
+    schoolId = await pref.readValue(key: PrefConst.schollId) ?? "";
+    session = await pref.readValue(key: PrefConst.session) ?? "";
+    userName = await pref.readValue(key: PrefConst.UserName) ?? "Admin";
+    userId = (await pref.readValue(key: PrefConst.Userid))?.toString() ?? "";
+    roleName = (await pref.readValue(key: PrefConst.RName))?.toString() ?? "";
 
     if (schoolId.trim().isEmpty) {
       AppSnackbar.error("SchoolId not found");
@@ -181,6 +177,10 @@ class AddHolidayCalendarController extends GetxController {
     return '$c - $s';
   }
 
+  /// Merge key: same title + same date wali entries ek me merge hoti hain.
+  String _mergeKey(String title, DateTime date) =>
+      '$title|${date.toIso8601String()}';
+
   /// Notes — calendar par "remarks" dikhega, note ki createDate wali date par.
   Future<void> fetchNotes() async {
     if (schoolId.trim().isEmpty) return;
@@ -209,9 +209,8 @@ class AddHolidayCalendarController extends GetxController {
           var title = (n.remarks ?? '').trim();
           if (title.isEmpty) title = 'Note';
 
-          final key = '$title|${date.toIso8601String()}';
           final entry = merged.putIfAbsent(
-            key,
+            _mergeKey(title, date),
                 () => CalendarEntry(
               type: CalendarEntryType.note,
               title: title,
@@ -263,9 +262,8 @@ class AddHolidayCalendarController extends GetxController {
           var title = (e.eventName ?? '').trim();
           if (title.isEmpty) title = 'Event';
 
-          final key = '$title|${date.toIso8601String()}';
           final entry = merged.putIfAbsent(
-            key,
+            _mergeKey(title, date),
                 () => CalendarEntry(
               type: CalendarEntryType.event,
               title: title,

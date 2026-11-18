@@ -85,6 +85,7 @@ class StudentController extends GetxController {
   var filteredData = <StudentData>[].obs;
   var isLoading = false.obs;
   var isSubmitting = false.obs;
+  final isStoppageLoading = false.obs;
 
   // 🆕 Role / Teacher-type detection (class & section dropdown ke liye) — Attendance jaisa
   var isStaffLogin = false.obs; // true => "schoolstaff" role
@@ -286,9 +287,56 @@ class StudentController extends GetxController {
     }
   }
 
+  /// Route picked in a dropdown: remember it, clear the old stoppage and
+  /// load this route's stoppages.
+  void selectRoute(RouteData r) {
+    if (routeNo.value == r.routeNo.toString()) return;
+    routeNo.value = r.routeNo.toString();
+    stoppage.value = '';
+    stoppageList.clear();
+    fetchPickupPoints(r.routeNo);
+  }
+
+  /// Fills the transport fields from a saved student (edit dialog).
+  void loadTransportFrom(StudentData s) {
+    final t = (s.transportUser ?? '').trim().toLowerCase();
+    transportUser.value = t == 'yes' ? 'Yes' : (t == 'no' ? 'No' : '');
+    final route = (s.routeNo ?? '').toString().trim();
+    routeNo.value = route == '0' ? '' : route;
+    final point = (s.pickupPoint ?? '').trim();
+    stoppage.value =
+    point.toLowerCase() == 'no stoppages available' ? '' : point;
+    stoppageList.clear();
+    final r = int.tryParse(routeNo.value);
+    if (r != null) fetchPickupPoints(r);
+  }
+
+  /// Null when OK, otherwise what is missing in the transport section.
+  String? transportError() {
+    if (transportUser.value.trim().toLowerCase() != 'yes') return null;
+    if (routeNo.value.trim().isEmpty) return "Please select the Route No.";
+    if (stoppageList.isNotEmpty && stoppage.value.trim().isEmpty) {
+      return "Please select the Stoppage";
+    }
+    return null;
+  }
+
+  /// TransportUser / RouteNo / PickupPoint for the update request.
+  void _putTransportFields(http.MultipartRequest request) {
+    final isUser = transportUser.value.trim().toLowerCase() == 'yes';
+    request.fields['TransportUser'] = transportUser.value.trim();
+    if (isUser) {
+      request.fields['RouteNo'] = routeNo.value.trim();
+      request.fields['PickupPoint'] = stoppage.value.trim();
+    } else {
+      request.fields.remove('RouteNo');
+      request.fields.remove('PickupPoint');
+    }
+  }
+
   Future<void> fetchPickupPoints(int routeNo) async {
     try {
-      isLoading(true);
+      isStoppageLoading(true);
 
       final url = Uri.parse(
         'https://playschool.edubloom.in/api/StudentApp/GetPikPointApp/$schoolId/$routeNo',
@@ -314,13 +362,15 @@ class StudentController extends GetxController {
           .toSet()
           .toList();
 
-      stoppageList
-        ..clear()
-        ..addAll(points.isEmpty ? ["No Stoppages Available"] : points);
+      // Ignore a late answer for a route that is no longer selected.
+      if (this.routeNo.value != routeNo.toString()) return;
+
+      // Empty list => UI shows "No stoppages for this route".
+      stoppageList.assignAll(points);
     } catch (e, st) {
       AppSnackbar.apiError(e, stackTrace: st);
     } finally {
-      isLoading(false);
+      isStoppageLoading(false);
     }
   }
 
@@ -422,90 +472,178 @@ class StudentController extends GetxController {
     }
   }
 
-  // ✅ CHANGED: oldStudent parameter add kiya + Class/Section/Status bheje jaate hain
-  Future<void> updateStudentByPostApi({
-    required int studentId,
-    StudentData? oldStudent, // existing student pass karenge
-  }) async {
+  // 🆕 Purani image download karke wapas upload karta hai, taaki backend null na kare.
+  // Nayi image pick hui ho to wahi bhejta hai.
+  Future<void> _attachImage(
+      http.MultipartRequest request,
+      String field,
+      String folder,
+      String? oldName,
+      Rx<File?> picked,
+      ) async {
+    if (picked.value != null) {
+      request.files
+          .add(await http.MultipartFile.fromPath(field, picked.value!.path));
+      return;
+    }
+    final name = (oldName ?? '').trim();
+    if (name.isEmpty || name.toLowerCase() == 'null') return;
     try {
-      final uri = Uri.parse("${AppUrl.base_url}api/StudentApp/PostStudentApp");
+      final res = await http.get(Uri.parse(
+          'https://playschool.edubloom.in/Upload/$folder/images/$name'));
+      if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+        request.files.add(http.MultipartFile.fromBytes(field, res.bodyBytes,
+            filename: name));
+      } else {
+        print('⚠️ old image not found: $folder/$name (${res.statusCode})');
+      }
+    } catch (e) {
+      print('⚠️ old image download failed: $folder/$name => $e');
+    }
+  }
+
+  // EditStudentApp poora record overwrite karta hai, isliye har update me
+  // student ke purane saare values bhejne padte hain; caller phir sirf
+  // edited fields override karta hai. (Admin app jaisa)
+  void _putExistingStudentFields(http.MultipartRequest request, StudentData s) {
+    void put(String key, dynamic value) {
+      final v = value?.toString().trim() ?? '';
+      if (v.isNotEmpty && v != 'null') request.fields[key] = v;
+    }
+
+    request.fields['StudentId'] = s.studentID.toString();
+    request.fields['SchoolId'] = schoolId;
+    request.fields['Session'] = (s.session ?? session.value).trim();
+    request.fields['Action'] =
+    (s.action ?? '').trim().isEmpty ? '1' : s.action!.trim();
+
+    put('StudentName', s.studentName);
+    put('FatherName', s.fatherName);
+    put('MotherName', s.motherName);
+    put('FatherOccupation', s.fatherOccupation);
+    put('Gender', s.gender);
+    put('DateOfBirth', s.dateOfBirth);
+    put('BloodGroup', s.bloodGroup);
+    put('Religion', s.religion);
+    put('Phone', s.phone);
+    put('WhatsAppNo', s.whatsAppNo);
+    put('EmergencyNo', s.emergencyNo);
+    put('Email', s.email);
+    put('Roll', s.rollNo);
+    put('AdmissionNo', s.admissionNo);
+    put('RegistrationNo', s.registrationNo);
+    put('Address', s.address);
+    put('AAdharNo', s.aAdharNo);
+    put('ParentID', s.parentId);
+    put('AdmissionDate', s.admissionDate);
+    put('CreateDate', s.createDate);
+    put('Password', s.ppassword);
+    put('Remark', s.remark);
+
+    put('FromTime', s.fromTime);
+    put('ToTime', s.toTime);
+    put('AddDaycare', s.addDaycare);
+    put('IsDayCare', s.isDaycare);
+    put('DaycareDurations', s.daycareDurations);
+    put('TransportUser', s.transportUser);
+    put('TransportType', s.transportType);
+    put('RouteNo', s.routeNo);
+    put('PickupPoint', s.pickupPoint);
+
+    // Class/Section hamesha bhejna zaroori hai, warna student list se gayab ho jata hai
+    if ((s.classId ?? 0) > 0 && (s.sectionId ?? 0) > 0) {
+      request.fields['Status'] = "0";
+      request.fields['Class'] = s.classId.toString();
+      request.fields['Section'] = s.sectionId.toString();
+    }
+
+    // 🆕 Raw record ki baaki sab keys bhi bhejo (jo model me nahi hain),
+    // taaki backend koi bhi field null na kare
+    const skip = {
+      'studentpic', 'fatherpic', 'motherpic', 'guardianimage', 'file',
+      'classname', 'sectionname', 'classid', 'sectionid',
+      'schoolname', 'affiliated', 'schooladdress', 'schoolphone',
+      'schoolemail', 'schoolwebsite', 'logo', 'logowithname',
+    };
+    s.raw?.forEach((k, v) {
+      if (v == null || v is Map || v is List) return;
+      final val = v.toString().trim();
+      if (val.isEmpty || val == 'null') return;
+      if (skip.contains(k.toLowerCase())) return;
+      final key = k[0].toUpperCase() + k.substring(1);
+      final already = request.fields.keys
+          .any((e) => e.toLowerCase() == key.toLowerCase());
+      if (!already) request.fields[key] = val;
+    });
+  }
+
+  // Backend kabhi isSuccess:true ke saath bhi save reject kar deta hai
+  // (e.g. "A student with the same name and parents already exists").
+  bool _saveRefused(Map data) {
+    final msg = (data['messages'] ?? data['popupMessage'] ?? '').toString();
+    return msg.toLowerCase().contains('already exists');
+  }
+
+  // ✅ Admin app jaisa update — ab EditStudentApp API use hoti hai
+  Future<void> updateStudentByPostApi({required StudentData student}) async {
+    if (isSubmitting.value) return; // double tap guard
+
+    final transportMissing = transportError();
+    if (transportMissing != null) {
+      AppSnackbar.error(transportMissing);
+      return;
+    }
+
+    isSubmitting.value = true;
+    try {
+      // 🆕 PostStudentApp nayi entry banata hai, update ke liye EditStudentApp
+      final uri =
+      Uri.parse("${AppUrl.base_url}api/StudentApp/EditStudentApp");
       final request = http.MultipartRequest('POST', uri);
 
-      if (fileImage.value != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-            'File', fileImage.value!.path));
-      }
-      if (fatherPic.value != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-            'FatherPic', fatherPic.value!.path));
-      }
-      if (motherPic.value != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-            'MotherPic', motherPic.value!.path));
-      }
-      if (guardianImage.value != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-            'GuardianImage', guardianImage.value!.path));
+      // 1) Start from the full existing record, then apply the edited fields
+      _putExistingStudentFields(request, student);
+
+      // 2) Edited fields: sirf tab override jab nayi value empty na ho
+      //    (khali value se purana data overwrite nahi hoga)
+      void setIf(String key, String v) {
+        final t = v.trim();
+        if (t.isNotEmpty) request.fields[key] = t;
       }
 
-      // ✅ DOB ko dd-MM-yyyy se yyyy-MM-dd me convert karo (add student jaisa)
-      String dobToSend = dob.text.trim();
-      final dobParts = dobToSend.split('-');
-      if (dobParts.length == 3 && dobParts[0].length == 2) {
-        dobToSend = '${dobParts[2]}-${dobParts[1]}-${dobParts[0]}';
-      }
+      setIf('StudentName', studentName.value);
+      setIf('FatherName', fatherName.value);
+      setIf('MotherName', motherName.value);
+      setIf('FatherOccupation', fatherOccupation.value);
+      setIf('Roll', rollNo.value);
+      setIf('AdmissionNo', admissionNo.value);
+      setIf('WhatsAppNo', whatsappNo.value);
+      setIf('EmergencyNo', emergencyNo.value);
+      setIf('Gender', gender.value);
+      setIf('DateOfBirth', dob.text);
+      setIf('BloodGroup', bloodGroup.value);
+      setIf('Religion', religion.value);
+      setIf('Phone', phone.value);
+      setIf('Email', emailController.text);
+      setIf('AAdharNo', aAdharNo.value);
+      setIf('Address', address.value);
+      setIf('Action', actionStatus.value);
+      _putTransportFields(request);
 
-      // ✅ Purani class & section ki ID nikalo (naam match karke)
-      final oldClassName = (oldStudent?.className ?? '').trim().toLowerCase();
-      final oldSectionName =
-      (oldStudent?.sectionName ?? '').trim().toLowerCase();
-
-      final cls = classes.firstWhereOrNull(
-              (c) => c.className.trim().toLowerCase() == oldClassName);
-      final sec = sectionList.firstWhereOrNull(
-              (s) => (s.section ?? '').trim().toLowerCase() == oldSectionName);
-
-      request.fields['StudentId'] = studentId.toString();
-      request.fields['StudentName'] = studentName.value.trim();
-      request.fields['FatherName'] = fatherName.value.trim();
-      request.fields['MotherName'] = motherName.value.trim();
-      request.fields['FatherOccupation'] = fatherOccupation.value.trim();
-      request.fields['Roll'] = rollNo.value.trim();
-      // ✅ FIX: AdmissionNo update me bhi bhejna hai (pehle missing tha isliye null ho jata tha)
-      request.fields['AdmissionNo'] = admissionNo.value.trim();
-      request.fields['WhatsAppNo'] = whatsappNo.value.trim();
-      request.fields['EmergencyNo'] = emergencyNo.value.trim();
-      request.fields['Gender'] = gender.value.trim();
-      request.fields['DateOfBirth'] = dobToSend;
-      request.fields['BloodGroup'] = bloodGroup.value.trim();
-      request.fields['Religion'] = religion.value.trim();
-      request.fields['Phone'] = phone.value.trim();
-      request.fields['Email'] = emailController.text.trim();
-      // ✅ FIX: Address bhi bhejo (edit form me Address field hai)
-      request.fields['Address'] = address.value.trim();
-      request.fields['AadharNo'] = aAdharNo.value;
-      request.fields['SchoolId'] = schoolId;
-      request.fields['Session'] = session.value;
-      request.fields['Action'] =
-      actionStatus.value.trim().isEmpty ? '1' : actionStatus.value.trim();
-
-      // ✅ YE MISSING THA — class/section/status bhejo
-      if (cls != null && sec != null) {
-        request.fields['Status'] = "0";
-        request.fields['Class'] = cls.classId.toString();
-        request.fields['Section'] = sec.sectionId.toString();
-      } else {
-        print('⚠️ Class/Section ID match nahi hui: '
-            '${oldStudent?.className} | ${oldStudent?.sectionName}');
-      }
-
-      request.fields['AdmissionDate'] = admissionDate.value.trim().isNotEmpty
-          ? admissionDate.value.trim()
-          : DateTime.now().toIso8601String();
+      // 3) Images: nayi mili to nayi, nahi to purani wapas upload
+      await _attachImage(
+          request, 'File', 'student', student.studentPic, fileImage);
+      await _attachImage(
+          request, 'FatherPic', 'father', student.fatherPic, fatherPic);
+      await _attachImage(
+          request, 'MotherPic', 'mother', student.motherPic, motherPic);
+      await _attachImage(request, 'GuardianImage', 'guardian',
+          student.guardianImage, guardianImage);
 
       // 🔍 DEBUG
       print('UPDATE URL: $uri');
       print('UPDATE FIELDS: ${request.fields}');
+      print('UPDATE FILES: ${request.files.map((f) => f.field).toList()}');
 
       final response = await request.send();
       final responseBody = await http.Response.fromStream(response);
@@ -515,13 +653,17 @@ class StudentController extends GetxController {
 
       if (responseBody.statusCode == 200) {
         final data = jsonDecode(responseBody.body);
-        if (data['isSuccess'] == true) {
-          AppSnackbar.success("Student updated successfully!");
+        if (data['isSuccess'] == true && !_saveRefused(data)) {
+          // Edit ke baad Add Student form me purani transport values na dikhein
+          transportUser.value = '';
+          routeNo.value = '';
+          stoppage.value = '';
+          stoppageList.clear();
 
-          await fetchVStudents(); // ✅ await karo
-
-          // ✅ Admin app jaisa: Student screen tak wapas jao (stack clear nahi hota, back arrow chalta rehta hai)
+          // Reload first so the list shows the updated student on return
+          await fetchVStudents();
           Get.until((route) => route.settings.name == RouteName.student_screen);
+          AppSnackbar.success("Student updated successfully!");
         } else {
           final errorMessage =
               data['popupMessage'] ?? data['messages'] ?? "Unknown error";
@@ -533,6 +675,8 @@ class StudentController extends GetxController {
       }
     } catch (e, st) {
       AppSnackbar.apiError(e, stackTrace: st);
+    } finally {
+      isSubmitting.value = false;
     }
   }
 
@@ -660,8 +804,6 @@ class StudentController extends GetxController {
           classes.value = data.map((e) => ClassItem.fromJson(e)).toList();
 
           // 🆕 FIX: teacher ko jo classes assigned hain unke naam allowedClassNames me daalo
-          // (warna GetAllStudentAsynsApp wala student-filter kabhi match nahi karta tha,
-          // aur normal teacher ko View Students tab me koi student nahi dikhta tha)
           allowedClassNames.value = classes
               .map((e) => e.className.trim().toLowerCase())
               .where((s) => s.isNotEmpty)

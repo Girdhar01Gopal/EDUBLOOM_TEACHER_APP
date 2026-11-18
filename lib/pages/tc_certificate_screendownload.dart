@@ -9,6 +9,43 @@ import '../models/session_model.dart' as session_model;
 import '../models/tc_certificate_modeldownload.dart';
 import '../res/app_url.dart'; // ← AppUrl.dashurl
 
+// ---------------- Common constants (repeat hone wala code) ----------------
+const Color _primaryColor = Color(0xFF99144E);
+
+const TextStyle _labelStyle = TextStyle(
+  fontSize: 13,
+  color: Colors.black54,
+  fontWeight: FontWeight.w500,
+);
+
+final OutlineInputBorder _fieldBorder = OutlineInputBorder(
+  borderRadius: BorderRadius.circular(6),
+  borderSide: BorderSide(color: Colors.grey.shade400),
+);
+
+/// Saare fields / dropdowns ka common decoration
+InputDecoration _fieldDecoration({
+  Color fillColor = Colors.white,
+  Widget? suffixIcon,
+  String? hintText,
+}) {
+  return InputDecoration(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    suffixIcon: suffixIcon,
+    border: _fieldBorder,
+    filled: true,
+    fillColor: fillColor,
+    hintText: hintText,
+  );
+}
+
+/// dd-mm-yyyy
+String _formatDate(DateTime d) {
+  return "${d.day.toString().padLeft(2, '0')}-"
+      "${d.month.toString().padLeft(2, '0')}-"
+      "${d.year}";
+}
+
 class TcCertificateScreen extends GetView<TcCertificateController> {
   const TcCertificateScreen({Key? key}) : super(key: key);
 
@@ -51,13 +88,13 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
           errorBuilder: (_, __, ___) => const Icon(
             Icons.school,
             size: 36,
-            color: Color(0xFF99144E),
+            color: _primaryColor,
           ),
         )
             : const Icon(
           Icons.school,
           size: 36,
-          color: Color(0xFF99144E),
+          color: _primaryColor,
         ),
       ),
     );
@@ -81,7 +118,7 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFF99144E),
+        backgroundColor: _primaryColor,
         elevation: 4,
       ),
       body: Obx(() {
@@ -136,8 +173,7 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
                       const SizedBox(height: 12),
                       Container(
                         width: double.infinity,
-                        padding:
-                        const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.black),
                         ),
@@ -170,8 +206,7 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
                     Expanded(
                       child: _buildField(
                         label: "Registration No",
-                        fieldController:
-                        controller.registrationNoController,
+                        fieldController: controller.registrationNoController,
                         readOnly: true,
                       ),
                     ),
@@ -203,8 +238,7 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
 
                 _buildField(
                   label: "4. Date of Admission",
-                  fieldController:
-                  controller.admissionDateController,
+                  fieldController: controller.admissionDateController,
                   readOnly: true,
                 ),
                 const SizedBox(height: 14),
@@ -247,11 +281,9 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
                       ? null // disable while saving
                       : () => controller.saveTcCertificate(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF99144E),
-                    disabledBackgroundColor:
-                    const Color(0xFFD195AF),
-                    padding:
-                    const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: _primaryColor,
+                    disabledBackgroundColor: const Color(0xFFD195AF),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -287,29 +319,12 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Select Session",
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const Text("Select Session", style: _labelStyle),
         const SizedBox(height: 4),
         Obx(() => DropdownButtonFormField<session_model.sListDdata>(
           value: controller.selectedSession.value,
           isExpanded: true,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide:
-              BorderSide(color: Colors.grey.shade400),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-          ),
+          decoration: _fieldDecoration(),
           hint: const Text("Select Session"),
           items: controller.sessionList
               .map((s) => DropdownMenuItem(
@@ -318,8 +333,9 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
           ))
               .toList(),
           onChanged: (val) {
-            if (val != null)
+            if (val != null) {
               controller.setSelectedSession(val);
+            }
           },
         )),
       ],
@@ -331,29 +347,12 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "6. Class Last Studied",
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const Text("6. Class Last Studied", style: _labelStyle),
         const SizedBox(height: 4),
         Obx(() => DropdownButtonFormField<ListDataa>(
           value: controller.selectedClass.value,
           isExpanded: true,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide:
-              BorderSide(color: Colors.grey.shade400),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-          ),
+          decoration: _fieldDecoration(),
           hint: const Text("Select Class"),
           items: controller.classList
               .map((c) => DropdownMenuItem(
@@ -378,28 +377,13 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(label, style: _labelStyle),
         const SizedBox(height: 4),
         TextFormField(
           controller: fieldController,
           readOnly: readOnly,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            filled: true,
-            fillColor:
-            readOnly ? Colors.grey.shade100 : Colors.white,
+          decoration: _fieldDecoration(
+            fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
           ),
         ),
       ],
@@ -410,14 +394,7 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "8. Date of Issue",
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const Text("8. Date of Issue", style: _labelStyle),
         const SizedBox(height: 4),
         TextFormField(
           controller: controller.dateOfIssueController,
@@ -430,23 +407,11 @@ class TcCertificateScreen extends GetView<TcCertificateController> {
               lastDate: DateTime(2100),
             );
             if (picked != null) {
-              controller.dateOfIssueController.text =
-              "${picked.day.toString().padLeft(2, '0')}-"
-                  "${picked.month.toString().padLeft(2, '0')}-"
-                  "${picked.year}";
+              controller.dateOfIssueController.text = _formatDate(picked);
             }
           },
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            suffixIcon:
-            const Icon(Icons.calendar_today, size: 18),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            filled: true,
-            fillColor: Colors.white,
+          decoration: _fieldDecoration(
+            suffixIcon: const Icon(Icons.calendar_today, size: 18),
             hintText: "dd-mm-yyyy",
           ),
         ),

@@ -54,7 +54,7 @@ const List<_TileSpec> _tileSpecs = [
   _TileSpec("Class Subject Assign", Icons.assignment_rounded, Color(0xFF6D4C41), Color(0xFFEFEBE9),
       RouteName.subjectclassassign, ['SubjectAssignClass']),
   _TileSpec("Transport Fee", Icons.directions_bus_rounded, Color(0xFF546E7A), Color(0xFFECEFF1),
-      RouteName.transportFee, ['TransportFee']),
+      RouteName.transportFee, ['TransportFees']),
   _TileSpec("Add Grade", Icons.menu_book_rounded, Color(0xFFFFB300), Color(0xFFE8EAF6),
       RouteName.grademaster, ['GradeMaster', 'Grade', 'AddGrade']),
   _TileSpec("Day Care Duration", Icons.menu_book_rounded, Color(0xFFFFB300), Color(0xFFE8EAF6),

@@ -20,6 +20,10 @@ import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 import 'student_controller.dart'
     show ClassTeacherFilterModel, ClassTeacherFilterData; // 🆕 reuse (Notes jaisa)
 
+const Map<String, String> _jsonHeaders = <String, String>{
+  'Content-Type': 'application/json',
+};
+
 class TransferCertificateReportsController extends GetxController {
   final RxList<tc_model.TCStudentData> studentList =
       <tc_model.TCStudentData>[].obs;
@@ -64,15 +68,30 @@ class TransferCertificateReportsController extends GetxController {
   var isClassTeacherLogin = false.obs; // true => ClassTeacher API se data mila
   var classTeacherList = <ClassTeacherFilterData>[].obs;
 
+  // ---------------- Common helpers (repeat hone wala code) ----------------
+
+  /// Teacher APIs ka common query: ?schoolId=..&Session=..&userId=..
+  String get _teacherQuery =>
+      '?schoolId=$schoolId&Session=$classSession&userId=$userId';
+
+  /// API fail (non-200) pe user ko "Something went wrong", asli error console me
+  void _apiFailed(String apiName, int statusCode) {
+    AppSnackbar.apiError(
+      '$apiName failed: $statusCode',
+      statusCode: statusCode,
+    );
+  }
+
   @override
   void onInit() async {
     super.onInit();
-    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? '';
-    classSession = await PrefManager().readValue(key: PrefConst.session) ?? ''; // ✅ adjust key if needed
-    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? ''; // ✅ adjust key if needed
+    final pref = PrefManager();
+    schoolId = await pref.readValue(key: PrefConst.schollId) ?? '';
+    classSession = await pref.readValue(key: PrefConst.session) ?? ''; // ✅ adjust key if needed
+    userId = await pref.readValue(key: PrefConst.Userid) ?? ''; // ✅ adjust key if needed
 
     // 🆕 Staff vs Teacher role check — PrefConst.RName == "schoolstaff" (Notes jaisa)
-    final role = ((await PrefManager().readValue(key: PrefConst.RName)) ?? "")
+    final role = ((await pref.readValue(key: PrefConst.RName)) ?? "")
         .toString()
         .trim()
         .toLowerCase();
@@ -81,20 +100,14 @@ class TransferCertificateReportsController extends GetxController {
 
     // 🆕 FIX: Notes jaisa hi — staff ke liye direct class+section,
     // teacher ke liye pehle ClassTeacher filter, phir class+section.
-    if (isStaffLogin.value) {
-      await Future.wait([
-        fetchSessions(),
-        fetchClasses(),
-        fetchSections(),
-      ]);
-    } else {
+    if (!isStaffLogin.value) {
       await fetchClassTeacherFilter();
-      await Future.wait([
-        fetchSessions(),
-        fetchClasses(),
-        fetchSections(),
-      ]);
     }
+    await Future.wait([
+      fetchSessions(),
+      fetchClasses(),
+      fetchSections(),
+    ]);
   }
 
   Future<void> fetchStudentData() async {
@@ -124,7 +137,7 @@ class TransferCertificateReportsController extends GetxController {
         Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
+          ..._jsonHeaders,
         },
         body: json.encode({
           'session': selectedSession.value!.session,
@@ -160,27 +173,25 @@ class TransferCertificateReportsController extends GetxController {
       isLoading(true);
       final response = await http.get(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
       );
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         sessionList.clear();
-        if (jsonData['currentSession'] != null) {
+        final current = jsonData['currentSession'];
+        if (current != null) {
           final cs = session_model.sListDdata(
-            sessionId: jsonData['currentSession']['currentSessionId'],
-            session: jsonData['currentSession']['currentSession'],
-            action: jsonData['currentSession']['action'],
-            schoolId: jsonData['currentSession']['schoolId'],
+            sessionId: current['currentSessionId'],
+            session: current['currentSession'],
+            action: current['action'],
+            schoolId: current['schoolId'],
           );
           sessionList.add(cs);
           selectedSession.value = cs;
         }
       } else {
         // 🆕 ADDED: API fail pe snackbar
-        AppSnackbar.apiError(
-          'ViewSessionApp failed: ${response.statusCode}',
-          statusCode: response.statusCode,
-        );
+        _apiFailed('ViewSessionApp', response.statusCode);
       }
     } catch (e, stack) {
       // 🆕 CHANGED: raw error nahi dikhega
@@ -199,8 +210,7 @@ class TransferCertificateReportsController extends GetxController {
       }
 
       final url = Uri.parse(
-        '${AppUrl.base_url}api/TeacherApp/ClassTeacher'
-            '?schoolId=$schoolId&Session=$classSession&userId=$userId',
+        '${AppUrl.base_url}api/TeacherApp/ClassTeacher$_teacherQuery',
       );
 
       final response = await http.get(url);
@@ -270,7 +280,7 @@ class TransferCertificateReportsController extends GetxController {
 
     // 3️⃣ NORMAL TEACHER — GetClassTeacher API
     final String url =
-        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher?schoolId=$schoolId&Session=$classSession&userId=$userId';
+        '${AppUrl.base_url}api/TeacherApp/GetClassTeacher$_teacherQuery';
     try {
       isLoading(true);
       final res = await http.get(Uri.parse(url));
@@ -283,10 +293,7 @@ class TransferCertificateReportsController extends GetxController {
       } else {
         listDataa.value = [];
         // 🆕 ADDED: API fail pe snackbar
-        AppSnackbar.apiError(
-          'GetClassTeacher failed: ${res.statusCode}',
-          statusCode: res.statusCode,
-        );
+        _apiFailed('GetClassTeacher', res.statusCode);
       }
     } catch (e, stack) {
       // 🆕 CHANGED: raw error nahi dikhega
@@ -319,10 +326,7 @@ class TransferCertificateReportsController extends GetxController {
         selectedClass.value = null;
       } else {
         // 🆕 ADDED: API fail pe snackbar
-        AppSnackbar.apiError(
-          'ViewClass failed: ${response.statusCode}',
-          statusCode: response.statusCode,
-        );
+        _apiFailed('ViewClass', response.statusCode);
       }
     } catch (e, stack) {
       debugPrint("⚠️ Error fetching classes (staff): $e");
@@ -351,8 +355,7 @@ class TransferCertificateReportsController extends GetxController {
         isLoading(true);
 
         final url = Uri.parse(
-          '${AppUrl.base_url}api/TeacherApp/SectionTeacher'
-              '?schoolId=$schoolId&Session=$classSession&userId=$userId',
+          '${AppUrl.base_url}api/TeacherApp/SectionTeacher$_teacherQuery',
         );
 
         final response = await http.get(url);
@@ -381,10 +384,7 @@ class TransferCertificateReportsController extends GetxController {
         } else {
           sectionList.value = [];
           // 🆕 ADDED: API fail pe snackbar
-          AppSnackbar.apiError(
-            'SectionTeacher failed: ${response.statusCode}',
-            statusCode: response.statusCode,
-          );
+          _apiFailed('SectionTeacher', response.statusCode);
         }
       } catch (e, stack) {
         debugPrint("⚠️ Error fetching SectionTeacher sections: $e");
@@ -404,7 +404,7 @@ class TransferCertificateReportsController extends GetxController {
 
     // 3️⃣ NORMAL TEACHER — GetSectionTeacher API
     final String url =
-        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher?schoolId=$schoolId&Session=$classSession&userId=$userId';
+        '${AppUrl.base_url}api/TeacherApp/GetSectionTeacher$_teacherQuery';
     try {
       isLoading(true);
       final res = await http.get(Uri.parse(url));
@@ -418,10 +418,7 @@ class TransferCertificateReportsController extends GetxController {
       } else {
         sectionList.value = [];
         // 🆕 ADDED: API fail pe snackbar
-        AppSnackbar.apiError(
-          'GetSectionTeacher failed: ${res.statusCode}',
-          statusCode: res.statusCode,
-        );
+        _apiFailed('GetSectionTeacher', res.statusCode);
       }
     } catch (e, stack) {
       // 🆕 CHANGED: raw error nahi dikhega
@@ -454,10 +451,7 @@ class TransferCertificateReportsController extends GetxController {
         selectedSection.value = null;
       } else {
         // 🆕 ADDED: API fail pe snackbar
-        AppSnackbar.apiError(
-          'ViewSectionApp failed: ${response.statusCode}',
-          statusCode: response.statusCode,
-        );
+        _apiFailed('ViewSectionApp', response.statusCode);
       }
     } catch (e, stack) {
       debugPrint("⚠️ Error fetching sections (staff): $e");

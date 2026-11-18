@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 
 import '../controller/student_controller.dart';
+import '../models/routeno.dart';
 import '../models/student_model.dart';
 import '../utils/app_snackbar.dart';
 
@@ -191,6 +192,11 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                 //   _detailRow('Session', student.session),
               ]),
               SizedBox(height: 12.h),
+
+              // Transport Details (admin jaisa)
+              _infoCard('Transport Details', _transportRows()),
+              SizedBox(height: 12.h),
+
               _infoCard('Contact Information', [
                 _detailRow('Phone', student.phone),
                 _detailRow('WhatsApp', student.whatsAppNo),
@@ -473,6 +479,35 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     );
   }
 
+  // ── Transport (display) — admin jaisa ──
+  List<Widget> _transportRows() {
+    final isUser =
+        (student.transportUser ?? '').trim().toLowerCase() == 'yes';
+    final route = (student.routeNo ?? '').toString().trim();
+    final point = (student.pickupPoint ?? '').trim();
+    final r = Get.find<StudentController>()
+        .routes
+        .firstWhereOrNull((e) => e.routeNo.toString() == route);
+    return [
+      _detailRow('Transport User',
+          (student.transportUser ?? '').trim().isEmpty
+              ? '-'
+              : student.transportUser),
+      if (isUser) ...[
+        _detailRow(
+            'Route No',
+            route.isEmpty || route == '0'
+                ? '-'
+                : (r != null ? "Route $route | Bus: ${r.busNo}" : route)),
+        _detailRow(
+            'Stoppage',
+            point.isEmpty || point.toLowerCase() == 'no stoppages available'
+                ? '-'
+                : point),
+      ],
+    ];
+  }
+
   // ── Edit Dialog ───────────────────────────────────────────
   void _openEditDialog(BuildContext context) {
     final c = Get.find<StudentController>();
@@ -503,6 +538,7 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     c.whatsappNo.value = student.whatsAppNo ?? '';
     c.emergencyNo.value = student.emergencyNo ?? '';
     c.emailController.text = student.email ?? '';
+    c.loadTransportFrom(student); // admin jaisa transport prefill
 
     final act = (student.action ?? '').trim();
     c.actionStatus.value = act.isEmpty ? '1' : act;
@@ -624,11 +660,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
                                 AppSnackbar.error("Phone required");
                                 return;
                               }
-                              // ✅ CHANGED: oldStudent pass kiya (class/section ke liye)
-                              c.updateStudentByPostApi(
-                                studentId: student.studentID!,
-                                oldStudent: student,
-                              );
+                              // Transport validation controller me hoti hai (admin jaisa)
+                              c.updateStudentByPostApi(student: student);
                             },
                           ),
                         ),
@@ -705,6 +738,25 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(12),
             ]),
+
+        // Transport (edit) — admin jaisa
+        SizedBox(height: 4.h),
+        Text("Transport",
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14.sp,
+                color: _teal)),
+        SizedBox(height: 10.h),
+        _dropdown("Transport User", c.transportUser, const ["Yes", "No"]),
+        Obx(() {
+          if (c.transportUser.value != 'Yes') return const SizedBox.shrink();
+          return Column(
+            children: [
+              _routeDropdown(c),
+              _stoppageDropdown(c),
+            ],
+          );
+        }),
 
         SizedBox(height: 14.h),
         Text("Update Photos",
@@ -784,6 +836,61 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
               .toList(),
           onChanged: (v) => valueRx.value = v ?? '',
           decoration: _editDeco(label),
+        );
+      }),
+    );
+  }
+
+  // Route No dropdown (admin jaisa)
+  Widget _routeDropdown(StudentController c) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Obx(() {
+        final selected = c.routes
+            .firstWhereOrNull((r) => r.routeNo.toString() == c.routeNo.value);
+        return DropdownButtonFormField<RouteData>(
+          value: selected,
+          isExpanded: true,
+          hint: const Text("Select Route"),
+          items: c.routes
+              .map((r) => DropdownMenuItem(
+              value: r,
+              child: Text("Route ${r.routeNo} | Bus: ${r.busNo}",
+                  overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) c.selectRoute(v);
+          },
+          decoration: _editDeco("Route No. *"),
+        );
+      }),
+    );
+  }
+
+  // Stoppage dropdown (admin jaisa)
+  Widget _stoppageDropdown(StudentController c) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Obx(() {
+        if (c.isStoppageLoading.value) return const LinearProgressIndicator();
+        if (c.stoppageList.isEmpty) {
+          return Text(
+              c.routeNo.value.isEmpty
+                  ? "Select a route to see its stoppages"
+                  : "No stoppages for this route",
+              style: TextStyle(color: Colors.red.shade400, fontSize: 13.sp));
+        }
+        final current = c.stoppage.value;
+        return DropdownButtonFormField<String>(
+          value: c.stoppageList.contains(current) ? current : null,
+          isExpanded: true,
+          hint: const Text("Select Stoppage"),
+          items: c.stoppageList
+              .map((s) => DropdownMenuItem(
+              value: s, child: Text(s, overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (v) => c.stoppage.value = v ?? '',
+          decoration: _editDeco("Stoppage *"),
         );
       }),
     );

@@ -25,6 +25,11 @@ import '../utils/app_snackbar.dart'; // 🆕 ADDED: common snackbar
 //     balanceLeave (int?), totalLeave (int?) — the API already returns
 //     these per leave request, they just weren't being read anywhere yet.
 
+// Common GET header (har request me same tha)
+const Map<String, String> _jsonHeaders = <String, String>{
+  'Content-Type': 'application/json',
+};
+
 // ======================= Small helper: per-type balance row =======================
 // Derived client-side by parsing EmployeeLeaveData.leave ("CL - 5 | MC - 12 | ...")
 // and .takenLeaveTypes ("c - 1 | CL - 1 | ...") since that's the only place the
@@ -52,6 +57,9 @@ class LeaveRequestController extends GetxController {
   // Base URL for all 3 real leave GET/POST APIs (test env).
   // TODO: confirm whether this should instead come from AppUrl.base_url.
   static const String _apiBase = "https://playschool.edubloom.in/api";
+
+  // Date formats ek hi baar bante hain (har call pe nahi)
+  static final DateFormat _apiDateFormat = DateFormat('yyyy-MM-dd');
 
   // ── Lists ──────────────────────────────────────────────────────────
   final leaveRequestList = <leave_apply.LeaveData>[].obs;
@@ -109,9 +117,10 @@ class LeaveRequestController extends GetxController {
   void onInit() async {
     super.onInit();
 
-    schoolId = await PrefManager().readValue(key: PrefConst.schollId) ?? "";
-    token = await PrefManager().readValue(key: PrefConst.token) ?? "";
-    userId = await PrefManager().readValue(key: PrefConst.Userid) ?? "";
+    final pref = PrefManager();
+    schoolId = await pref.readValue(key: PrefConst.schollId) ?? "";
+    token = await pref.readValue(key: PrefConst.token) ?? "";
+    userId = await pref.readValue(key: PrefConst.Userid) ?? "";
 
     // TODO: if the app already stores the active academic session in prefs,
     // read it here instead — this is a computed fallback ("2026-27" style)
@@ -133,6 +142,10 @@ class LeaveRequestController extends GetxController {
 
   // ── Days count helpers ───────────────────────────────────────────
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  // Date picker ke liye common limits (pickFromDate / pickToDate dono me same tha)
+  DateTime get _today => _dateOnly(DateTime.now());
+  DateTime get _maxPickableDate => DateTime(_today.year + 5);
 
   int daysBetween(DateTime from, DateTime to) =>
       _dateOnly(to).difference(_dateOnly(from)).inDays + 1;
@@ -176,6 +189,11 @@ class LeaveRequestController extends GetxController {
     return map;
   }
 
+  // Cache: leaveBalanceRows har baar dobara parse na ho (screen / sheet me
+  // bahut baar call hota hai). Summary object badalta hai tabhi recompute.
+  get_all_leave.EmployeeLeaveData? _cachedSummary;
+  List<LeaveTypeBalanceRow> _cachedRows = <LeaveTypeBalanceRow>[];
+
   /// Per-type balance rows for the current user, derived from
   /// [myLeaveSummary] (`leave` = total per type, `takenLeaveTypes` = taken
   /// per type). This is the source of truth for per-type balance/taken —
@@ -185,22 +203,29 @@ class LeaveRequestController extends GetxController {
     final summary = myLeaveSummary.value;
     if (summary == null) return [];
 
+    if (identical(summary, _cachedSummary)) return _cachedRows;
+
     final totals = _parseLeaveCounts(summary.leave);
     final takenRaw = _parseLeaveCounts(summary.takenLeaveTypes);
     final takenLower = {
       for (final e in takenRaw.entries) e.key.toLowerCase(): e.value,
     };
 
-    return totals.entries.map((e) {
+    final rows = totals.entries.map((e) {
       final taken = takenLower[e.key.toLowerCase()] ?? 0;
       return LeaveTypeBalanceRow(type: e.key, total: e.value, taken: taken);
     }).toList();
+
+    _cachedSummary = summary;
+    _cachedRows = rows;
+    return rows;
   }
 
   LeaveTypeBalanceRow? _matchingBalanceRow(String? leaveType) {
     if (leaveType == null || leaveType.trim().isEmpty) return null;
+    final lower = leaveType.toLowerCase();
     for (final row in leaveBalanceRows) {
-      if (row.type.toLowerCase() == leaveType.toLowerCase()) return row;
+      if (row.type.toLowerCase() == lower) return row;
     }
     return null;
   }
@@ -275,7 +300,7 @@ class LeaveRequestController extends GetxController {
 
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
       );
 
       if (response.statusCode == 200) {
@@ -323,7 +348,7 @@ class LeaveRequestController extends GetxController {
 
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
       );
 
       if (response.statusCode == 200) {
@@ -332,14 +357,8 @@ class LeaveRequestController extends GetxController {
         );
         final uid = int.tryParse(userId);
 
-        get_all_leave.EmployeeLeaveData? found;
-        for (final e in model.data) {
-          if (e.userId == uid) {
-            found = e;
-            break;
-          }
-        }
-        myLeaveSummary.value = found;
+        myLeaveSummary.value =
+            model.data.firstWhereOrNull((e) => e.userId == uid);
       } else {
         debugPrint("Failed to load leave balance: ${response.statusCode}");
         // 🆕 ADDED: API fail pe snackbar
@@ -360,8 +379,8 @@ class LeaveRequestController extends GetxController {
   // ── Date pickers ─────────────────────────────────────────────────
   // From Date: only today or a future date (past dates are hidden).
   Future<void> pickFromDate(BuildContext context) async {
-    final today = _dateOnly(DateTime.now());
-    final maxDate = DateTime(today.year + 5);
+    final today = _today;
+    final maxDate = _maxPickableDate;
     final currentValue = fromDate.value;
 
     final picked = await showDatePicker(
@@ -382,8 +401,8 @@ class LeaveRequestController extends GetxController {
 
   // To Date: from the selected From Date (or today) onward into the future.
   Future<void> pickToDate(BuildContext context) async {
-    final today = _dateOnly(DateTime.now());
-    final maxDate = DateTime(today.year + 5);
+    final today = _today;
+    final maxDate = _maxPickableDate;
     final minDate = fromDate.value ?? today;
     final currentValue = toDate.value;
 
@@ -443,7 +462,7 @@ class LeaveRequestController extends GetxController {
 
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: _jsonHeaders,
       );
 
       if (response.statusCode == 200) {
@@ -452,9 +471,10 @@ class LeaveRequestController extends GetxController {
         );
         // Newest first.
         final list = model.listData;
+        final fallbackDate = DateTime(2000);
         list.sort((a, b) {
-          final ad = a.createdate ?? DateTime(2000);
-          final bd = b.createdate ?? DateTime(2000);
+          final ad = a.createdate ?? fallbackDate;
+          final bd = b.createdate ?? fallbackDate;
           return bd.compareTo(ad);
         });
         leaveRequestList.value = list;
@@ -500,7 +520,7 @@ class LeaveRequestController extends GetxController {
       return;
     }
 
-    final df = DateFormat('yyyy-MM-dd');
+    final df = _apiDateFormat;
     final selected = selectedLeaveType.value!;
     // Use the same live numbers shown on screen (balanceForType/
     // totalForType) rather than the dropdown's own possibly-stale
