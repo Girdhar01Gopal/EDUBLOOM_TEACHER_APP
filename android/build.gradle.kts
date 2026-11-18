@@ -16,6 +16,18 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 subprojects {
+    // Some plugins (e.g. file_picker) compile against an older SDK than their dependencies require
+    pluginManager.withPlugin("com.android.library") {
+        extensions.configure<com.android.build.api.variant.LibraryAndroidComponentsExtension> {
+            finalizeDsl { android ->
+                if ((android.compileSdk ?: 0) < 37) {
+                    android.compileSdk = 37
+                }
+            }
+        }
+    }
+}
+subprojects {
     project.evaluationDependsOn(":app")
 }
 

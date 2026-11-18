@@ -33,18 +33,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
     sourceSets["main"].java.srcDirs("src/main/kotlin")
 
     defaultConfig {
         applicationId = "com.monteage.teacher_app_edubloom"
         minSdk = 26
         targetSdk = 37
-        versionCode = 16
-        versionName = "2.0.7"
+        versionCode = 21
+        versionName = "3.0.3"
         multiDexEnabled = true
     }
 
@@ -65,6 +61,12 @@ android {
                 signingConfigs.getByName("debug")
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
     }
 }
 
