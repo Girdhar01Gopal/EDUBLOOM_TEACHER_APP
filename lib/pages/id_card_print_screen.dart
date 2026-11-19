@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -158,6 +159,14 @@ final List<IdCardTheme> kIdCardThemes = [
 
 const _textPrimary   = Color(0xFF1A2B3C);
 const _textSecondary = Color(0xFF607D8B);
+
+// Real card size: ATM / PAN / CR80 card = 85.6mm x 53.98mm (landscape).
+// Card ko ek fixed "design size" me banaya hai (428 x 270 ~ 1.585 ratio) aur
+// screen par FittedBox se scale hota hai -> kisi bhi phone par overflow nahi.
+const double _kDesignW    = 428;
+const double _kDesignH    = 270;
+const double _kCardAspect = _kDesignW / _kDesignH;
+const double _kCardRadius = 14;
 
 // Captured card image + uska pixel size (print me same height nikalne ke liye)
 class _CapturedCard {
@@ -457,70 +466,105 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
     );
   }
 
+  // Card ke neeche ka shadow (capture ke bahar rakha hai taaki PDF me na aaye)
+  Widget _shadowWrap(Widget child) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_kCardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
   Widget _buildIdCardView() {
     final s = _student!;
+
+    final frontCard = _shadowWrap(
+      RepaintBoundary(
+        key: _frontKey,
+        child: _FrontCard(
+          student:           s,
+          dynamicLogoUrl:    _dynamicSchoolLogoUrl,
+          theme:             _theme,
+          imgOffset:         _studentImgOffset,
+          imgScale:          _studentImgScale,
+          onAdjust:          (o, scale) => setState(() {
+            _studentImgOffset = o;
+            _studentImgScale  = scale;
+          }),
+        ),
+      ),
+    );
+
+    final backCard = _shadowWrap(
+      RepaintBoundary(
+        key: _backKey,
+        child: _BackCard(
+          student:          s,
+          theme:            _theme,
+          fatherOffset:     _fatherImgOffset,
+          fatherScale:      _fatherImgScale,
+          motherOffset:     _motherImgOffset,
+          motherScale:      _motherImgScale,
+          onFatherAdjust:   (o, scale) => setState(() {
+            _fatherImgOffset = o;
+            _fatherImgScale  = scale;
+          }),
+          onMotherAdjust:   (o, scale) => setState(() {
+            _motherImgOffset = o;
+            _motherImgScale  = scale;
+          }),
+        ),
+      ),
+    );
+
     return Column(
       children: [
         _buildThemeSelector(),
         Expanded(
-          child: RefreshIndicator(
-            color: _theme.primary,
-            onRefresh: _fetchIdCard,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-              child: Column(
-                children: [
-                  _buildSectionLabel('Front Side'),
-                  SizedBox(height: 8.h),
-                  RepaintBoundary(
-                    key: _frontKey,
-                    child: Container(
-                      color: const Color(0xFFF0F4F8),
-                      padding: const EdgeInsets.all(12),
-                      child: _FrontCard(
-                        student:           s,
-                        dynamicLogoUrl:    _dynamicSchoolLogoUrl,
-                        theme:             _theme,
-                        imgOffset:         _studentImgOffset,
-                        imgScale:          _studentImgScale,
-                        onAdjust:          (o, scale) => setState(() {
-                          _studentImgOffset = o;
-                          _studentImgScale  = scale;
-                        }),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
-                  _buildSectionLabel('Back Side'),
-                  SizedBox(height: 8.h),
-                  RepaintBoundary(
-                    key: _backKey,
-                    child: Container(
-                      color: const Color(0xFFF0F4F8),
-                      padding: const EdgeInsets.all(12),
-                      child: _BackCard(
-                        student:          s,
-                        theme:            _theme,
-                        fatherOffset:     _fatherImgOffset,
-                        fatherScale:      _fatherImgScale,
-                        motherOffset:     _motherImgOffset,
-                        motherScale:      _motherImgScale,
-                        onFatherAdjust:   (o, scale) => setState(() {
-                          _fatherImgOffset = o;
-                          _fatherImgScale  = scale;
-                        }),
-                        onMotherAdjust:   (o, scale) => setState(() {
-                          _motherImgOffset = o;
-                          _motherImgScale  = scale;
-                        }),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 30.h),
-                ],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _FlipCard(
+                theme: _theme,
+                front: frontCard,
+                back:  backCard,
               ),
-            ),
+              // Refresh button: 7 colors wali row ke niche, right corner me
+              Positioned(
+                top: 8.h,
+                right: 12.w,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _theme.primary,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(Icons.refresh, color: Colors.white, size: 16.sp),
+                  label: Text(
+                    'Refresh',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: _fetchIdCard,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -569,37 +613,343 @@ class _IdCardPrintScreenState extends State<IdCardPrintScreen> {
       ),
     );
   }
+}
 
-  Widget _buildSectionLabel(String label) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            color: _theme.primary,
-            borderRadius: BorderRadius.circular(4),
+// ═══════════════════════════════════════════════════════════════════════
+//  FLIP CARD  -  ungli se kisi bhi taraf 360° ghumao (X + Y dono axis)
+//  1 ungli = ghumao, 2 ungli = zoom
+//  "Reshape Card" button: Front -> Back -> Front  |  double tap = Front par wapas
+// ═══════════════════════════════════════════════════════════════════════
+class _FlipCard extends StatefulWidget {
+  final Widget       front; // design size (428 x 270) ka widget
+  final Widget       back;  // design size (428 x 270) ka widget
+  final IdCardTheme  theme;
+
+  const _FlipCard({
+    required this.front,
+    required this.back,
+    required this.theme,
+  });
+
+  @override
+  State<_FlipCard> createState() => _FlipCardState();
+}
+
+// Rotation ko smooth animate karne ke liye chhota quaternion helper
+class _Quat {
+  final double w, x, y, z;
+  const _Quat(this.w, this.x, this.y, this.z);
+}
+
+_Quat _quatFromMatrix(Matrix4 m) {
+  final m00 = m.entry(0, 0), m01 = m.entry(0, 1), m02 = m.entry(0, 2);
+  final m10 = m.entry(1, 0), m11 = m.entry(1, 1), m12 = m.entry(1, 2);
+  final m20 = m.entry(2, 0), m21 = m.entry(2, 1), m22 = m.entry(2, 2);
+  final tr = m00 + m11 + m22;
+  double w, x, y, z;
+  if (tr > 0) {
+    final s = math.sqrt(tr + 1.0) * 2;
+    w = 0.25 * s;
+    x = (m21 - m12) / s;
+    y = (m02 - m20) / s;
+    z = (m10 - m01) / s;
+  } else if (m00 > m11 && m00 > m22) {
+    final s = math.sqrt(1.0 + m00 - m11 - m22) * 2;
+    w = (m21 - m12) / s;
+    x = 0.25 * s;
+    y = (m01 + m10) / s;
+    z = (m02 + m20) / s;
+  } else if (m11 > m22) {
+    final s = math.sqrt(1.0 + m11 - m00 - m22) * 2;
+    w = (m02 - m20) / s;
+    x = (m01 + m10) / s;
+    y = 0.25 * s;
+    z = (m12 + m21) / s;
+  } else {
+    final s = math.sqrt(1.0 + m22 - m00 - m11) * 2;
+    w = (m10 - m01) / s;
+    x = (m02 + m20) / s;
+    y = (m12 + m21) / s;
+    z = 0.25 * s;
+  }
+  final n = math.sqrt(w * w + x * x + y * y + z * z);
+  return _Quat(w / n, x / n, y / n, z / n);
+}
+
+Matrix4 _matrixFromQuat(_Quat q) {
+  final w = q.w, x = q.x, y = q.y, z = q.z;
+  final m = Matrix4.identity();
+  m.setEntry(0, 0, 1 - 2 * (y * y + z * z));
+  m.setEntry(0, 1, 2 * (x * y - z * w));
+  m.setEntry(0, 2, 2 * (x * z + y * w));
+  m.setEntry(1, 0, 2 * (x * y + z * w));
+  m.setEntry(1, 1, 1 - 2 * (x * x + z * z));
+  m.setEntry(1, 2, 2 * (y * z - x * w));
+  m.setEntry(2, 0, 2 * (x * z - y * w));
+  m.setEntry(2, 1, 2 * (y * z + x * w));
+  m.setEntry(2, 2, 1 - 2 * (x * x + y * y));
+  return m;
+}
+
+_Quat _slerp(_Quat a, _Quat b, double t) {
+  double bw = b.w, bx = b.x, by = b.y, bz = b.z;
+  double dot = a.w * bw + a.x * bx + a.y * by + a.z * bz;
+  if (dot < 0) {
+    bw = -bw; bx = -bx; by = -by; bz = -bz;
+    dot = -dot;
+  }
+  double k1, k2;
+  if (dot > 0.9995) {
+    k1 = 1 - t;
+    k2 = t;
+  } else {
+    final theta = math.acos(dot);
+    final sinT  = math.sin(theta);
+    k1 = math.sin((1 - t) * theta) / sinT;
+    k2 = math.sin(t * theta) / sinT;
+  }
+  final w = a.w * k1 + bw * k2;
+  final x = a.x * k1 + bx * k2;
+  final y = a.y * k1 + by * k2;
+  final z = a.z * k1 + bz * k2;
+  final n = math.sqrt(w * w + x * x + y * y + z * z);
+  return _Quat(w / n, x / n, y / n, z / n);
+}
+
+class _FlipCardState extends State<_FlipCard>
+    with SingleTickerProviderStateMixin {
+  // Pura rotation ek matrix me jama hota hai -> kisi bhi angle par
+  // drag ki direction hamesha ungli ke hisaab se rehti hai.
+  Matrix4 _rot = Matrix4.identity();
+
+  // Zoom (2 ungliyon se pinch)
+  double _zoom     = 1.0;
+  double _baseZoom = 1.0;
+  int    _lastPointers = 0;
+
+  static const double _sensitivity = 0.012; // radians per pixel
+  static const double _minZoom = 0.8;
+  static const double _maxZoom = 3.0;
+
+  // Reshape button / double tap ka smooth animation
+  late final AnimationController _anim;
+  _Quat?   _qFrom;
+  _Quat?   _qTo;
+  Matrix4? _target;
+  double   _zFrom = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    )
+      ..addListener(_onAnimTick)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed && _target != null) {
+          setState(() {
+            _rot  = _target!;
+            _zoom = 1.0;
+          });
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  void _onAnimTick() {
+    if (_qFrom == null || _qTo == null) return;
+    final t = Curves.easeInOut.transform(_anim.value);
+    setState(() {
+      _rot  = _matrixFromQuat(_slerp(_qFrom!, _qTo!, t));
+      _zoom = _zFrom + (1.0 - _zFrom) * t;
+    });
+  }
+
+  void _animateTo(Matrix4 target) {
+    _target = target;
+    _qFrom  = _quatFromMatrix(_rot);
+    _qTo    = _quatFromMatrix(target);
+    _zFrom  = _zoom;
+    _anim.forward(from: 0);
+  }
+
+  // Card abhi seedha Front side par (aur zoom 1x) hai ya nahi
+  bool get _isFlatFront =>
+      (_rot.entry(0, 0) + _rot.entry(1, 1) + _rot.entry(2, 2)) > 2.98 &&
+          (_zoom - 1.0).abs() < 0.02;
+
+  // Reshape Card button:
+  //  - kisi bhi shape/zoom me ho -> Front par aa jata hai
+  //  - Front par ho -> Back dikhata hai
+  //  - Back par ho -> wapas Front
+  void _toggleShape() {
+    final target = _isFlatFront
+        ? (Matrix4.identity()..rotateY(math.pi))
+        : Matrix4.identity();
+    _animateTo(target);
+  }
+
+  // Double tap = Front par wapas
+  void _reset() => _animateTo(Matrix4.identity());
+
+  void _onScaleStart(ScaleStartDetails d) {
+    _anim.stop();
+    _baseZoom     = _zoom;
+    _lastPointers = d.pointerCount;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails d) {
+    // Ungliyon ki sankhya badli to ek frame skip (jhatka na lage)
+    if (d.pointerCount != _lastPointers) {
+      _lastPointers = d.pointerCount;
+      _baseZoom     = _zoom;
+      return;
+    }
+    if (d.pointerCount >= 2) {
+      // 2 ungli = zoom
+      setState(() {
+        _zoom = (_baseZoom * d.scale).clamp(_minZoom, _maxZoom).toDouble();
+      });
+    } else {
+      // 1 ungli = kisi bhi taraf ghumao
+      final delta = Matrix4.identity()
+        ..rotateX(d.focalPointDelta.dy * _sensitivity)
+        ..rotateY(-d.focalPointDelta.dx * _sensitivity);
+      setState(() => _rot = delta * _rot);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.theme;
+
+    // Card ka seedha (Z) direction kis taraf hai -> Front dikh raha hai ya Back
+    final bool frontVisible = _rot.entry(2, 2) >= 0;
+
+    final Matrix4 persp  = Matrix4.identity()..setEntry(3, 2, 0.0008);
+    final Matrix4 zoomM  = Matrix4.diagonal3Values(_zoom, _zoom, 1.0);
+    final Matrix4 frontM = persp * zoomM * _rot;
+    final Matrix4 backM  = frontM * (Matrix4.identity()..rotateY(math.pi));
+
+    return LayoutBuilder(
+      builder: (context, cons) {
+        // Label + hint ke liye jagah chhodkar card ki size nikalte hain
+        const double reserved = 190;
+        double w = math.min(cons.maxWidth - 32, 440.0);
+        final double availH = cons.maxHeight - reserved;
+        if (availH > 0 && w / _kCardAspect > availH) {
+          w = availH * _kCardAspect;
+        }
+        w = math.max(w, 160.0);
+        final double h = w / _kCardAspect;
+
+        Widget face(Key k, Matrix4 m, Widget child) => Transform(
+          key: k,
+          alignment: Alignment.center,
+          transform: m,
+          child: SizedBox(
+            width: w,
+            height: h,
+            child: FittedBox(fit: BoxFit.contain, child: child),
           ),
-        ),
-        SizedBox(width: 8.w),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
-            color: _theme.primary,
-            letterSpacing: 0.4,
+        );
+
+        final frontFace = face(const ValueKey('front-face'), frontM, widget.front);
+        final backFace  = face(const ValueKey('back-face'),  backM,  widget.back);
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onScaleStart: _onScaleStart,
+          onScaleUpdate: _onScaleUpdate,
+          onDoubleTap: _reset,
+          child: SizedBox.expand(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: t.primary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        frontVisible ? 'Front Side' : 'Back Side',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: t.primary,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  SizedBox(
+                    width: w,
+                    height: h,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      // Jo side saamne hai wo hamesha upar rahe
+                      children: frontVisible
+                          ? [backFace, frontFace]
+                          : [frontFace, backFace],
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  Text(
+                    'MOVE YOUR CARD IN ANY DIRECTION WITH YOUR FINGER TIPS\n'
+                        'PINCH WITH TWO FINGERS TO ZOOM',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: _textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                  SizedBox(height: 14.h),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: t.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 10.h),
+                    ),
+                    icon: const Icon(Icons.crop_rotate, color: Colors.white),
+                    label: const Text(
+                      'Reshape Card',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: _toggleShape,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  ADJUSTABLE PHOTO WIDGET
+//  PHOTO WIDGET (fixed - move / zoom nahi hota)
 // ═══════════════════════════════════════════════════════════════════════
-class _AdjustablePhoto extends StatefulWidget {
+class _AdjustablePhoto extends StatelessWidget {
   final String?           imageUrl;
   final double            width;
   final double            height;
@@ -624,88 +974,37 @@ class _AdjustablePhoto extends StatefulWidget {
     required this.onChanged,
   });
 
-  @override
-  State<_AdjustablePhoto> createState() => _AdjustablePhotoState();
-}
-
-class _AdjustablePhotoState extends State<_AdjustablePhoto> {
-  late Offset _offset;
-  late double _scale;
-
-  Offset? _startFocal;
-  Offset? _startOffset;
-  double? _startScale;
-
-  @override
-  void initState() {
-    super.initState();
-    _offset = widget.initialOffset;
-    _scale  = widget.initialScale;
-  }
-
-  @override
-  void didUpdateWidget(_AdjustablePhoto old) {
-    super.didUpdateWidget(old);
-    if (old.initialOffset != widget.initialOffset) _offset = widget.initialOffset;
-    if (old.initialScale  != widget.initialScale)  _scale  = widget.initialScale;
-  }
-
-  void _onScaleStart(ScaleStartDetails d) {
-    _startFocal  = d.localFocalPoint;
-    _startOffset = _offset;
-    _startScale  = _scale;
-  }
-
-  void _onScaleUpdate(ScaleUpdateDetails d) {
-    if (_startFocal == null) return;
-    final newScale = (_startScale! * d.scale).clamp(0.5, 3.0);
-    final delta    = d.localFocalPoint - _startFocal!;
-    setState(() {
-      _scale  = newScale;
-      _offset = _startOffset! + delta;
-    });
-    widget.onChanged(_offset, _scale);
-  }
-
+  // Photo fixed hai: koi move / zoom / touch gesture nahi.
+  // Photo jaisi aati hai waisi hi dikhti hai.
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: widget.width,
-      height: widget.height,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(widget.borderRadius),
-        border: Border.all(color: widget.borderColor, width: 2),
-        color: widget.bgColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: borderColor, width: 2),
+        color: bgColor,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(widget.borderRadius - 2),
-        child: GestureDetector(
-          onScaleStart: widget.imageUrl != null ? _onScaleStart : null,
-          onScaleUpdate: widget.imageUrl != null ? _onScaleUpdate : null,
-          child: widget.imageUrl != null
-              ? Transform.translate(
-            offset: _offset,
-            child: Transform.scale(
-              scale: _scale,
-              child: Image.network(
-                widget.imageUrl!,
-                width: widget.width,
-                height: widget.height,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (_, __, ___) => widget.placeholder,
-              ),
-            ),
-          )
-              : widget.placeholder,
-        ),
+        borderRadius: BorderRadius.circular(borderRadius - 2),
+        child: imageUrl != null
+            ? Image.network(
+          imageUrl!,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          errorBuilder: (_, __, ___) => placeholder,
+        )
+            : placeholder,
       ),
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════
-//  FRONT CARD
+//  FRONT CARD  (fixed design size 428 x 270, landscape)
 // ═══════════════════════════════════════════════════════════
 class _FrontCard extends StatelessWidget {
   final IdCardStudentData student;
@@ -740,218 +1039,252 @@ class _FrontCard extends StatelessWidget {
         ? DateFormat('dd MMM yyyy').format(student.dateOfBirth!)
         : '-';
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [t.primary, t.primaryLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    // Phone ki font-size setting card ka layout na bigaade
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: SizedBox(
+        width: _kDesignW,
+        height: _kDesignH,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_kCardRadius),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                height: 68,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [t.primary, t.primaryLight],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 64.w,
-                    height: 64.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: ClipOval(
+                        child: logoUrl != null
+                            ? CachedNetworkImage(
+                          imageUrl:    logoUrl,
+                          fit:         BoxFit.contain,
+                          placeholder: (_, __) => Icon(Icons.school, color: t.primary, size: 24),
+                          errorWidget: (_, __, ___) => Icon(Icons.school, color: t.primary, size: 24),
+                        )
+                            : Icon(Icons.school, color: t.primary, size: 24),
+                      ),
                     ),
-                    child: ClipOval(
-                      child: logoUrl != null
-                          ? CachedNetworkImage(
-                        imageUrl:    logoUrl,
-                        fit:         BoxFit.contain,
-                        placeholder: (_, __) => Icon(Icons.school, color: t.primary, size: 28),
-                        errorWidget: (_, __, ___) => Icon(Icons.school, color: t.primary, size: 28),
-                      )
-                          : Icon(Icons.school, color: t.primary, size: 28),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    (student.schoolName ?? 'School').toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                  if (student.affiliated != null) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      student.affiliated!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 10.sp),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              (student.schoolName ?? 'School').toUpperCase(),
+                              maxLines: 1,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          if (student.affiliated != null)
+                            Text(
+                              student.affiliated!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white70, fontSize: 8.5),
+                            ),
+                          Text(
+                            student.schoolAddress ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontSize: 8.5),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.phone_in_talk_rounded, color: Colors.white70, size: 10),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  student.schoolPhone ?? '-',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 8.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                  SizedBox(height: 3.h),
-                  Text(
-                    student.schoolAddress ?? '',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 10.sp),
-                  ),
-                  SizedBox(height: 2.h),
-                  // Fixed: Icon + number only, no extra broken characters
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.phone_in_talk_rounded, color: Colors.white70, size: 13),
-                      SizedBox(width: 4.w),
-                      Text(
-                        student.schoolPhone ?? '-',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 10.sp),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Ribbon
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 5.h),
-              color: t.ribbonBg,
-              child: Text(
-                'STUDENT IDENTITY CARD',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w800,
-                  color: t.ribbonText,
-                  letterSpacing: 2,
                 ),
               ),
-            ),
 
-            // Body
-            Container(
-              color: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    children: [
-                      _AdjustablePhoto(
-                        imageUrl:      studentImgUrl,
-                        width:         85.w,
-                        height:        95.w,
-                        borderRadius:  10.r,
-                        borderColor:   t.primaryLight,
-                        bgColor:       t.ribbonBg,
-                        placeholder:   Icon(Icons.person, size: 40.w, color: t.primaryLight),
-                        initialOffset: imgOffset,
-                        initialScale:  imgScale,
-                        onChanged:     onAdjust,
-                      ),
-                      SizedBox(height: 6.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                        decoration: BoxDecoration(
-                          color: t.primary,
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Text(
-                          student.className ?? '-',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
+              // Ribbon
+              Container(
+                width: double.infinity,
+                height: 18,
+                alignment: Alignment.center,
+                color: t.ribbonBg,
+                child: Text(
+                  'STUDENT IDENTITY CARD',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: t.ribbonText,
+                    letterSpacing: 2,
                   ),
-                  SizedBox(width: 14.w),
+                ),
+              ),
 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          student.studentName ?? '-',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w800,
-                            color: _textPrimary,
+              // Body
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _AdjustablePhoto(
+                            imageUrl:      studentImgUrl,
+                            width:         78,
+                            height:        88,
+                            borderRadius:  10,
+                            borderColor:   t.primaryLight,
+                            bgColor:       t.ribbonBg,
+                            placeholder:   Icon(Icons.person, size: 36, color: t.primaryLight),
+                            initialOffset: imgOffset,
+                            initialScale:  imgScale,
+                            onChanged:     onAdjust,
+                          ),
+                          const SizedBox(height: 5),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 78),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: t.primary,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              student.className ?? '-',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, cons) => FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: cons.maxWidth,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    student.studentName ?? '-',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: _textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    'Reg: ${student.registrationNo ?? '-'}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: 9.5,
+                                        color: t.primaryLight,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _infoRow('Father',    student.fatherName, t),
+                                  _infoRow('Mother',    student.motherName, t),
+                                  _infoRow('DOB',       dob, t),
+                                  _infoRow('Blood Grp', student.bloodGroup, t),
+                                  _infoRow('Section',   '${student.sectionName ?? '-'}', t),
+                                  if ((student.rollNo ?? '').isNotEmpty)
+                                    _infoRow('Roll No', student.rollNo, t),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                        SizedBox(height: 2.h),
-                        Text(
-                          'Reg: ${student.registrationNo ?? '-'}',
-                          style: TextStyle(
-                              fontSize: 10.sp,
-                              color: t.primaryLight,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        SizedBox(height: 10.h),
-                        _infoRow('Father',    student.fatherName, t),
-                        _infoRow('Mother',    student.motherName, t),
-                        _infoRow('DOB',       dob, t),
-                        _infoRow('Blood Grp', student.bloodGroup, t),
-                        _infoRow('Section',   '${student.sectionName ?? '-'}', t),
-                        if ((student.rollNo ?? '').isNotEmpty)
-                          _infoRow('Roll No', student.rollNo, t),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-
-            // Footer
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [t.primary, t.primaryLight],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Session: ${student.session ?? '-'}',
-                    style: TextStyle(color: Colors.white70, fontSize: 10.sp),
+
+              // Footer
+              Container(
+                width: double.infinity,
+                height: 22,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [t.primary, t.primaryLight],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
-                  Text(
-                    student.schoolEmail ?? '',
-                    style: TextStyle(color: Colors.white70, fontSize: 10.sp),
-                  ),
-                ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Session: ${student.session ?? '-'}',
+                      maxLines: 1,
+                      style: const TextStyle(color: Colors.white70, fontSize: 9),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        student.schoolEmail ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white70, fontSize: 9),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -959,16 +1292,17 @@ class _FrontCard extends StatelessWidget {
 
   Widget _infoRow(String label, String? value, IdCardTheme t) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 4.h),
+      padding: const EdgeInsets.only(bottom: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 60.w,
+            width: 56,
             child: Text(
               '$label :',
-              style: TextStyle(
-                  fontSize: 11.sp,
+              maxLines: 1,
+              style: const TextStyle(
+                  fontSize: 10,
                   color: _textSecondary,
                   fontWeight: FontWeight.w600),
             ),
@@ -976,8 +1310,10 @@ class _FrontCard extends StatelessWidget {
           Expanded(
             child: Text(
               value ?? '-',
-              style: TextStyle(
-                  fontSize: 11.sp,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 10,
                   color: _textPrimary,
                   fontWeight: FontWeight.w500),
             ),
@@ -989,7 +1325,7 @@ class _FrontCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  BACK CARD
+//  BACK CARD  (fixed design size 428 x 270, landscape)
 // ═══════════════════════════════════════════════════════════
 class _BackCard extends StatelessWidget {
   final IdCardStudentData student;
@@ -1022,148 +1358,170 @@ class _BackCard extends StatelessWidget {
         ? '$_imgBase${student.motherPic}'
         : null;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [t.primary, t.primaryLight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: SizedBox(
+        width: _kDesignW,
+        height: _kDesignH,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(_kCardRadius),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                height: 26,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [t.primary, t.primaryLight],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    (student.schoolName ?? 'School').toUpperCase(),
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
                 ),
               ),
-              child: Text(
-                (student.schoolName ?? 'School').toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
 
-            Container(
-              color: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _parentAvatar(
-                        fatherImgUrl,
-                        student.fatherName ?? '-',
-                        Icons.man_outlined,
-                        'Father',
-                        t,
-                        fatherOffset,
-                        fatherScale,
-                        onFatherAdjust,
+                      // Left: Father + Mother
+                      SizedBox(
+                        width: 112,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _parentAvatar(
+                              fatherImgUrl,
+                              student.fatherName ?? '-',
+                              Icons.man_outlined,
+                              'Father',
+                              t,
+                              fatherOffset,
+                              fatherScale,
+                              onFatherAdjust,
+                            ),
+                            const SizedBox(height: 6),
+                            _parentAvatar(
+                              motherImgUrl,
+                              student.motherName ?? '-',
+                              Icons.woman_outlined,
+                              'Mother',
+                              t,
+                              motherOffset,
+                              motherScale,
+                              onMotherAdjust,
+                            ),
+                          ],
+                        ),
                       ),
                       Container(
-                          width: 1, height: 80, color: t.ribbonBg),
-                      _parentAvatar(
-                        motherImgUrl,
-                        student.motherName ?? '-',
-                        Icons.woman_outlined,
-                        'Mother',
-                        t,
-                        motherOffset,
-                        motherScale,
-                        onMotherAdjust,
+                          width: 1,
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          color: t.ribbonBg),
+
+                      // Right: contact + transport + note
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, cons) => FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: cons.maxWidth,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _backRow(Icons.phone_in_talk_rounded,    'Phone',     student.phone       ?? '-', t),
+                                  _backRow(Icons.phone_android_outlined,   'WhatsApp',  student.whatsAppNo  ?? '-', t),
+                                  _backRow(Icons.emergency_outlined,       'Emergency', student.emergencyNo ?? '-', t),
+                                  _backRow(Icons.email_outlined,           'Email',     student.email       ?? '-', t),
+                                  _backRow(Icons.home_outlined,            'Address',   student.address     ?? '-', t),
+
+                                  if ((student.transportUser ?? '').toLowerCase() == 'yes') ...[
+                                    Divider(color: t.ribbonBg, thickness: 1, height: 10),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.directions_bus_outlined, size: 11, color: t.primaryLight),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Transport Details',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: t.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    _backRow(Icons.route_outlined, 'Route No', student.routeNo     ?? '-', t),
+                                    _backRow(Icons.place_outlined, 'Stop',     student.pickupPoint ?? '-', t),
+                                  ],
+
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: t.ribbonBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'If found, please return to the school.\n'
+                                          '${student.schoolName ?? ''} | ${student.schoolAddress ?? ''}\n'
+                                          '📞 ${student.schoolPhone ?? ''}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          fontSize: 8,
+                                          color: _textSecondary,
+                                          height: 1.4),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 14.h),
-                  Divider(color: t.ribbonBg, thickness: 1),
-                  SizedBox(height: 10.h),
-
-                  _backRow(Icons.phone_in_talk_rounded,    'Phone',     student.phone       ?? '-', t),
-                  _backRow(Icons.phone_android_outlined,   'WhatsApp',  student.whatsAppNo  ?? '-', t),
-                  _backRow(Icons.emergency_outlined,       'Emergency', student.emergencyNo ?? '-', t),
-                  _backRow(Icons.email_outlined,           'Email',     student.email       ?? '-', t),
-                  _backRow(Icons.home_outlined,            'Address',   student.address     ?? '-', t),
-
-                  SizedBox(height: 10.h),
-
-                  if ((student.transportUser ?? '').toLowerCase() == 'yes') ...[
-                    Divider(color: t.ribbonBg, thickness: 1),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Icon(Icons.directions_bus_outlined, size: 14, color: t.primaryLight),
-                        SizedBox(width: 6.w),
-                        Text(
-                          'Transport Details',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: t.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 6.h),
-                    _backRow(Icons.route_outlined, 'Route No', student.routeNo     ?? '-', t),
-                    _backRow(Icons.place_outlined, 'Stop',     student.pickupPoint ?? '-', t),
-                    SizedBox(height: 4.h),
-                  ],
-
-                  SizedBox(height: 10.h),
-                  Divider(color: t.ribbonBg, thickness: 1),
-                  SizedBox(height: 8.h),
-
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(10.r),
-                    decoration: BoxDecoration(
-                      color: t.ribbonBg,
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    child: Text(
-                      'If found, please return to the school.\n'
-                          '${student.schoolName ?? ''} | ${student.schoolAddress ?? ''}\n'
-                          '📞 ${student.schoolPhone ?? ''}',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 10.sp,
-                          color: _textSecondary,
-                          height: 1.6),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
 
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              color: t.footerBg,
-              child: Text(
-                'Authorised Signature ____________________',
-                textAlign: TextAlign.end,
-                style: TextStyle(color: Colors.white70, fontSize: 10.sp),
+              Container(
+                width: double.infinity,
+                height: 20,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                color: t.footerBg,
+                child: const Text(
+                  'Authorised Signature ____________________',
+                  maxLines: 1,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(color: Colors.white70, fontSize: 9),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1180,20 +1538,21 @@ class _BackCard extends StatelessWidget {
       void Function(Offset, double) onChanged,
       ) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         _AdjustablePhoto(
           imageUrl:      imgUrl,
-          width:         60.w,
-          height:        65.w,
-          borderRadius:  10.r,
+          width:         46,
+          height:        52,
+          borderRadius:  8,
           borderColor:   t.primaryLight,
           bgColor:       t.ribbonBg,
-          placeholder:   Icon(fallback, size: 28.w, color: t.primaryLight),
+          placeholder:   Icon(fallback, size: 24, color: t.primaryLight),
           initialOffset: offset,
           initialScale:  scale,
           onChanged:     onChanged,
         ),
-        SizedBox(height: 4.h),
+        const SizedBox(height: 3),
         // Text(label,
         //     style: TextStyle(
         //         fontSize: 9.sp,
@@ -1201,14 +1560,14 @@ class _BackCard extends StatelessWidget {
         //         fontWeight: FontWeight.w600)),
         // SizedBox(height: 2.h),
         SizedBox(
-          width: 110.w,
+          width: 108,
           child: Text(
             name,
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                fontSize: 11.sp,
+            style: const TextStyle(
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
                 color: _textPrimary),
           ),
@@ -1219,18 +1578,19 @@ class _BackCard extends StatelessWidget {
 
   Widget _backRow(IconData icon, String label, String value, IdCardTheme t) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 5.h),
+      padding: const EdgeInsets.only(bottom: 3.5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 13, color: t.primaryLight),
-          SizedBox(width: 6.w),
+          Icon(icon, size: 11, color: t.primaryLight),
+          const SizedBox(width: 4),
           SizedBox(
-            width: 70.w,
+            width: 54,
             child: Text(
               '$label :',
-              style: TextStyle(
-                  fontSize: 11.sp,
+              maxLines: 1,
+              style: const TextStyle(
+                  fontSize: 9.5,
                   color: _textSecondary,
                   fontWeight: FontWeight.w600),
             ),
@@ -1238,8 +1598,8 @@ class _BackCard extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                  fontSize: 11.sp,
+              style: const TextStyle(
+                  fontSize: 9.5,
                   color: _textPrimary,
                   fontWeight: FontWeight.w500),
               overflow: TextOverflow.ellipsis,
